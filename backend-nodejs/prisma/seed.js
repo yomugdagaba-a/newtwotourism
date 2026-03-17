@@ -7,10 +7,10 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   // ── Roles ──────────────────────────────────────────────────────────────────
-  const adminRole    = await prisma.role.upsert({ where: { name: 'ADMIN' },       update: {}, create: { name: 'ADMIN' } });
-  const clientRole   = await prisma.role.upsert({ where: { name: 'CLIENT' },      update: {}, create: { name: 'CLIENT' } });
-  const ownerRole    = await prisma.role.upsert({ where: { name: 'HOTEL_OWNER' }, update: {}, create: { name: 'HOTEL_OWNER' } });
-  await prisma.role.upsert({ where: { name: 'USER' }, update: {}, create: { name: 'USER' } });
+  await prisma.role.upsert({ where: { name: 'ADMIN' },       update: {}, create: { name: 'ADMIN' } });
+  await prisma.role.upsert({ where: { name: 'CLIENT' },      update: {}, create: { name: 'CLIENT' } });
+  await prisma.role.upsert({ where: { name: 'HOTEL_OWNER' }, update: {}, create: { name: 'HOTEL_OWNER' } });
+  await prisma.role.upsert({ where: { name: 'USER' },        update: {}, create: { name: 'USER' } });
   console.log('✓ Roles created');
 
   // ── Booking statuses ───────────────────────────────────────────────────────
@@ -19,12 +19,27 @@ async function main() {
   }
   console.log('✓ Booking statuses created');
 
-  // ── Users ──────────────────────────────────────────────────────────────────
+  // ── Admin user ─────────────────────────────────────────────────────────────
   const hash = await bcrypt.hash('admin123', 10);
-
-  const adminUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { username: 'admin' },
     update: {},
     create: {
-      username: 'admin', email: 'admin@tourism.local', fullName: 'Admin User',
-      passwordHash: hash, emailVerified: true, emailVerifiedAt: new Date(), ac
+      username: 'admin',
+      email: 'admin@tourism.local',
+      fullName: 'Admin User',
+      passwordHash: hash,
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+      active: true,
+      roles: { connect: { name: 'ADMIN' } },
+    },
+  });
+  console.log('✓ Admin user created (username: admin, password: admin123)');
+
+  console.log('✅ Seed complete');
+}
+
+main()
+  .catch(e => { console.error('❌ Seed failed:', e); process.exit(1); })
+  .finally(() => prisma.$disconnect());

@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "North Wollo Tourism Management System - Node.js Backend",
   "main": "src/index.js",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
