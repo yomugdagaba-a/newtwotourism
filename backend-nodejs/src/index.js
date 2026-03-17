@@ -7,7 +7,7 @@ const https = require('https');
 const prisma = require('./lib/prisma');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 9001;
 
 // Security headers
 app.use((req, res, next) => {
@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 
 // CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'https://localhost:9000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -89,6 +89,16 @@ app.use('/api/guiders', require('./controllers/language-guiders.controller'));
 
 // Ratings
 app.use('/api/ratings', require('./controllers/ratings.controller'));
+
+// Alias: POST /api/tourisms/:id/rate → POST /api/ratings/tourism
+const ratingsService = require('./services/ratings.service');
+const { authenticate: _authenticate } = require('./middleware/auth.middleware');
+app.post('/api/tourisms/:tourismId/rate', _authenticate, async (req, res, next) => {
+  try {
+    const result = await ratingsService.rateTourism(parseInt(req.params.tourismId), req.user.userId, req.body.rating, req.body.comment);
+    res.status(201).json(result);
+  } catch (e) { next(e); }
+});
 
 // Map Points
 app.use('/api/map-points', require('./controllers/map-points.controller'));

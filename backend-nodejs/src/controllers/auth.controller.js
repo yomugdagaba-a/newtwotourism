@@ -22,6 +22,11 @@ router.post('/logout', authenticate, async (req, res, next) => {
   try { await authService.logout(req.user.userId); res.json({ message: 'Logged out successfully' }); } catch (e) { next(e); }
 });
 
+// Alias: /revoke-token → same as /logout (frontend calls this)
+router.post('/revoke-token', authenticate, async (req, res, next) => {
+  try { await authService.logout(req.user.userId); res.json({ message: 'Token revoked successfully' }); } catch (e) { next(e); }
+});
+
 // Password reset
 router.post('/reset-password', validate(PasswordResetRequestDto), async (req, res, next) => {
   try { res.json(await authService.initiatePasswordReset(req.body.email, getClientIp(req), req.get('user-agent') || '')); } catch (e) { next(e); }
@@ -58,6 +63,22 @@ router.get('/verify-email/validate', async (req, res, next) => {
 
 router.get('/email-verified', async (req, res, next) => {
   try { res.json(await authService.checkEmailVerified(req.query.email)); } catch (e) { next(e); }
+});
+
+// Validate refresh token (frontend calls GET /auth/validate-refresh-token?token=...)
+router.get('/validate-refresh-token', async (req, res, next) => {
+  try {
+    const token = req.query.token;
+    if (!token) return res.json({ valid: false });
+    const jwt = require('jsonwebtoken');
+    const prisma = require('../lib/prisma');
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      const stored = await prisma.refreshToken.findFirst({ where: { token, userId: payload.userId } });
+      if (!stored || stored.expiresAt < new Date()) return res.json({ valid: false });
+      return res.json({ valid: true, userId: payload.userId });
+    } catch { return res.json({ valid: false }); }
+  } catch (e) { next(e); }
 });
 
 module.exports = router;

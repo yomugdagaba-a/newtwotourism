@@ -137,6 +137,14 @@ router.post('/tourism/:id/images', ...guard, async (req, res, next) => {
   try { res.status(201).json(await tourismService.addImage(parseInt(req.params.id), req.body.imageUrl)); } catch (e) { next(e); }
 });
 
+router.put('/tourism/:id/images/:imageId', ...guard, async (req, res, next) => {
+  try { res.json(await tourismService.updateImage(parseInt(req.params.imageId), req.body)); } catch (e) { next(e); }
+});
+
+router.put('/tourism/:id/images/:imageId/set-main', ...guard, async (req, res, next) => {
+  try { res.json(await tourismService.setMainImage(parseInt(req.params.id), parseInt(req.params.imageId))); } catch (e) { next(e); }
+});
+
 router.delete('/tourism/:id/images/:imageId', ...guard, async (req, res, next) => {
   try { res.json(await tourismService.removeImage(parseInt(req.params.imageId))); } catch (e) { next(e); }
 });
@@ -316,7 +324,7 @@ router.get('/audit/high-severity', ...guard, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.get('/audit/suspicious', ...guard, async (req, res, next) => {
+router.get('/audit/suspicious-activity', ...guard, async (req, res, next) => {
   try {
     const days = Math.ceil((parseInt(req.query.hours) || 24) / 24);
     res.json(await auditService.findSuspiciousActivity(days, req.query.actionThreshold || 50));
@@ -419,6 +427,89 @@ router.get('/audit', ...guard, async (req, res, next) => {
     const take = req.query.take ? parseInt(req.query.take) : size;
     const { logs, total } = await auditService.findAll(skip, take, req.query.userId, req.query.action);
     res.json({ content: logs, totalElements: total, totalPages: Math.ceil(total / take), size: take, number: page, first: page === 0, last: page >= Math.ceil(total / take) - 1, empty: logs.length === 0 });
+  } catch (e) { next(e); }
+});
+
+// ── Security ───────────────────────────────────────────────────────────────────
+const authService = require('../services/auth.service');
+
+router.get('/security/login-attempts', ...guard, async (req, res, next) => {
+  try {
+    const { identifier, hours = 24 } = req.query;
+    const since = new Date(Date.now() - parseInt(hours) * 3600000);
+    const attempts = await prisma.loginAttempt.findMany({
+      where: { ...(identifier ? { ipAddress: identifier } : {}), createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    res.json(attempts);
+  } catch (e) { next(e); }
+});
+
+router.get('/security/lockouts/:userId', ...guard, async (req, res, next) => {
+  try {
+    const lockouts = await prisma.accountLockout.findMany({
+      where: { userId: parseInt(req.params.userId) },
+      orderBy: { lockedUntil: 'desc' },
+    });
+    res.json(lockouts);
+  } catch (e) { next(e); }
+});
+
+router.get('/security/lockout-status/:userId', ...guard, async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const lockedOut = await authService.isUserLockedOut(userId);
+    if (!lockedOut) return res.json({ lockedOut: false });
+    const lockout = await prisma.accountLockout.findUnique({ where: { userId } });
+    const remainingMs = lockout ? lockout.lockedUntil.getTime() - Date.now() : 0;
+    res.json({ lockedOut: true, lockout: { lockedUntil: lockout?.lockedUntil, remainingMinutes: Math.ceil(remainingMs / 60000) } });
+  } catch (e) { next(e); }
+});
+
+router.post('/security/unlock/:userId', ...guard, async (req, res, next) => {
+  try {
+    await authService.unlockUserAccount(parseInt(req.params.userId));
+    res.json({ message: 'Account unlocked successfully' });
+  } catch (e) { next(e); }
+});
+
+router.post('/security/lock/:userId', ...guard, async (req, res, next) => {
+  try {
+    const { reason = 'Manually locked by admin', durationMinutes = 60 } = req.query;
+    const userId = parseInt(req.params.userId);
+    const lockedUntil = new Date(Date.now() + parseInt(durationMinutes) * 60000);
+    await prisma.accountLockout.upsert({ where: { userId }, create: { userId, lockedUntil }, update: { lockedUntil } });
+    res.json({ message: 'Account locked successfully', lockout: { userId, lockedUntil, reason } });
+  } catch (e) { next(e); }
+});
+
+router.get('/security/check-block-status', ...guard, async (req, res, next) => {
+  try {
+    const { identifier, ipAddress } = req.query;
+    const [ipBlocked, identifierBlocked, progressiveDelay, suspiciousActivity] = await Promise.all([
+      authService.shouldBlockIpAddress(ipAddress || identifier),
+      authService.shouldBlockIdentifier(ipAddress || identifier),
+      authService.getProgressiveDelay(ipAddress || identifier),
+      authService.detectSuspiciousActivity(ipAddress || identifier),
+    ]);
+    res.json({ identifierBlocked, ipBlocked, progressiveDelay, suspiciousActivity });
+  } catch (e) { next(e); }
+});
+
+router.post('/security/cleanup', ...guard, async (req, res, next) => {
+  try {
+    const retentionDays = parseInt(req.query.retentionDays) || 90;
+    const deleted = await authService.cleanupOldSecurityRecords(retentionDays);
+    res.json({ message: `Cleaned up ${deleted} old security records`, deletedCount: deleted });
+  } catch (e) { next(e); }
+});
+
+router.post('/security/send-alert/:userId', ...guard, async (req, res, next) => {
+  try {
+    const { alertType = 'SUSPICIOUS_ACTIVITY', ipAddress = 'ADMIN' } = req.query;
+    await authService.sendSecurityAlert(parseInt(req.params.userId), alertType, ipAddress);
+    res.json({ message: 'Security alert sent successfully' });
   } catch (e) { next(e); }
 });
 

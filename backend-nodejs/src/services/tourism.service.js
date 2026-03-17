@@ -94,8 +94,26 @@ async function addImage(tourismPlaceId, imageUrl) {
   return prisma.tourismImage.create({ data: { tourismPlaceId, imageUrl } });
 }
 
+async function updateImage(imageId, data) {
+  const image = await prisma.tourismImage.findUnique({ where: { id: imageId } });
+  if (!image) throw Object.assign(new Error('Image not found'), { status: 404 });
+  const { imageUrl, displayOrder } = data;
+  return prisma.tourismImage.update({ where: { id: imageId }, data: { ...(imageUrl && { imageUrl }), ...(displayOrder !== undefined && { displayOrder }) } });
+}
+
+async function setMainImage(tourismPlaceId, imageId) {
+  // Schema has no isMain field — set displayOrder=0 for main, increment others
+  const images = await prisma.tourismImage.findMany({ where: { tourismPlaceId }, orderBy: { displayOrder: 'asc' } });
+  const others = images.filter(img => img.id !== imageId);
+  await prisma.tourismImage.update({ where: { id: imageId }, data: { displayOrder: 0 } });
+  for (let i = 0; i < others.length; i++) {
+    await prisma.tourismImage.update({ where: { id: others[i].id }, data: { displayOrder: i + 1 } });
+  }
+  return prisma.tourismImage.findUnique({ where: { id: imageId } });
+}
+
 async function removeImage(imageId) {
   return prisma.tourismImage.delete({ where: { id: imageId } });
 }
 
-module.exports = { create, findAll, findById, update, remove, search, searchPublic, getHomepage, getImages, getNearbyPlaces, addImage, removeImage };
+module.exports = { create, findAll, findById, update, remove, search, searchPublic, getHomepage, getImages, getNearbyPlaces, addImage, updateImage, setMainImage, removeImage };
