@@ -1,16 +1,16 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST || 'localhost',
-  port: parseInt(process.env.MAIL_PORT || '587'),
-  secure: process.env.MAIL_PORT === '465',
-  auth: (process.env.MAIL_USER) ? {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASSWORD,
+  host: process.env.SMTP_HOST || process.env.MAIL_HOST || 'localhost',
+  port: parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587'),
+  secure: (process.env.SMTP_PORT || process.env.MAIL_PORT) === '465',
+  auth: (process.env.SMTP_USER || process.env.MAIL_USER) ? {
+    user: process.env.SMTP_USER || process.env.MAIL_USER,
+    pass: process.env.SMTP_PASSWORD || process.env.MAIL_PASSWORD,
   } : undefined,
 });
 
-const FROM = process.env.MAIL_FROM || 'noreply@tourism.com';
+const FROM = process.env.SMTP_FROM || process.env.MAIL_FROM || 'noreply@tourism.com';
 
 async function sendEmail(to, subject, html) {
   try {
