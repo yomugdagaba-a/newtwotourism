@@ -1,0 +1,476 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f9fafb;
+  --foreground: #111827;
+}
+
+body {
+  background: #f3f4f6;
+  color: var(--foreground);
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+/* Light mode frosted glass effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Scrollbar styling - Gray */
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F3F4F6;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9CA3AF;
+  border-radius: 8px;
+  border: 2px solid #F3F4F6;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6B7280;
+}
+
+/* Firefox scrollbar - Gray */
+html {
+  scrollbar-width: auto;
+  scrollbar-color: #9CA3AF #F3F4F6;
+}
+
+/* Scrollbar hide for horizontal scroll */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Links */
+a {
+  color: #2563EB;
+}
+
+a:hover {
+  color: #1D4ED8;
+}
+
+/* Blob animation for background */
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ========================================
+   ADMIN SIDEBAR - White Background with Gray Scrollbar
+   ======================================== */
+.admin-sidebar {
+  background: #FFFFFF !important;
+}
+
+/* Gray Scrollbar for Admin Sidebar */
+.admin-sidebar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.admin-sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 5px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #9CA3AF 0%, #6B7280 100%);
+  border-radius: 5px;
+  border: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #6B7280 0%, #4B5563 100%);
+}
+
+/* Firefox scrollbar */
+.admin-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #9CA3AF rgba(0, 0, 0, 0.05);
+}
+
+/* Admin Panel Title - Extra Bold */
+.admin-sidebar h1 {
+  color: #1F2937 !important;
+  font-weight: 900 !important;
+  font-size: 1.5rem !important;
+  text-shadow: none;
+  letter-spacing: 0.02em;
+}
+
+/* Section Headers - Bold */
+.admin-sidebar h3,
+.admin-sidebar .text-xs.uppercase {
+  color: #4B5563 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em;
+  text-shadow: none;
+}
+
+/* Navigation Links - Bold with white background - MAXIMUM BOLDNESS WITHOUT SIZE INCREASE */
+.admin-sidebar nav a {
+  color: #1F2937 !important;
+  font-weight: 900 !important;
+  font-size: 0.95rem !important;
+  background-color: #FFFFFF !important;
+  border-radius: 0.5rem !important;
+  margin-bottom: 0.25rem !important;
+  border: 2px solid #D1D5DB !important;
+  transition: border-color 0.2s ease !important;
+  -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.admin-sidebar nav a * {
+  font-weight: 900 !important;
+  -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.admin-sidebar nav a:hover {
+  background-color: #FFFFFF !important;
+  color: #1F2937 !important;
+  border: 2px solid #9CA3AF !important;
+  font-weight: 900 !important;
+  -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Active Navigation Link */
+.admin-sidebar nav a.bg-blue-600,
+.admin-sidebar nav a[class*="bg-blue"],
+.admin-sidebar nav a[class*="text-blue"] {
+  background-color: #FFFFFF !important;
+  color: #2563EB !important;
+  font-weight: 900 !important;
+  border: 2px solid #93C5FD !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  -webkit-text-stroke: 0.8px rgba(37, 99, 235, 0.2) !important;
+}
+
+.admin-sidebar nav a[class*="text-blue"] * {
+  font-weight: 900 !important;
+  -webkit-text-stroke: 0.8px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* User Info Section */
+.admin-sidebar .text-gray-900,
+.admin-sidebar p.text-sm {
+  color: #1F2937 !important;
+  font-weight: 700 !important;
+}
+
+.admin-sidebar .text-gray-500,
+.admin-sidebar .text-gray-600,
+.admin-sidebar .text-gray-700,
+.admin-sidebar p.text-xs {
+  color: #6B7280 !important;
+  font-weight: 600 !important;
+}
+
+/* User Avatar */
+.admin-sidebar .bg-blue-600.rounded-full {
+  background-color: #2563EB !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Border styling */
+.admin-sidebar .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Logout Button - Bold and Distinct */
+.admin-sidebar button {
+  font-weight: 700 !important;
+  background-color: rgba(254, 202, 202, 0.2) !important;
+  border-radius: 0.5rem !important;
+}
+
+.admin-sidebar button:hover {
+  background-color: rgba(254, 202, 202, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.admin-sidebar .bg-red-50 {
+  background-color: rgba(254, 202, 202, 0.25) !important;
+}
+
+.admin-sidebar .bg-red-50:hover {
+  background-color: rgba(254, 202, 202, 0.4) !important;
+}
+
+.admin-sidebar .text-red-600 {
+  color: #fecaca !important;
+  font-weight: 700 !important;
+}
+
+/* Icon styling in sidebar */
+.admin-sidebar span.mr-3 {
+  font-size: 1.25rem !important;
+}
+
+/* ========================================
+   QUICK ACTIONS CARDS - Bold & Distinct
+   ======================================== */
+.quick-action-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%) !important;
+  border-left: 5px solid #2563EB !important;
+}
+
+.quick-action-card:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-left: 5px solid #1D4ED8 !important;
+}
+
+.quick-action-card h3 {
+  font-weight: 900 !important;
+  letter-spacing: -0.01em;
+}
+
+.quick-action-card p {
+  font-weight: 600 !important;
+}
+
+/* ========================================
+   ADMIN USERS PAGE - Bold Text & Very Light Role Badges (30%)
+   ======================================== */
+
+/* Role badges - very light colors (30% intensity) */
+.admin-page span[class*="bg-purple-50"] {
+  background: rgba(243, 232, 255, 0.6) !important;
+  color: #7c3aed !important;
+  font-weight: 800 !important;
+  padding: 0.375rem 0.75rem !important;
+  border: 1px solid rgba(196, 181, 253, 0.5) !important;
+}
+
+.admin-page span[class*="bg-blue-50"] {
+  background: rgba(239, 246, 255, 0.6) !important;
+  color: #2563eb !important;
+  font-weight: 800 !important;
+  padding: 0.375rem 0.75rem !important;
+  border: 1px solid rgba(191, 219, 254, 0.5) !important;
+}
+
+.admin-page span[class*="bg-amber-50"] {
+  background: rgba(255, 251, 235, 0.6) !important;
+  color: #d97706 !important;
+  font-weight: 800 !important;
+  padding: 0.375rem 0.75rem !important;
+  border: 1px solid rgba(253, 230, 138, 0.5) !important;
+}
+
+/* Add Role button - very light green (30%) */
+.admin-page button[class*="bg-emerald-50"] {
+  background: rgba(236, 253, 245, 0.6) !important;
+  color: #059669 !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(167, 243, 208, 0.5) !important;
+}
+
+.admin-page button[class*="bg-emerald-50"]:hover {
+  background: rgba(209, 250, 229, 0.8) !important;
+}
+
+/* X button to remove role */
+.admin-page span button[title="Revoke role"] {
+  font-weight: 900 !important;
+  font-size: 1rem !important;
+  margin-left: 0.5rem !important;
+  opacity: 0.6;
+}
+
+.admin-page span button[title="Revoke role"]:hover {
+  opacity: 1;
+  color: #dc2626 !important;
+}
+
+/* ========================================
+   ADMIN PAGES ONLY - Bold text & Green accent buttons
+   ======================================== */
+
+/* Admin page container - add this class to admin pages */
+.admin-page h1, .admin-page h2, .admin-page h3, .admin-page h4, .admin-page h5, .admin-page h6 {
+  font-weight: 800 !important;
+}
+
+.admin-page .text-gray-900 {
+  font-weight: 700 !important;
+}
+
+.admin-page .text-gray-800 {
+  font-weight: 700 !important;
+}
+
+.admin-page .text-gray-700 {
+  font-weight: 600 !important;
+}
+
+.admin-page .text-gray-600 {
+  font-weight: 600 !important;
+}
+
+.admin-page p, .admin-page span, .admin-page div {
+  font-weight: 500;
+}
+
+.admin-page th {
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-page .font-semibold {
+  font-weight: 800 !important;
+}
+
+.admin-page .font-medium {
+  font-weight: 700 !important;
+}
+
+.admin-page label {
+  font-weight: 700 !important;
+}
+
+.admin-page .text-2xl, .admin-page .text-3xl, .admin-page .text-4xl, .admin-page .text-5xl {
+  font-weight: 900 !important;
+}
+
+.admin-page button {
+  font-weight: 700 !important;
+}
+
+/* Admin button styles - bold with blue left accent */
+.admin-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 700 !important;
+  transition: all 0.2s;
+  border: 1px solid;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #2563EB !important;
+}
+
+.admin-btn-edit {
+  color: #1d4ed8;
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  border-left: 4px solid #2563EB !important;
+}
+
+.admin-btn-edit:hover {
+  color: #1e40af;
+  background-color: #bfdbfe;
+  border-color: #60a5fa;
+  border-left: 4px solid #1D4ED8 !important;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.25);
+}
+
+.admin-btn-delete {
+  color: #b91c1c;
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  border-left: 4px solid #DC2626 !important;
+}
+
+.admin-btn-delete:hover {
+  color: #991b1b;
+  background-color: #fecaca;
+  border-color: #f87171;
+  border-left: 4px solid #B91C1C !important;
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.25);
+}
+
+.admin-btn-activate {
+  color: #047857;
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+  border-left: 4px solid #10B981 !important;
+}
+
+.admin-btn-activate:hover {
+  color: #065f46;
+  background-color: #a7f3d0;
+  border-color: #34d399;
+  border-left: 4px solid #059669 !important;
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.25);
+}
+
+/* Admin page primary buttons - blue left accent */
+.admin-page button[class*="bg-blue-600"],
+.admin-page button[class*="bg-emerald-600"],
+.admin-page button[class*="bg-green-600"] {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid #1D4ED8 !important;
+}
+
+.admin-page button[class*="bg-blue-600"]:hover,
+.admin-page button[class*="bg-emerald-600"]:hover,
+.admin-page button[class*="bg-green-600"]:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Admin page secondary buttons - blue left accent */
+.admin-page button[class*="border"][class*="bg-white"],
+.admin-page button[class*="border"][class*="text-gray"] {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  border-left: 4px solid #2563EB !important;
+}
+
+.admin-page button[class*="border"][class*="bg-white"]:hover,
+.admin-page button[class*="border"][class*="text-gray"]:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  border-left: 4px solid #1D4ED8 !important;
+}
