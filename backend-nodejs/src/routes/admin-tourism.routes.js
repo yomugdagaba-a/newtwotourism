@@ -20,6 +20,15 @@ router.get('/all', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/admin/tourism/:id
+router.get('/:id', async (req, res, next) => {
+  try {
+    const place = await prisma.tourismPlace.findUnique({ where: { id: parseInt(req.params.id) }, include: { images: true, ratings: true } });
+    if (!place) return res.status(404).json({ message: 'Tourism place not found' });
+    res.json(place);
+  } catch (err) { next(err); }
+});
+
 // POST /api/admin/tourism
 router.post('/', async (req, res, next) => {
   try {

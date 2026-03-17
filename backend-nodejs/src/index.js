@@ -49,6 +49,8 @@ app.use('/api/admin/guiders', require('./routes/admin-guiders.routes'));
 app.use('/api/admin/audit', require('./routes/admin-audit.routes'));
 app.use('/api/admin/security', require('./routes/admin-security.routes'));
 app.use('/api/tourisms', require('./routes/tourism.routes'));
+app.use('/api/tourism', require('./routes/tourism-crud.routes'));
+app.use('/api/user/tourism', require('./routes/tourism-crud.routes'));
 app.use('/api/hotels', require('./routes/hotels.routes'));
 app.use('/api/bookings', require('./routes/bookings.routes'));
 app.use('/api/roads', require('./routes/roads.routes'));

@@ -208,11 +208,61 @@ router.post('/:id/owner-message', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/bookings
+router.get('/', async (req, res, next) => {
+  try {
+    const { skip = 0, take = 10, hotelId, userId } = req.query;
+    const where = {};
+    if (hotelId) where.hotelId = parseInt(hotelId);
+    if (userId) where.userId = parseInt(userId);
+    const [bookings, total] = await Promise.all([
+      prisma.hotelBooking.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: INCLUDE }),
+      prisma.hotelBooking.count({ where }),
+    ]);
+    res.json(bookings.map(transform));
+  } catch (err) { next(err); }
+});
+
 // GET /api/bookings/:id
 router.get('/:id', async (req, res, next) => {
   try {
     const booking = await prisma.hotelBooking.findUnique({ where: { id: parseInt(req.params.id) }, include: INCLUDE });
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    res.json(transform(booking));
+  } catch (err) { next(err); }
+});
+
+// PUT /api/bookings/:id
+router.put('/:id', authenticate, async (req, res, next) => {
+  try {
+    const booking = await prisma.hotelBooking.update({ where: { id: parseInt(req.params.id) }, data: req.body, include: INCLUDE });
+    res.json(transform(booking));
+  } catch (err) { next(err); }
+});
+
+// PUT /api/bookings/:id/status
+router.put('/:id/status', authenticate, async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const statusEntity = await getOrCreateStatus(status);
+    const booking = await prisma.hotelBooking.update({ where: { id: parseInt(req.params.id) }, data: { statusId: statusEntity.id }, include: INCLUDE });
+    res.json(transform(booking));
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/bookings/:id
+router.delete('/:id', authenticate, async (req, res, next) => {
+  try {
+    await prisma.hotelBooking.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Booking deleted' });
+  } catch (err) { next(err); }
+});
+
+// POST /api/bookings/:id/messages
+router.post('/:id/messages', authenticate, async (req, res, next) => {
+  try {
+    const { message, isFromOwner = false } = req.body;
+    const booking = await addMsg(parseInt(req.params.id), req.user.userId, message, isFromOwner);
     res.json(transform(booking));
   } catch (err) { next(err); }
 });

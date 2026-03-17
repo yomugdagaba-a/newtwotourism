@@ -19,6 +19,37 @@ function buildData(body, existing) {
   return { name: body.initialPlace ?? existing?.name, type: body.roadType ?? existing?.type ?? 'CAR', description: body.description ?? existing?.description, distance, condition: JSON.stringify(merged) };
 }
 
+// GET /api/admin/roads
+router.get('/', async (req, res, next) => {
+  try {
+    const { skip = 0, take = 10, tourismPlaceId } = req.query;
+    const where = tourismPlaceId ? { tourismPlaceId: parseInt(tourismPlaceId) } : {};
+    const [roads, total] = await Promise.all([
+      prisma.roadInfo.findMany({ where, skip: parseInt(skip), take: parseInt(take) }),
+      prisma.roadInfo.count({ where }),
+    ]);
+    res.json({ roads: roads.map(toDto), total });
+  } catch (err) { next(err); }
+});
+
+// GET /api/admin/roads/tourism/:tourismPlaceId
+router.get('/tourism/:tourismPlaceId', async (req, res, next) => {
+  try {
+    const roads = await prisma.roadInfo.findMany({ where: { tourismPlaceId: parseInt(req.params.tourismPlaceId) } });
+    res.json(roads.map(toDto));
+  } catch (err) { next(err); }
+});
+
+// GET /api/admin/roads/:id
+router.get('/:id', async (req, res, next) => {
+  try {
+    const road = await prisma.roadInfo.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!road) return res.status(404).json({ message: 'Road not found' });
+    res.json(toDto(road));
+  } catch (err) { next(err); }
+});
+
+// POST /api/admin/roads
 router.post('/', async (req, res, next) => {
   try {
     const tp = await prisma.tourismPlace.findUnique({ where: { id: req.body.tourismPlaceId } });
@@ -28,6 +59,7 @@ router.post('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// PUT /api/admin/roads/:id
 router.put('/:id', async (req, res, next) => {
   try {
     const existing = await prisma.roadInfo.findUnique({ where: { id: parseInt(req.params.id) } });
@@ -37,25 +69,11 @@ router.put('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// DELETE /api/admin/roads/:id
 router.delete('/:id', async (req, res, next) => {
   try {
     await prisma.roadInfo.delete({ where: { id: parseInt(req.params.id) } });
-    res.json({ message: 'Deleted' });
-  } catch (err) { next(err); }
-});
-
-router.get('/:id', async (req, res, next) => {
-  try {
-    const road = await prisma.roadInfo.findUnique({ where: { id: parseInt(req.params.id) } });
-    if (!road) return res.status(404).json({ message: 'Road not found' });
-    res.json(toDto(road));
-  } catch (err) { next(err); }
-});
-
-router.get('/tourism/:tourismPlaceId', async (req, res, next) => {
-  try {
-    const roads = await prisma.roadInfo.findMany({ where: { tourismPlaceId: parseInt(req.params.tourismPlaceId) } });
-    res.json(roads.map(toDto));
+    res.json({ message: 'Road deleted successfully' });
   } catch (err) { next(err); }
 });
 

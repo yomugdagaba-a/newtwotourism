@@ -153,4 +153,21 @@ router.get('/dashboard/stats', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/admin/bookings/recent
+router.get('/bookings/recent', async (req, res, next) => {
+  try {
+    const take = parseInt(req.query.take) || 10;
+    const bookings = await prisma.hotelBooking.findMany({ take, orderBy: { createdAt: 'desc' }, include: { hotel: true, user: true, status: true } });
+    res.json(bookings);
+  } catch (err) { next(err); }
+});
+
+// GET /api/admin/bookings/by-status
+router.get('/bookings/by-status', async (req, res, next) => {
+  try {
+    const statuses = await prisma.bookingStatusEntity.findMany({ include: { bookings: true } });
+    res.json(statuses.map(s => ({ status: s.name, count: s.bookings.length })));
+  } catch (err) { next(err); }
+});
+
 module.exports = router;
