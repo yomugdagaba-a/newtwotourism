@@ -27,7 +27,14 @@ publicRouter.get('/:id/images', async (req, res, next) => {
 });
 
 publicRouter.get('/:id/nearby', async (req, res, next) => {
-  try { res.json(await tourismService.getNearbyPlaces(parseInt(req.params.id), parseInt(req.query.limit) || 5)); } catch (e) { next(e); }
+  try {
+    const nearbyPlaces = await tourismService.getNearbyPlaces(parseInt(req.params.id), parseInt(req.query.limit) || 5);
+    res.json(nearbyPlaces.map(place => ({
+      id: place.id,
+      name: place.name,
+      imageUrl: place.images && place.images.length > 0 ? place.images[0].imageUrl : null,
+    })));
+  } catch (e) { next(e); }
 });
 
 publicRouter.get('/:id', async (req, res, next) => {
@@ -47,6 +54,16 @@ crudRouter.post('/', authenticate, validate(CreateTourismDto), async (req, res, 
 
 crudRouter.get('/search', async (req, res, next) => {
   try { res.json(await tourismService.search(req.query.q || '', req.query.category, parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10)); } catch (e) { next(e); }
+});
+
+// GET /api/user/tourism/tourism/:id/detail — authenticated (UserTourismController)
+crudRouter.get('/tourism/:id/detail', authenticate, async (req, res, next) => {
+  try { res.json(await tourismService.findById(parseInt(req.params.id))); } catch (e) { next(e); }
+});
+
+// GET /api/user/tourism/:id/details — public (UserTourismController)
+crudRouter.get('/:id/details', async (req, res, next) => {
+  try { res.json(await tourismService.findById(parseInt(req.params.id))); } catch (e) { next(e); }
 });
 
 crudRouter.get('/:id', async (req, res, next) => {

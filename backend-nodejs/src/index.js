@@ -96,6 +96,9 @@ app.use('/api/map-points', require('./controllers/map-points.controller'));
 // Admin (all sub-resources consolidated under /api/admin)
 app.use('/api/admin', require('./controllers/admin.controller'));
 
+// Audit (authenticated, not admin-only)
+app.use('/api/audit', require('./controllers/audit.controller'));
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'UP' }));
 
