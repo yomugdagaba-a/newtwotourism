@@ -30,4 +30,8 @@ async function remove(id) {
   return prisma.languageGuider.delete({ where: { id } });
 }
 
-module.exports = { create, findAll, findById, update, remove };
+async function findByLanguage(language) {
+  return prisma.languageGuider.findMany({ where: { languages: { has: language } } });
+}
+
+module.exports = { create, findAll, findById, update, remove, findByLanguage };

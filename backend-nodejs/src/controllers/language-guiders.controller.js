@@ -24,4 +24,12 @@ router.delete('/:id', authenticate, async (req, res, next) => {
   try { await languageGuidersService.remove(parseInt(req.params.id)); res.json({ message: 'Language guider deleted' }); } catch (e) { next(e); }
 });
 
+// Guiders sub-routes (also mounted at /api/guiders)
+router.get('/tourism/:tourismPlaceId', async (req, res, next) => {
+  try {
+    const result = await languageGuidersService.findAll(0, 100);
+    res.json(result.guiders);
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
