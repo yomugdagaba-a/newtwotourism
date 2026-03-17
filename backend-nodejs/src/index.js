@@ -131,8 +131,8 @@ async function initBookingStatuses() {
 }
 
 // Start server
-const certPath = './certificates/localhost.pem';
-const keyPath = './certificates/localhost-key.pem';
+const certPath = path.resolve(__dirname, '../certificates/localhost.pem');
+const keyPath = path.resolve(__dirname, '../certificates/localhost-key.pem');
 
 async function start() {
   await initBookingStatuses();
