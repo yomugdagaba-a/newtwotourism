@@ -39,6 +39,49 @@ router.get('/public/homepage', async (req, res, next) => {
 // GET /api/tourisms/health
 router.get('/health', (req, res) => res.json({ status: 'UP' }));
 
+// GET /api/tourisms/:id/images
+router.get('/:id/images', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
+    const images = await prisma.tourismImage.findMany({ where: { tourismPlaceId: id } });
+    res.json(images);
+  } catch (err) { next(err); }
+});
+
+// GET /api/tourisms/:id/nearby
+router.get('/:id/nearby', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    const limit = parseInt(req.query.limit) || 5;
+    if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
+    const place = await prisma.tourismPlace.findUnique({ where: { id } });
+    if (!place) return res.status(404).json({ message: 'Tourism place not found' });
+    const nearbyPlaces = await prisma.tourismPlace.findMany({ where: { kebele: place.kebele, id: { not: id }, status: 'ACTIVE' }, include: { images: true }, take: limit });
+    res.json(nearbyPlaces.map(p => ({ id: p.id, name: p.name, imageUrl: p.images?.[0]?.imageUrl || null })));
+  } catch (err) { next(err); }
+});
+
+// GET /api/tourisms/:tourismId/hotels
+router.get('/:tourismId/hotels', async (req, res, next) => {
+  try {
+    const tourismPlaceId = parseInt(req.params.tourismId);
+    if (isNaN(tourismPlaceId)) return res.status(400).json({ message: 'Invalid ID' });
+    const hotels = await prisma.hotel.findMany({ where: { tourismPlaceId }, include: { images: true, ratings: true } });
+    res.json(hotels);
+  } catch (err) { next(err); }
+});
+
+// GET /api/tourisms/:tourismId/roads
+router.get('/:tourismId/roads', async (req, res, next) => {
+  try {
+    const tourismPlaceId = parseInt(req.params.tourismId);
+    if (isNaN(tourismPlaceId)) return res.status(400).json({ message: 'Invalid ID' });
+    const roads = await prisma.roadInfo.findMany({ where: { tourismPlaceId } });
+    res.json(roads);
+  } catch (err) { next(err); }
+});
+
 // GET /api/tourisms/:id
 router.get('/:id', async (req, res, next) => {
   try {
@@ -47,8 +90,7 @@ router.get('/:id', async (req, res, next) => {
     const place = await prisma.tourismPlace.findUnique({ where: { id }, include: { images: true, ratings: { include: { user: true } }, hotels: true, roadInfos: true } });
     if (!place) return res.status(404).json({ message: 'Tourism place not found' });
     await prisma.tourismPlace.update({ where: { id }, data: { viewersCount: { increment: 1 } } });
-    const nearbyPlaces = await prisma.tourismPlace.findMany({ where: { kebele: place.kebele, id: { not: id }, status: 'ACTIVE' }, include: { images: true }, take: 5 });
-    res.json({ ...place, nearbyPlaces: nearbyPlaces.map(p => ({ id: p.id, name: p.name, imageUrl: p.images?.[0]?.imageUrl || null })) });
+    res.json(place);
   } catch (err) { next(err); }
 });
 

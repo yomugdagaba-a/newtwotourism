@@ -19,9 +19,39 @@ function mapToDto(s) {
   const ownerMatch = s.description?.match(/Owner:\s*([^,]+)/);
   const contactMatch = s.description?.match(/Contact:\s*([^,]+)/);
   const placeMatch = s.description?.match(/Place:\s*(.+)$/);
-  return { id: s.id, ownerName: ownerMatch ? ownerMatch[1].trim() : s.name, contactInfo: contactMatch ? contactMatch[1].trim() : '', initialPlace: placeMatch ? placeMatch[1].trim() : '', cost: s.pricePerHour ? parseFloat(s.pricePerHour.toString()) : 0 };
+  return { id: s.id, ownerName: ownerMatch ? ownerMatch[1].trim() : s.name, contactInfo: contactMatch ? contactMatch[1].trim() : '', initialPlace: placeMatch ? placeMatch[1].trim() : '', cost: s.pricePerHour ? parseFloat(s.pricePerHour.toString()) : 0, roadInfoId: s.roadInfoId };
 }
 
+// GET /api/admin/horse-services
+router.get('/', async (req, res, next) => {
+  try {
+    const { skip = 0, take = 10 } = req.query;
+    const [services, total] = await Promise.all([
+      prisma.horseService.findMany({ skip: parseInt(skip), take: parseInt(take) }),
+      prisma.horseService.count(),
+    ]);
+    res.json({ services: services.map(mapToDto), total });
+  } catch (err) { next(err); }
+});
+
+// GET /api/admin/horse-services/road/:roadId
+router.get('/road/:roadId', async (req, res, next) => {
+  try {
+    const services = await prisma.horseService.findMany({ where: { roadInfoId: parseInt(req.params.roadId) } });
+    res.json(services.map(mapToDto));
+  } catch (err) { next(err); }
+});
+
+// GET /api/admin/horse-services/:id
+router.get('/:id', async (req, res, next) => {
+  try {
+    const s = await prisma.horseService.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!s) return res.status(404).json({ message: 'Horse service not found' });
+    res.json(mapToDto(s));
+  } catch (err) { next(err); }
+});
+
+// POST /api/admin/horse-services
 router.post('/', async (req, res, next) => {
   try {
     const s = await prisma.horseService.create({ data: mapToDb(req.body, null) });
@@ -29,6 +59,7 @@ router.post('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// PUT /api/admin/horse-services/:id
 router.put('/:id', async (req, res, next) => {
   try {
     const existing = await prisma.horseService.findUnique({ where: { id: parseInt(req.params.id) } });
@@ -38,6 +69,7 @@ router.put('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// DELETE /api/admin/horse-services/:id
 router.delete('/:id', async (req, res, next) => {
   try {
     await prisma.horseService.delete({ where: { id: parseInt(req.params.id) } });
