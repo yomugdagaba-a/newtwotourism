@@ -12,6 +12,10 @@ async function findByUsername(username) {
   return prisma.user.findUnique({ where: { username }, select: USER_SELECT });
 }
 
+async function findByEmail(email) {
+  return prisma.user.findUnique({ where: { email: email?.toLowerCase().trim() }, select: USER_SELECT });
+}
+
 async function updateProfile(id, data) {
   // Prevent privilege escalation
   const { password, passwordHash, role, roles, ...safeData } = data;
@@ -33,4 +37,4 @@ async function getAllUsers(skip = 0, take = 10, search) {
   return { users, total };
 }
 
-module.exports = { findById, findByUsername, updateProfile, getAllUsers };
+module.exports = { findById, findByUsername, findByEmail, updateProfile, getAllUsers };

@@ -166,6 +166,7 @@ async function register({ username, email, password, fullName }) {
       data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
     });
     await emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES);
+    await emailService.sendWelcomeEmail(email, fullName || username);
   } catch (e) { console.error('Verification email failed:', e.message); }
 
   return generateTokens(user);

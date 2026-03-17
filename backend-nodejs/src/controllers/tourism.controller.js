@@ -57,16 +57,16 @@ crudRouter.get('/', async (req, res, next) => {
   try { res.json(await tourismService.findAll(parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10, req.query.category)); } catch (e) { next(e); }
 });
 
-crudRouter.put('/:id', authenticate, validate(UpdateTourismDto), async (req, res, next) => {
-  try { res.json(await tourismService.update(parseInt(req.params.id), req.body)); } catch (e) { next(e); }
-});
-
 crudRouter.delete('/images/:imageId', authenticate, async (req, res, next) => {
   try { res.json(await tourismService.removeImage(parseInt(req.params.imageId))); } catch (e) { next(e); }
 });
 
 crudRouter.post('/:id/images', authenticate, async (req, res, next) => {
   try { res.status(201).json(await tourismService.addImage(parseInt(req.params.id), req.body.imageUrl)); } catch (e) { next(e); }
+});
+
+crudRouter.put('/:id', authenticate, validate(UpdateTourismDto), async (req, res, next) => {
+  try { res.json(await tourismService.update(parseInt(req.params.id), req.body)); } catch (e) { next(e); }
 });
 
 crudRouter.delete('/:id', authenticate, async (req, res, next) => {

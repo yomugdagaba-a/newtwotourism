@@ -80,6 +80,14 @@ async function sendBookingRejectedNotification(email, hotelName, reason, booking
   `);
 }
 
+async function sendWelcomeEmail(email, fullName) {
+  return sendEmail(email, 'Welcome to Tourism Platform', `
+    <h2>Welcome, ${fullName}!</h2>
+    <p>Thank you for registering with our tourism platform.</p>
+    <p>You can now explore amazing tourism destinations and book hotels.</p>
+  `);
+}
+
 function buildSecurityAlertMessage(alertType, ipAddress, lockoutMinutes = 15) {
   switch (alertType) {
     case 'ACCOUNT_LOCKED':
@@ -95,6 +103,7 @@ module.exports = {
   sendEmail,
   sendPasswordResetOtp,
   sendEmailVerificationOtp,
+  sendWelcomeEmail,
   sendBookingAcceptedNotification,
   sendCostProposedNotification,
   sendReceiptUploadedNotification,
