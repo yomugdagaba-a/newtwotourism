@@ -98,11 +98,8 @@ app.use('/api/admin', require('./controllers/admin.controller'));
 app.get('/health', (req, res) => res.json({ status: 'UP' }));
 
 // Global error handler
-app.use((err, req, res, next) => {
-  console.error(err);
-  const status = err.status || err.statusCode || 500;
-  res.status(status).json({ message: err.message || 'Internal server error', errors: err.errors });
-});
+const { globalExceptionHandler } = require('./exception/GlobalExceptionHandler');
+app.use(globalExceptionHandler);
 
 // Seed required booking statuses on startup
 async function initBookingStatuses() {
