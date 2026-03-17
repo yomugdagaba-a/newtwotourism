@@ -3,17 +3,9 @@
  * Mirrors NestJS class-validator behavior without external deps.
  */
 
-class ValidationError extends Error {
-  constructor(errors) {
-    super('Validation failed');
-    this.status = 400;
-    this.errors = errors;
-  }
-}
-
 /**
  * validate(schema) — returns Express middleware that validates req.body.
- * schema: { fieldName: { required, type, min, max, minLength, maxLength, isEmail, isEnum } }
+ * schema: { fieldName: { required, type, min, max, minLength, maxLength, isEmail, isEnum, isEnumArray } }
  */
 function validate(schema) {
   return (req, res, next) => {
@@ -33,6 +25,20 @@ function validate(schema) {
       }
       if (rules.type === 'string' && typeof value !== 'string') {
         errors.push({ field, message: `${field} must be a string` });
+      }
+      if (rules.type === 'boolean' && typeof value !== 'boolean') {
+        errors.push({ field, message: `${field} must be a boolean` });
+      }
+      if (rules.type === 'array') {
+        if (!Array.isArray(value)) {
+          errors.push({ field, message: `${field} must be an array` });
+        } else if (rules.isEnumArray) {
+          // Validate each element is a valid enum value
+          const invalid = value.filter(v => !rules.isEnumArray.includes(v));
+          if (invalid.length > 0) {
+            errors.push({ field, message: `${field} contains invalid values: ${invalid.join(', ')}. Allowed: ${rules.isEnumArray.join(', ')}` });
+          }
+        }
       }
       if (rules.minLength && String(value).length < rules.minLength) {
         errors.push({ field, message: `${field} must be at least ${rules.minLength} characters` });

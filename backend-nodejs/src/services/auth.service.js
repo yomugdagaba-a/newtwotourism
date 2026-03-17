@@ -8,8 +8,114 @@ const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '15m';
 const JWT_REFRESH_EXPIRATION = process.env.JWT_REFRESH_EXPIRATION || '7d';
 const MAX_FAILED_ATTEMPTS = parseInt(process.env.MAX_FAILED_ATTEMPTS || '5');
 const LOCKOUT_DURATION_MINUTES = parseInt(process.env.LOCKOUT_DURATION_MINUTES || '15');
+const MAX_IP_ATTEMPTS_PER_HOUR = parseInt(process.env.MAX_IP_ATTEMPTS_PER_HOUR || '100');
+const SUSPICIOUS_ACTIVITY_THRESHOLD = 3;
 const OTP_EXPIRY_MINUTES = 15;
 const COOLDOWN_SECONDS = 60;
+
+// ── AccountSecurityService (translated from NestJS) ──────────────────────────
+
+async function shouldBlockIpAddress(ipAddress) {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentAttempts = await prisma.loginAttempt.count({
+    where: { ipAddress, createdAt: { gte: oneHourAgo } },
+  });
+  return recentAttempts >= MAX_IP_ATTEMPTS_PER_HOUR;
+}
+
+async function shouldBlockIdentifier(ipAddress) {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const consecutiveFailures = await prisma.loginAttempt.count({
+    where: { ipAddress, success: false, createdAt: { gte: oneHourAgo } },
+  });
+  return consecutiveFailures >= MAX_FAILED_ATTEMPTS;
+}
+
+async function getProgressiveDelay(ipAddress) {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentFailures = await prisma.loginAttempt.count({
+    where: { ipAddress, success: false, createdAt: { gte: oneHourAgo } },
+  });
+  // Progressive delay: 0, 0, 1s, 2s, 4s, 8s, 16s, 30s (max)
+  if (recentFailures <= 1) return 0;
+  if (recentFailures === 2) return 1;
+  if (recentFailures === 3) return 2;
+  if (recentFailures === 4) return 4;
+  if (recentFailures === 5) return 8;
+  if (recentFailures === 6) return 16;
+  return 30;
+}
+
+async function detectSuspiciousActivity(ipAddress) {
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const distinctIps = await prisma.loginAttempt.findMany({
+    where: { createdAt: { gte: twentyFourHoursAgo } },
+    select: { ipAddress: true },
+    distinct: ['ipAddress'],
+  });
+  if (distinctIps.length >= SUSPICIOUS_ACTIVITY_THRESHOLD) return true;
+  const recentAttempts = await prisma.loginAttempt.count({
+    where: { ipAddress, success: false, createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) } },
+  });
+  return recentAttempts >= 5;
+}
+
+async function sendSecurityAlert(userId, alertType, ipAddress) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.email) return;
+    let message;
+    switch (alertType) {
+      case 'ACCOUNT_LOCKED':
+        message = `Your account has been temporarily locked due to multiple failed login attempts from IP: ${ipAddress}. It will be automatically unlocked in ${LOCKOUT_DURATION_MINUTES} minutes. If this wasn't you, please contact support immediately.`;
+        break;
+      case 'ACCOUNT_UNLOCKED':
+        message = 'Your account has been unlocked by an administrator.';
+        break;
+      case 'SUSPICIOUS_ACTIVITY':
+        message = `Suspicious login activity detected on your account from IP: ${ipAddress}. If this wasn't you, please change your password immediately.`;
+        break;
+      default:
+        message = `Security alert: ${alertType} from IP: ${ipAddress}`;
+    }
+    await emailService.sendEmail(user.email, 'Security Alert - Account Activity', message);
+  } catch (e) { console.error('Failed to send security alert:', e.message); }
+}
+
+async function lockUserAccount(userId, reason, triggerIpAddress) {
+  try {
+    const existing = await prisma.accountLockout.findUnique({ where: { userId } });
+    if (existing && existing.lockedUntil > new Date()) return;
+    const lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000);
+    await prisma.accountLockout.upsert({ where: { userId }, create: { userId, lockedUntil }, update: { lockedUntil } });
+    await sendSecurityAlert(userId, 'ACCOUNT_LOCKED', triggerIpAddress);
+  } catch (e) { console.error('Failed to lock user account:', e.message); }
+}
+
+async function isUserLockedOut(userId) {
+  try {
+    const lockout = await prisma.accountLockout.findUnique({ where: { userId } });
+    if (!lockout) return false;
+    if (lockout.lockedUntil > new Date()) return true;
+    await prisma.accountLockout.delete({ where: { userId } });
+    return false;
+  } catch (e) { return false; }
+}
+
+async function unlockUserAccount(userId) {
+  try {
+    await prisma.accountLockout.delete({ where: { userId } });
+    await sendSecurityAlert(userId, 'ACCOUNT_UNLOCKED', 'ADMIN');
+  } catch (e) { console.error('Failed to unlock user account:', e.message); }
+}
+
+async function cleanupOldSecurityRecords(retentionDays = 90) {
+  try {
+    const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+    const result = await prisma.loginAttempt.deleteMany({ where: { createdAt: { lt: cutoff } } });
+    return result.count;
+  } catch (e) { return 0; }
+}
 
 function parseExpiry(exp) {
   const m = String(exp).match(/^(\d+)([smhd])$/);
@@ -66,14 +172,29 @@ async function register({ username, email, password, fullName }) {
 }
 
 async function login({ username, password }, ip = 'unknown', ua = 'unknown') {
+  // IP-level blocking (rate limit per IP)
+  if (await shouldBlockIpAddress(ip)) {
+    await prisma.loginAttempt.create({ data: { ipAddress: ip, success: false, reason: 'IP blocked' } });
+    throw Object.assign(new Error('Too many requests from this IP address. Please try again later.'), { status: 429 });
+  }
+
+  // Identifier-level blocking (too many failures from this IP)
+  if (await shouldBlockIdentifier(ip)) {
+    await prisma.loginAttempt.create({ data: { ipAddress: ip, success: false, reason: 'Identifier blocked' } });
+    throw Object.assign(new Error('Too many failed login attempts. Please try again later.'), { status: 429 });
+  }
+
+  // Progressive delay
+  const delay = await getProgressiveDelay(ip);
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay * 1000));
+  }
+
   const user = await prisma.user.findUnique({ where: { username }, include: { roles: true } });
 
-  if (user) {
-    const lockout = await prisma.accountLockout.findUnique({ where: { userId: user.id } });
-    if (lockout && lockout.lockedUntil > new Date()) {
-      await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Account locked' } });
-      throw Object.assign(new Error('Account is temporarily locked. Please try again later.'), { status: 401 });
-    }
+  if (user && await isUserLockedOut(user.id)) {
+    await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Account locked' } });
+    throw Object.assign(new Error('Account is temporarily locked. Please try again later.'), { status: 401 });
   }
 
   if (!user) {
@@ -84,12 +205,11 @@ async function login({ username, password }, ip = 'unknown', ua = 'unknown') {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Invalid password' } });
+    // Check if account should be locked after this failure
     const oneHourAgo = new Date(Date.now() - 3600000);
     const failures = await prisma.loginAttempt.count({ where: { userId: user.id, success: false, createdAt: { gte: oneHourAgo } } });
     if (failures >= MAX_FAILED_ATTEMPTS) {
-      const lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60000);
-      await prisma.accountLockout.upsert({ where: { userId: user.id }, create: { userId: user.id, lockedUntil }, update: { lockedUntil } });
-      try { if (user.email) await emailService.sendEmail(user.email, 'Security Alert - Account Locked', `Your account has been locked for ${LOCKOUT_DURATION_MINUTES} minutes due to multiple failed login attempts.`); } catch (e) {}
+      await lockUserAccount(user.id, `Account locked due to ${failures} consecutive failed login attempts`, ip);
     }
     throw Object.assign(new Error('Invalid credentials'), { status: 401 });
   }
@@ -98,6 +218,12 @@ async function login({ username, password }, ip = 'unknown', ua = 'unknown') {
     await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Inactive account' } });
     throw Object.assign(new Error('User account is inactive'), { status: 401 });
   }
+
+  // Detect suspicious activity (non-blocking, just logs/alerts)
+  try {
+    const suspicious = await detectSuspiciousActivity(ip);
+    if (suspicious) await sendSecurityAlert(user.id, 'SUSPICIOUS_ACTIVITY', ip);
+  } catch (e) {}
 
   await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: true } });
   return generateTokens(user);
@@ -240,4 +366,8 @@ module.exports = {
   initiatePasswordReset, confirmPasswordReset, validateResetToken,
   sendVerificationEmail, verifyEmail, verifyEmailWithOtp, resendVerificationEmail,
   validateVerificationToken, checkEmailVerified,
+  // AccountSecurityService exports
+  shouldBlockIpAddress, shouldBlockIdentifier, getProgressiveDelay,
+  detectSuspiciousActivity, lockUserAccount, unlockUserAccount,
+  isUserLockedOut, cleanupOldSecurityRecords, sendSecurityAlert,
 };
