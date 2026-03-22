@@ -8,6 +8,14 @@ import { refreshToken as refreshTokenAPI, logout as logoutAPI } from "../service
 export type UserRole = "CLIENT" | "HOTEL_OWNER" | "ADMIN";
 export type BrowsingMode = "CLIENT" | "OWNER";
 
+// Pick the highest-privilege role when a user has multiple roles
+function pickRole(roles: string[]): UserRole {
+  const cleaned = roles.map(r => r.replace("ROLE_", ""));
+  if (cleaned.includes("ADMIN")) return "ADMIN";
+  if (cleaned.includes("HOTEL_OWNER")) return "HOTEL_OWNER";
+  return "CLIENT";
+}
+
 interface JwtPayload {
   sub: string;
   userId: number;
@@ -72,14 +80,14 @@ const getInitialState = () => {
           refreshToken,
           username: decoded.sub,
           userId: decoded.userId || userId,
-          role: decoded.roles[0]?.replace("ROLE_", "") as UserRole,
+          role: pickRole(decoded.roles),
           browsingMode: (localStorage.getItem("browsingMode") as BrowsingMode) || "CLIENT",
-          isAuthenticated: false, // Mark as not authenticated until refresh
+          isAuthenticated: false,
           isHydrated: true,
         };
       }
 
-      const role = decoded.roles[0]?.replace("ROLE_", "") as UserRole;
+      const role = pickRole(decoded.roles);
       const savedMode = localStorage.getItem("browsingMode") as BrowsingMode;
       const browsingMode = (role === "HOTEL_OWNER" && savedMode) ? savedMode : "CLIENT";
 
@@ -138,7 +146,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: (token: string, refreshToken?: string, userIdFromResponse?: number, expiresAt?: string, expiresIn?: number) => {
     try {
       const decoded = jwtDecode<JwtPayload>(token);
-      const role = decoded.roles[0]?.replace("ROLE_", "") as UserRole;
+      const role = pickRole(decoded.roles);
       const userId = decoded.userId || userIdFromResponse || null;
 
       if (typeof window !== 'undefined') {
@@ -276,7 +284,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const decoded = jwtDecode<JwtPayload>(newToken);
-      const role = decoded.roles[0]?.replace("ROLE_", "") as UserRole;
+      const role = pickRole(decoded.roles);
 
       set({
         token: newToken,
@@ -348,7 +356,7 @@ export const useHydrateAuth = () => {
             const currentTime = Date.now() / 1000;
             
             if (decoded.exp >= currentTime) {
-              const role = decoded.roles[0]?.replace("ROLE_", "") as UserRole;
+              const role = pickRole(decoded.roles);
               const savedMode = localStorage.getItem("browsingMode") as BrowsingMode;
               const browsingMode = (role === "HOTEL_OWNER" && savedMode) ? savedMode : "CLIENT";
               

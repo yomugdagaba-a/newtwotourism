@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <h3 className="text-2xl font-bold text-blue-600 mb-4">North Wollo Tourism</h3>
-            <p className="text-gray-700 mb-6 leading-relaxed">
+            <p className="text-gray-300 mb-6 leading-relaxed">
               Discover the hidden gems of North Wollo, Ethiopia. Experience rich heritage, 
               breathtaking landscapes, and warm hospitality.
             </p>

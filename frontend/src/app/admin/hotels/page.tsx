@@ -342,11 +342,11 @@ const HotelsManagementPage = () => {
 
   const tourismOptions: { value: number; label: string }[] = tourisms.map(t => ({ value: t.id, label: `${t.name} (${t.wereda || 'N/A'})` }));
   const starOptions = [
-    { value: 1, label: '⭐ 1 Star' },
-    { value: 2, label: '⭐⭐ 2 Stars' },
-    { value: 3, label: '⭐⭐⭐ 3 Stars' },
-    { value: 4, label: '⭐⭐⭐⭐ 4 Stars' },
-    { value: 5, label: '⭐⭐⭐⭐⭐ 5 Stars' }
+    { value: 1, label: '1 Star' },
+    { value: 2, label: '2 Stars' },
+    { value: 3, label: '3 Stars' },
+    { value: 4, label: '4 Stars' },
+    { value: 5, label: '5 Stars' }
   ];
 
   if (!authChecked) {
@@ -373,21 +373,21 @@ const HotelsManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 admin-page">
-      <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 bg-white border border-gray-200 p-6 rounded-xl shadow-lg">
+      <div className="container mx-auto px-4 pt-4 pb-8">
+      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
         <button
           onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors font-bold"
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span className="font-bold">Back to Dashboard</span>
         </button>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-black text-gray-900 mb-2">🏨 Hotel Management</h1>
-            <p className="text-gray-600 font-semibold">Manage hotels, assign owners, and control booking availability</p>
+            <h1 className="text-lg font-black text-gray-900 mb-0.5">Hotel Management</h1>
+            <p className="text-gray-600 text-sm">Manage hotels, assign owners, and control booking availability</p>
           </div>
           <button onClick={() => { resetForm(); setShowModal(true); }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors font-black shadow-lg">
@@ -486,7 +486,6 @@ const HotelsManagementPage = () => {
                     />
                   ) : (
                     <div className="text-center">
-                      <div className="text-5xl mb-2">🏨</div>
                       <p className="text-xs text-gray-600 font-semibold">No image added</p>
                       <p className="text-xs text-gray-500 mt-1">Click Edit to add images</p>
                     </div>
@@ -501,23 +500,23 @@ const HotelsManagementPage = () => {
                   
                   {/* Phone */}
                   <p className="text-sm font-black text-gray-700 mt-2 flex items-center gap-2">
-                    📞 {hotel.contactInfo || 'No contact info'}
+                    {hotel.contactInfo || 'No contact info'}
                   </p>
                   
                   {/* Owner & Stars Badges */}
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
                     {hotel.ownerId ? (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-black bg-blue-500 text-white rounded-full shadow-md">
-                        👤 {hotel.ownerName || `Owner #${hotel.ownerId}`}
+                        {hotel.ownerName || `Owner #${hotel.ownerId}`}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-black bg-orange-500 text-white rounded-full shadow-md">
-                        ⚠️ No Owner
+                        No Owner
                       </span>
                     )}
                     {hotel.starRating && (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-black bg-yellow-500 text-white rounded-full shadow-md">
-                        {'⭐'.repeat(hotel.starRating)}
+                        {'★'.repeat(hotel.starRating)}
                       </span>
                     )}
                   </div>
@@ -527,23 +526,23 @@ const HotelsManagementPage = () => {
                   
                   {/* Views */}
                   <div className="mt-3 text-sm font-black text-gray-800 flex items-center gap-1">
-                    👁️ {hotel.viewersCount || 0} views
+                    {hotel.viewersCount || 0} views
                   </div>
                   
                   {/* Action Buttons - Stacked vertically for better visibility */}
                   <div className="mt-4 flex flex-col gap-2">
                     <button onClick={() => router.push(`/admin/hotels/${hotel.id}`)}
                       className="w-full py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-lg text-sm font-black transition-all shadow-md hover:shadow-lg hover:scale-105">
-                      🔧 Manage
+                      Manage
                     </button>
                     <div className="flex gap-2">
                       <button onClick={() => openEditModal(hotel)} 
                         className="flex-1 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-lg text-sm font-black transition-all shadow-md hover:shadow-lg hover:scale-105">
-                        ✏️ Edit
+                        Edit
                       </button>
                       <button onClick={() => handleDelete(hotel.id)} disabled={actionLoading === hotel.id}
                         className="flex-1 py-2 bg-red-100 text-red-800 hover:bg-red-200 rounded-lg text-sm font-black transition-all shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50">
-                        {actionLoading === hotel.id ? '...' : '🗑️ Delete'}
+                        {actionLoading === hotel.id ? '...' : 'Delete'}
                       </button>
                     </div>
                   </div>
@@ -573,7 +572,7 @@ const HotelsManagementPage = () => {
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border-2 border-gray-300">
             <div className="sticky top-0 bg-gray-100 border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center">
               <h3 className="text-xl font-black text-gray-900">
-                {editingHotel ? '✏️ Edit Hotel' : '➕ Add New Hotel'}
+                {editingHotel ? 'Edit Hotel' : 'Add New Hotel'}
               </h3>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="text-gray-500 hover:text-gray-700 font-bold">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -679,7 +678,7 @@ const HotelsManagementPage = () => {
 
               {/* Main Image URL */}
               <div className="border-t-2 border-gray-300 pt-4 mt-4">
-                <h4 className="text-md font-black text-gray-800 mb-3">📷 Main Image</h4>
+                <h4 className="text-md font-black text-gray-800 mb-3">Main Image</h4>
                 <FormInput label="Main Image URL" name="mainImageUrl" value={formData.mainImageUrl || ''}
                   onChange={handleInputChange} placeholder="https://example.com/hotel-image.jpg"
                   helpText="Enter the URL of the main/cover image for this hotel"
@@ -697,7 +696,7 @@ const HotelsManagementPage = () => {
 
               {/* Gallery Images */}
               <div className="border-t-2 border-gray-300 pt-4 mt-4">
-                <h4 className="text-md font-black text-gray-800 mb-3">🖼️ Gallery Images</h4>
+                <h4 className="text-md font-black text-gray-800 mb-3">Gallery Images</h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="text"
@@ -747,7 +746,7 @@ const HotelsManagementPage = () => {
                   </div>
                 )}
                 <p className="text-xs text-gray-600 mt-2 font-medium">
-                  💡 Tip: You can manage detailed hotel images from the "Manage" button after creating the hotel.
+                  Tip: You can manage detailed hotel images from the "Manage" button after creating the hotel.
                 </p>
               </div>
             </div>

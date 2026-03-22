@@ -248,21 +248,21 @@ const HorseServicesManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-white admin-page">
-      <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 bg-white border border-gray-200 p-6 rounded-xl shadow-lg">
+      <div className="container mx-auto px-4 pt-4 pb-8">
+      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
         <div className="flex justify-between items-center">
           <div>
             <button
               onClick={() => router.push('/admin')}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors font-bold"
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               <span className="font-bold">Back to Dashboard</span>
             </button>
-            <h1 className="text-3xl font-black text-gray-900 mb-2">🐎 Horse Services Management</h1>
-            <p className="text-gray-600 font-semibold">Manage horse rental and transportation services</p>
+            <h1 className="text-lg font-black text-gray-900 mb-0.5">Horse Services Management</h1>
+            <p className="text-gray-600 text-sm">Manage horse rental and transportation services</p>
           </div>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
@@ -339,7 +339,6 @@ const HorseServicesManagementPage = () => {
       <div className="bg-amber-100 rounded-xl shadow-xl overflow-hidden">
         {!selectedRoadId ? (
           <div className="p-8 text-center text-gray-800 font-bold bg-white">
-            <span className="text-4xl mb-4 block">🐎</span>
             <p className="font-black">Please select a tourism place and road to view horse services</p>
           </div>
         ) : loading ? (
@@ -354,7 +353,6 @@ const HorseServicesManagementPage = () => {
           </div>
         ) : filteredServices.length === 0 ? (
           <div className="p-8 text-center text-gray-800 bg-white">
-            <span className="text-4xl mb-4 block">🐎</span>
             <p className="font-black">No horse services found for {getSelectedRoadName()}</p>
             <button onClick={() => { resetForm(); setShowModal(true); }} className="mt-4 bg-amber-200 text-amber-800 px-4 py-2 rounded-lg font-black shadow-md">Add First Horse Service</button>
           </div>
@@ -363,13 +361,13 @@ const HorseServicesManagementPage = () => {
             {filteredServices.map((service) => (
               <div key={service.id} className="rounded-xl overflow-hidden hover:shadow-xl transition-shadow bg-white shadow-lg">
                 <div className="h-32 bg-gradient-to-r from-amber-200 to-orange-200 flex items-center justify-center">
-                  <span className="text-6xl">🐎</span>
+                  <span className="text-2xl font-black text-amber-800">Horse Service</span>
                 </div>
                 <div className="p-4 bg-amber-50 shadow-inner">
                   <h3 className="text-lg font-black text-gray-900">{service.ownerName}</h3>
                   <div className="mt-2 space-y-1 text-sm text-gray-800 font-bold">
-                    <p>📍 {service.initialPlace}</p>
-                    <p>📞 {service.contactInfo}</p>
+                    <p>{service.initialPlace}</p>
+                    <p>{service.contactInfo}</p>
                   </div>
                   <div className="mt-3">
                     <span className="inline-block px-3 py-1 text-lg font-black text-green-800 bg-green-200 rounded-full shadow-sm">{service.cost} ETB</span>
@@ -390,7 +388,7 @@ const HorseServicesManagementPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto border-2 border-gray-300 shadow-2xl">
             <div className="sticky top-0 bg-gray-100 border-b-2 border-gray-300 px-6 py-4">
-              <h3 className="text-lg font-black">{editingService ? '✏️ Edit Horse Service' : '➕ Add New Horse Service'}</h3>
+              <h3 className="text-lg font-black">{editingService ? 'Edit Horse Service' : 'Add New Horse Service'}</h3>
               <p className="text-sm text-gray-600 font-bold mt-1">Road: {getSelectedRoadName()}</p>
             </div>
             <div className="p-6 space-y-4">

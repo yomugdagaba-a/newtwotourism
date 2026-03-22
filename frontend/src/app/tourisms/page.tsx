@@ -22,12 +22,12 @@ export interface TourismPublicCard {
 }
 
 const CATEGORIES = [
-  { id: "HERITAGE", icon: "🕌", label: "Heritage" },
-  { id: "HIGHLAND", icon: "⛰️", label: "Highland" },
-  { id: "CAVERN", icon: "🕳️", label: "Cavern" },
-  { id: "AQUATICS", icon: "🌊", label: "Aquatics" },
-  { id: "CULTURE", icon: "🎭", label: "Culture" },
-  { id: "MODERN", icon: "🏛️", label: "Modern" },
+  { id: "HERITAGE", icon: "", label: "Heritage" },
+  { id: "HIGHLAND", icon: "", label: "Highland" },
+  { id: "CAVERN", icon: "", label: "Cavern" },
+  { id: "AQUATICS", icon: "", label: "Aquatics" },
+  { id: "CULTURE", icon: "", label: "Culture" },
+  { id: "MODERN", icon: "", label: "Modern" },
 ];
 
 export default function TourismListingPage() {
@@ -111,7 +111,7 @@ export default function TourismListingPage() {
     });
   }, []);
 
-  // Update URL when categories change (separate from state update to avoid React warning)
+  // Update URL when filters change — use native history API to avoid interfering with navigation
   useEffect(() => {
     const params = new URLSearchParams();
     if (categories.length > 0) {
@@ -127,8 +127,8 @@ export default function TourismListingPage() {
       params.set("sortDir", sortDir);
     }
     const newUrl = params.toString() ? `/tourisms?${params.toString()}` : "/tourisms";
-    router.replace(newUrl, { scroll: false });
-  }, [categories, currentKeyword, sortBy, sortDir, router]);
+    window.history.replaceState(null, "", newUrl);
+  }, [categories, currentKeyword, sortBy, sortDir]);
 
   const handleSearch = useCallback((keyword: string) => {
     setCurrentKeyword(keyword);
@@ -193,75 +193,22 @@ export default function TourismListingPage() {
         onSearch={handleSearch}
         showCategories={false}
         liveSearch={true}
+        categories={categories}
+        onCategoryToggle={handleCategoryToggle}
+        onClearCategories={() => setCategories([])}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Back Button */}
         <button
           onClick={() => router.push('/')}
-          className="flex items-center gap-2 text-gray-700 hover:text-blue-600 mb-4 transition-colors font-bold"
+          className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 mb-4 transition-colors font-bold"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span>Back to Home</span>
         </button>
-
-        {/* Category Filter Pills - Top Position with Professional Gray Background */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-4 mb-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => handleCategoryToggle(cat.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-black transition-all duration-300 shadow-md hover:scale-105 border-2 ${
-                  categories.includes(cat.id)
-                    ? "bg-blue-600 text-white shadow-blue-300/40 border-blue-700"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900 border-gray-300"
-                }`}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.label}</span>
-                {categories.includes(cat.id) && (
-                  <svg className="w-3 h-3 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                )}
-              </button>
-            ))}
-            {categories.length > 0 && (
-              <button
-                onClick={() => {
-                  setCategories([]);
-                  router.replace("/tourisms", { scroll: false });
-                }}
-                className="px-3 py-2 text-sm font-black text-red-600 hover:bg-red-50 rounded-xl transition-all border-2 border-red-300"
-              >
-                ✕ Clear
-              </button>
-            )}
-            {/* Sort - Inline */}
-            <div className="ml-auto flex items-center gap-2">
-              <select 
-                value={`${sortBy}-${sortDir}`}
-                onChange={(e) => {
-                  const [newSortBy, newSortDir] = e.target.value.split('-');
-                  setSortBy(newSortBy);
-                  setSortDir(newSortDir);
-                }}
-                className="bg-white text-gray-900 rounded-xl px-3 py-2 text-sm font-black focus:ring-2 focus:ring-blue-500 shadow-md cursor-pointer hover:bg-gray-50 transition-all border-2 border-gray-300"
-              >
-                <option value="viewersCount-desc">Popular</option>
-                <option value="viewersCount-asc">Least Popular</option>
-                <option value="name-asc">A-Z</option>
-                <option value="name-desc">Z-A</option>
-              </select>
-              <span className="px-3 py-2 bg-blue-600 text-white rounded-xl text-sm font-black border-2 border-blue-700">
-                {totalElements}
-              </span>
-            </div>
-          </div>
-        </div>
 
         {error && (
           <div className="mb-4 px-4 py-3 bg-red-50 border border-red-300 rounded-xl flex items-center justify-between shadow-md">
@@ -287,7 +234,6 @@ export default function TourismListingPage() {
           </div>
         ) : tourismPlaces.length === 0 ? (
           <div className="text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200 shadow-md">
-            <div className="text-5xl mb-4">🔍</div>
             <h2 className="text-xl font-black text-gray-900 mb-2">No Destinations Found</h2>
             <button
               onClick={() => {
@@ -395,59 +341,68 @@ function TourismCard({
   return (
     <div 
       onClick={onClick}
-      className="group bg-white rounded-2xl shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] transition-all duration-300 overflow-hidden cursor-pointer hover:-translate-y-2 border border-gray-200 hover:border-blue-300"
+      style={{
+        background: "linear-gradient(145deg, rgba(255,255,255,0.92) 0%, rgba(241,245,249,0.85) 100%)",
+        boxShadow: "0 14px 40px rgba(0,0,0,0.13), 0 4px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 4px rgba(0,0,0,0.04)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        border: "1px solid rgba(255,255,255,0.7)",
+        borderRadius: "16px",
+        transition: "all 0.25s ease",
+      }}
+      className="group overflow-hidden cursor-pointer hover:scale-[1.03] hover:-translate-y-1"
     >
-      {/* Image Section - Larger */}
+      {/* Image Section */}
       <div className={`relative h-44 overflow-hidden ${getCategoryBg(tourism.category)}`}>
         <img
           src={tourism.imageUrl}
           alt={tourism.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-        
+
         {/* Category Badge */}
         {tourism.category && (
           <span className="absolute top-3 left-3 px-3 py-1.5 bg-white/90 text-gray-900 rounded-xl text-xs font-black shadow-md">
             {CATEGORIES.find(c => c.id === tourism.category)?.icon} {tourism.category}
           </span>
         )}
-        
-        {/* Views Badge */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-white/90 text-gray-900 rounded-xl text-xs font-black shadow-md">
-          <span>👁️</span>
-          <span>{tourism.viewersCount.toLocaleString()}</span>
-        </div>
-        
+
         {/* Loading Overlay */}
         {isNavigating && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <div className="w-10 h-10 border-3 border-blue-400 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
-
-        {/* Hover Action */}
-        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-          <span className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-black shadow-md">
-            View →
-          </span>
-        </div>
       </div>
-      
-      {/* Content Section - White with subtle gray */}
-      <div className="p-4 bg-white border-t border-gray-100">
+
+      {/* Content Section */}
+      <div className="p-4" style={{ borderTop: "1px solid rgba(255,255,255,0.6)" }}>
         <h3 className="font-black text-base text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-1.5">
           {tourism.name}
         </h3>
-        {tourism.wereda && (
-          <p className="text-xs text-gray-600 font-bold flex items-center gap-1.5">
-            <span className="text-gray-700">📍</span> 
-            <span className="line-clamp-1">{tourism.wereda}</span>
-          </p>
-        )}
+        <div className="flex items-center justify-between mt-2">
+          {tourism.wereda && (
+            <p className="text-xs text-gray-600 font-bold flex items-center gap-1.5">
+              <span className="line-clamp-1">{tourism.wereda}</span>
+            </p>
+          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Views — now in the white card, not over the image */}
+            <span className="text-xs font-black text-gray-500 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              {tourism.viewersCount.toLocaleString()}
+            </span>
+            <span className="px-2 py-0.5 text-white rounded-md font-black"
+              style={{ fontSize: "0.65rem", background: "linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow: "0 2px 8px rgba(109,40,217,0.4)" }}>
+              View →
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

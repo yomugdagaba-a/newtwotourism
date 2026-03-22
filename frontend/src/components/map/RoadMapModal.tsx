@@ -302,14 +302,14 @@ export default function RoadMapModal({
       {/* Error Bar */}
       {error && (
         <div className="bg-red-50 border-b border-red-200 px-6 py-3">
-          <p className="text-red-700 font-semibold">⚠️ {error}</p>
+          <p className="text-red-700 font-semibold">{error}</p>
         </div>
       )}
 
       {/* Loading Bar */}
       {loading && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3">
-          <p className="text-yellow-700 font-semibold">📍 Loading map...</p>
+          <p className="text-yellow-700 font-semibold">Loading map...</p>
         </div>
       )}
 
@@ -405,14 +405,14 @@ export default function RoadMapModal({
         {/* Error Section */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700 font-semibold">⚠️ {error}</p>
+            <p className="text-red-700 font-semibold">{error}</p>
           </div>
         )}
 
         {/* Loading Section */}
         {loading && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-yellow-700 font-semibold">📍 Loading map...</p>
+            <p className="text-yellow-700 font-semibold">Loading map...</p>
           </div>
         )}
 

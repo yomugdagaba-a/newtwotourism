@@ -133,18 +133,19 @@ export default function AdminBookingsPage() {
     <div className="min-h-screen bg-gray-50 shadow-inner admin-page">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-6 bg-white border border-gray-200 p-6 rounded-xl shadow-lg">
+        <div className="mb-6 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-black text-gray-900">📋 Booking Management</h1>
-              <p className="text-gray-600 font-semibold mt-1">Monitor and manage all hotel bookings</p>
+              <h1 className="text-lg font-black text-gray-900">Booking Management</h1>
+              <p className="text-gray-600 text-sm mt-0.5">Monitor and manage all hotel bookings</p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => router.push('/admin')} className="px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-bold">
-                ← Back to Admin
+              <button onClick={() => router.push('/admin')} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg px-3 py-1.5 font-bold">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Back to Dashboard
               </button>
-              <button onClick={() => { loadBookings(); loadProblemBookings(); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold shadow-lg">
-                🔄 Refresh
+              <button onClick={() => { loadBookings(); loadProblemBookings(); }} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-bold shadow-lg text-sm">
+                Refresh
               </button>
             </div>
           </div>
@@ -155,69 +156,66 @@ export default function AdminBookingsPage() {
         {success && <div className="mb-4"><Alert type="success" message={success} onClose={() => setSuccess(null)} /></div>}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1 mb-6">
-          <button onClick={() => { setFilter('ALL'); setActiveTab('all'); }} className="bg-white rounded-lg p-1.5 shadow-sm border border-gray-300 hover:shadow-md hover:border-gray-400 transition-all cursor-pointer">
-            <div className="text-base font-black text-gray-900">{stats.ALL || 0}</div>
-            <div className="text-xs text-gray-700 font-black">Total</div>
-          </button>
-          <button onClick={() => { setFilter('REQUESTED'); setActiveTab('all'); }} className="bg-white rounded-lg p-1.5 shadow-sm border border-gray-300 hover:shadow-md hover:border-gray-400 transition-all cursor-pointer">
-            <div className="text-base font-black text-gray-900">{stats.REQUESTED || 0}</div>
-            <div className="text-xs text-gray-700 font-black">Requested</div>
-          </button>
-          <button onClick={() => { setFilter('OWNER_ACCEPTED'); setActiveTab('all'); }} className="bg-white rounded-lg p-1.5 shadow-sm border border-gray-300 hover:shadow-md hover:border-gray-400 transition-all cursor-pointer">
-            <div className="text-base font-black text-gray-900">{stats.OWNER_ACCEPTED || 0}</div>
-            <div className="text-xs text-gray-700 font-black">Accepted</div>
-          </button>
-          <button onClick={() => { setFilter('COST_PROPOSED'); setActiveTab('all'); }} className="bg-white rounded-lg p-1.5 shadow-sm border border-gray-300 hover:shadow-md hover:border-gray-400 transition-all cursor-pointer">
-            <div className="text-base font-black text-gray-900">{stats.COST_PROPOSED || 0}</div>
-            <div className="text-xs text-gray-700 font-black">Cost Sent</div>
-          </button>
-          <button onClick={() => { setFilter('PAID'); setActiveTab('all'); }} className="bg-white rounded-lg p-1.5 shadow-sm border border-gray-300 hover:shadow-md hover:border-gray-400 transition-all cursor-pointer">
-            <div className="text-base font-black text-gray-900">{stats.PAID || 0}</div>
-            <div className="text-xs text-gray-700 font-black">Paid</div>
-          </button>
-          <button onClick={() => { setFilter('APPROVED'); setActiveTab('all'); }} className="bg-white rounded-lg p-1.5 shadow-sm border border-gray-300 hover:shadow-md hover:border-gray-400 transition-all cursor-pointer">
-            <div className="text-base font-black text-gray-900">{stats.APPROVED || 0}</div>
-            <div className="text-xs text-gray-700 font-black">Approved</div>
-          </button>
-          <button onClick={() => setActiveTab('problems')} className="bg-white rounded-lg p-1.5 shadow-sm border border-gray-300 hover:shadow-md hover:border-gray-400 transition-all cursor-pointer">
-            <div className="text-base font-black text-gray-900">{problemBookings.length}</div>
-            <div className="text-xs text-gray-700 font-black">Problems</div>
-          </button>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+          {[
+            { label: 'Total', filter: 'ALL', count: stats.ALL || 0 },
+            { label: 'Requested', filter: 'REQUESTED', count: stats.REQUESTED || 0 },
+            { label: 'Accepted', filter: 'OWNER_ACCEPTED', count: stats.OWNER_ACCEPTED || 0 },
+            { label: 'Cost Sent', filter: 'COST_PROPOSED', count: stats.COST_PROPOSED || 0 },
+            { label: 'Paid', filter: 'PAID', count: stats.PAID || 0 },
+            { label: 'Approved', filter: 'APPROVED', count: stats.APPROVED || 0 },
+            { label: 'Problems', filter: null, count: problemBookings.length },
+          ].map(({ label, filter: f, count }) => (
+            <button
+              key={label}
+              onClick={() => { if (f) { setFilter(f); setActiveTab('all'); setSelectedBooking(null); } else { setActiveTab('problems'); setSelectedBooking(null); } }}
+              className="backdrop-blur-sm bg-white/70 border border-white/50 rounded-xl p-2.5 shadow-md hover:shadow-lg hover:bg-white/90 transition-all text-center"            >
+              <div className="text-lg font-black text-gray-900">{count}</div>
+              <div className="text-xs text-gray-600 font-semibold">{label}</div>
+            </button>
+          ))}
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button
-            onClick={() => setActiveTab('all')}
+            onClick={() => { setActiveTab('all'); setSelectedBooking(null); }}
             className={`px-6 py-3 rounded-lg font-black transition shadow-md border-2 ${
-              activeTab === 'all' ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'
+              activeTab === 'all' ? 'bg-gray-600 text-white border-gray-700' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'
             }`}
           >
-            📋 All Bookings ({bookings.length})
+            All Bookings ({bookings.length})
           </button>
           <button
-            onClick={() => setActiveTab('problems')}
+            onClick={() => { setActiveTab('problems'); setSelectedBooking(null); }}
             className={`px-6 py-3 rounded-lg font-black transition shadow-md border-2 ${
-              activeTab === 'problems' ? 'bg-red-600 text-white border-red-700' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'
+              activeTab === 'problems' ? 'bg-gray-600 text-white border-gray-700' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'
             }`}
           >
-            ⚠️ Problem Reports ({problemBookings.length})
+            Problem Reports ({problemBookings.length})
           </button>
         </div>
 
         {/* Filter */}
         {activeTab === 'all' && (
           <div className="flex gap-2 mb-6 flex-wrap">
-            {['ALL', 'REQUESTED', 'OWNER_ACCEPTED', 'COST_PROPOSED', 'PAID', 'APPROVED', 'REJECTED'].map(f => (
+            {[
+              { key: 'ALL', label: 'All' },
+              { key: 'REQUESTED', label: 'Requested' },
+              { key: 'OWNER_ACCEPTED', label: 'Accepted' },
+              { key: 'COST_PROPOSED', label: 'Cost Proposed' },
+              { key: 'PAID', label: 'Paid' },
+              { key: 'APPROVED', label: 'Approved' },
+              { key: 'REJECTED', label: 'Rejected' },
+            ].map(({ key, label }) => (
               <button
-                key={f}
-                onClick={() => setFilter(f)}
+                key={key}
+                onClick={() => { setFilter(key); setSelectedBooking(null); }}
                 className={`px-4 py-2 rounded-lg text-sm font-black transition shadow-md border-2 ${
-                  filter === f ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-400'
+                  filter === key ? 'bg-gray-600 text-white border-gray-700' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-400'
                 }`}
               >
-                {f}
+                {label}
               </button>
             ))}
           </div>
@@ -236,31 +234,31 @@ export default function AdminBookingsPage() {
               </h2>
               {filteredBookings.length === 0 ? (
                 <div className="bg-white rounded-xl p-6 text-center text-gray-800 font-bold shadow-lg border border-gray-200">
-                  {activeTab === 'problems' ? 'No problem reports 🎉' : 'No bookings found'}
+                  {activeTab === 'problems' ? 'No problem reports' : 'No bookings found'}
                 </div>
               ) : (
                 filteredBookings.map((b, index) => (
                   <div
                     key={b.bookingId || `booking-${index}`}
                     onClick={() => setSelectedBooking(b)}
-                    className={`bg-white rounded-xl p-4 cursor-pointer transition hover:shadow-xl shadow-lg border-2 ${
-                      selectedBooking?.bookingId === b.bookingId ? 'bg-blue-50 shadow-xl border-blue-300' : 'border-gray-200'
+                    className={`bg-white rounded-xl px-4 py-3 cursor-pointer transition hover:shadow-xl shadow-md border ${
+                      selectedBooking?.bookingId === b.bookingId ? 'bg-blue-50 shadow-xl border-blue-200' : 'border-gray-200'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <span className="font-black text-gray-900">#{b.bookingId}</span>
-                        {b.problemReported && <span className="ml-2 text-red-500">⚠️</span>}
+                        <span className="font-black text-gray-900 text-sm">Booking {b.bookingId}</span>
+                        {b.problemReported && <span className="ml-2 text-xs text-red-500 font-bold">Problem</span>}
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-black shadow-sm ${BookingService.getStatusColor(b.bookingStatus)}`}>
-                        {b.bookingStatus}
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-black shadow-sm ${BookingService.getStatusColor(b.bookingStatus)}`}>
+                        {BookingService.getStatusLabel(b.bookingStatus)}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-800">
-                      <div className="font-black text-gray-900">🏨 {b.hotel?.name || 'N/A'}</div>
-                      <div className="font-bold text-gray-700">👤 {b.client?.fullName || 'N/A'}</div>
-                      <div className="font-bold text-gray-700">📅 {b.checkIn} → {b.checkOut}</div>
-                      {b.totalCost && <div className="text-gray-800 font-black">💰 {b.totalCost} ETB</div>}
+                    <div className="text-sm text-gray-700 space-y-0.5">
+                      <div className="font-black text-gray-900">{b.hotel?.name || 'N/A'}</div>
+                      <div className="font-semibold">{b.client?.fullName || 'N/A'}</div>
+                      <div className="font-semibold">{b.checkIn} — {b.checkOut}</div>
+                      {b.totalCost && <div className="font-black text-gray-800">{b.totalCost} ETB</div>}
                     </div>
                   </div>
                 ))
@@ -275,7 +273,7 @@ export default function AdminBookingsPage() {
                   <div className="p-6 border-b bg-white rounded-t-xl border-gray-200">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h2 className="text-2xl font-black text-gray-900">Booking #{selectedBooking.bookingId}</h2>
+                        <h2 className="text-2xl font-black text-gray-900">Booking {selectedBooking.bookingId}</h2>
                         <p className="text-gray-700 font-bold">{selectedBooking.hotel?.name || 'N/A'}</p>
                       </div>
                       <span className={`px-4 py-2 rounded-full text-sm font-black shadow-md ${BookingService.getStatusColor(selectedBooking.bookingStatus)}`}>
@@ -287,7 +285,7 @@ export default function AdminBookingsPage() {
                   {/* Hotel & Client Info */}
                   <div className="grid md:grid-cols-2 gap-6 p-6 border-b bg-white">
                     <div className="bg-gray-50 p-4 rounded-xl shadow-md border border-gray-200">
-                      <h3 className="font-black text-gray-900 mb-3">🏨 Hotel Information</h3>
+                      <h3 className="font-black text-gray-900 mb-3">Hotel Information</h3>
                       <div className="space-y-2 text-sm">
                         <div className="font-bold"><span className="text-gray-700">Name:</span> <strong className="text-gray-900">{selectedBooking.hotel?.name || 'N/A'}</strong></div>
                         <div className="font-bold"><span className="text-gray-700">Contact:</span> <strong className="text-gray-900">{selectedBooking.hotel?.contactInfo || 'N/A'}</strong></div>
@@ -300,7 +298,7 @@ export default function AdminBookingsPage() {
                       </div>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-xl shadow-md border border-gray-200">
-                      <h3 className="font-black text-gray-900 mb-3">👤 Client Information</h3>
+                      <h3 className="font-black text-gray-900 mb-3">Client Information</h3>
                       <div className="space-y-2 text-sm">
                         <div className="font-bold"><span className="text-gray-700">Name:</span> <strong className="text-gray-900">{selectedBooking.client?.fullName || 'N/A'}</strong></div>
                         <div className="font-bold"><span className="text-gray-700">Username:</span> <strong className="text-gray-900">@{selectedBooking.client?.username || 'N/A'}</strong></div>
@@ -312,7 +310,7 @@ export default function AdminBookingsPage() {
 
                   {/* Booking Details */}
                   <div className="p-6 border-b bg-white">
-                    <h3 className="font-black text-gray-900 mb-3">📋 Booking Details</h3>
+                    <h3 className="font-black text-gray-900 mb-3">Booking Details</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="bg-gray-100 p-3 rounded-xl text-center shadow-lg border border-gray-200">
                         <div className="text-gray-700 text-xs font-black uppercase">Check-in</div>
@@ -350,7 +348,7 @@ export default function AdminBookingsPage() {
                     <div className="p-6 border-b">
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <h3 className="font-black text-gray-800">🧾 Payment Receipt</h3>
+                          <h3 className="font-black text-gray-800">Payment Receipt</h3>
                           <p className="text-xs text-gray-500 mt-1 font-semibold">Visible until checkout: {selectedBooking.checkOut}</p>
                         </div>
                         <div className="flex gap-2">
@@ -358,13 +356,13 @@ export default function AdminBookingsPage() {
                             onClick={() => setShowReceiptModal(true)}
                             className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-black border-2 border-blue-300 shadow-md"
                           >
-                            🔍 View Full Size
+                            View Full Size
                           </button>
                           <button
                             onClick={handleDownloadReceipt}
                             className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-black border-2 border-blue-300 shadow-md"
                           >
-                            ⬇️ Download
+                            Download
                           </button>
                         </div>
                       </div>
@@ -383,7 +381,7 @@ export default function AdminBookingsPage() {
                   {/* Problem Report */}
                   {selectedBooking.problemReported && selectedBooking.problemReport && (
                     <div className="p-6 border-b bg-red-50">
-                      <h3 className="font-black text-red-700 mb-3">⚠️ Problem Report</h3>
+                      <h3 className="font-black text-red-700 mb-3">Problem Report</h3>
                       <p className="text-red-800 mb-4 font-semibold">{selectedBooking.problemReport}</p>
                       <div className="space-y-3">
                         <textarea
@@ -399,7 +397,7 @@ export default function AdminBookingsPage() {
                           loading={actionLoading}
                           disabled={!resolution.trim()}
                         >
-                          ✓ Mark as Resolved
+                          Mark as Resolved
                         </FormButton>
                       </div>
                     </div>
@@ -408,14 +406,14 @@ export default function AdminBookingsPage() {
                   {/* Rejection Reason */}
                   {selectedBooking.bookingStatus === 'REJECTED' && selectedBooking.rejectionReason && (
                     <div className="p-6 border-b bg-red-50">
-                      <h3 className="font-black text-red-700 mb-2">❌ Rejection Reason</h3>
+                      <h3 className="font-black text-red-700 mb-2">Rejection Reason</h3>
                       <p className="text-red-800 font-semibold">{selectedBooking.rejectionReason}</p>
                     </div>
                   )}
 
                   {/* Messages */}
                   <div className="p-6 bg-white border-b">
-                    <h3 className="font-black text-gray-900 mb-3">💬 Conversation History ({selectedBooking.messages?.length || 0})</h3>
+                    <h3 className="font-black text-gray-900 mb-3">Conversation History ({selectedBooking.messages?.length || 0})</h3>
                     <div className="space-y-3 max-h-64 overflow-y-auto bg-gray-50 p-4 rounded-xl shadow-inner border border-gray-200 [&::-webkit-scrollbar]:w-4 [&::-webkit-scrollbar-track]:bg-gray-300 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-gray-300">
                       {selectedBooking.messages?.length === 0 ? (
                         <p className="text-gray-700 text-center py-4 font-bold">No messages</p>
@@ -442,7 +440,6 @@ export default function AdminBookingsPage() {
                 </div>
               ) : (
                 <div className="bg-white rounded-xl p-12 text-center text-gray-800 shadow-xl border border-gray-200">
-                  <div className="text-6xl mb-4">📋</div>
                   <p className="font-black">Select a booking to view details</p>
                 </div>
               )}
@@ -483,7 +480,7 @@ export default function AdminBookingsPage() {
                 onClick={(e) => { e.stopPropagation(); handleDownloadReceipt(); }}
                 className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg font-black border-2 border-blue-300 shadow-md"
               >
-                ⬇️ Download
+                Download
               </button>
               <button
                 onClick={() => setShowReceiptModal(false)}

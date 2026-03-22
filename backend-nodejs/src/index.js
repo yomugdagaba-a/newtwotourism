@@ -34,6 +34,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Audit middleware — automatically logs all POST/PUT/PATCH/DELETE requests
+const { auditMiddleware } = require('./middleware/audit.middleware');
+app.use(auditMiddleware);
+
 // Static uploads
 const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });

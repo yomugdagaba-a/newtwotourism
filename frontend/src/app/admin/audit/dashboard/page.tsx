@@ -87,10 +87,19 @@ const AuditDashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white container mx-auto px-4 py-8 admin-page">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900 mb-2">Audit Dashboard</h1>
-        <p className="text-gray-700 font-semibold">System activity overview and security monitoring</p>
+    <div className="min-h-screen bg-white container mx-auto px-4 pt-4 pb-8 admin-page">
+      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
+        <button
+          onClick={() => router.push('/admin')}
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="font-bold">Back to Dashboard</span>
+        </button>
+        <h1 className="text-lg font-black text-gray-900 mb-0.5">Audit Dashboard</h1>
+        <p className="text-gray-600 text-sm">System activity overview and security monitoring</p>
       </div>
 
       {/* Time Range Selector */}
@@ -124,102 +133,95 @@ const AuditDashboardPage = () => {
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Summary Cards */}
           {statistics && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-                <h3 className="text-lg font-black text-gray-900 mb-2">Total Events</h3>
-                <p className="text-3xl font-black text-blue-600">{statistics.totalAuditLogs}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-white rounded-lg shadow p-3 border border-gray-200">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">Total Events</h3>
+                <p className="text-2xl font-black text-blue-600">{statistics.totalAuditLogs}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-                <h3 className="text-lg font-black text-gray-900 mb-2">Security Events</h3>
-                <p className="text-3xl font-black text-yellow-600">{statistics.securityEvents}</p>
+              <div className="bg-white rounded-lg shadow p-3 border border-gray-200">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">Security Events</h3>
+                <p className="text-2xl font-black text-yellow-600">{statistics.securityEvents}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-                <h3 className="text-lg font-black text-gray-900 mb-2">High Severity</h3>
-                <p className="text-3xl font-black text-red-600">{statistics.highSeverityEvents}</p>
+              <div className="bg-white rounded-lg shadow p-3 border border-gray-200">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">High Severity</h3>
+                <p className="text-2xl font-black text-red-600">{statistics.highSeverityEvents}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-                <h3 className="text-lg font-black text-gray-900 mb-2">Suspicious IPs</h3>
-                <p className="text-3xl font-black text-orange-600">{suspiciousActivities.length}</p>
+              <div className="bg-white rounded-lg shadow p-3 border border-gray-200">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">Suspicious IPs</h3>
+                <p className="text-2xl font-black text-orange-600">{suspiciousActivities.length}</p>
               </div>
             </div>
           )}
 
           {/* Integrity Status */}
           {integrityStatus && (
-            <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-black text-gray-900">Audit Log Integrity</h3>
+            <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-black text-gray-900">Audit Log Integrity</h3>
                 {integrityStatus.status !== 'GOOD' && (
                   <button
                     onClick={handleRepairIntegrity}
                     disabled={repairingIntegrity}
-                    className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg hover:bg-yellow-200 disabled:opacity-50 font-black border-2 border-yellow-400"
+                    className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg hover:bg-yellow-200 disabled:opacity-50 font-black border border-yellow-400 text-sm"
                   >
                     {repairingIntegrity ? 'Repairing...' : 'Repair Integrity'}
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3 mb-3">
                 <div>
-                  <p className="text-sm text-gray-700 font-bold">Total Logs</p>
-                  <p className="text-2xl font-black">{integrityStatus.totalLogs}</p>
+                  <p className="text-xs text-gray-500 font-bold">Total Logs</p>
+                  <p className="text-xl font-black">{integrityStatus.totalLogs}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-700 font-bold">Missing Checksums</p>
-                  <p className="text-2xl font-black text-red-600">{integrityStatus.logsWithoutChecksum}</p>
+                  <p className="text-xs text-gray-500 font-bold">Missing Checksums</p>
+                  <p className="text-xl font-black text-red-600">{integrityStatus.logsWithoutChecksum}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-700 font-bold">Integrity Status</p>
-                  <span className={`inline-flex px-3 py-1 text-sm font-black rounded-full border ${getIntegrityStatusColor(integrityStatus.status)}`}>
+                  <p className="text-xs text-gray-500 font-bold">Integrity Status</p>
+                  <span className={`inline-flex px-2 py-0.5 text-xs font-black rounded-full border ${getIntegrityStatusColor(integrityStatus.status)}`}>
                     {integrityStatus.status}
                   </span>
                 </div>
               </div>
-              <div className="mt-4">
-                <div className="bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: `${integrityStatus.integrityPercentage}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-700 font-bold mt-1">
-                  {integrityStatus.integrityPercentage.toFixed(1)}% integrity
-                </p>
+              <div className="bg-gray-200 rounded-full h-1.5">
+                <div className="bg-green-600 h-1.5 rounded-full" style={{ width: `${integrityStatus.integrityPercentage}%` }}></div>
               </div>
+              <p className="text-xs text-gray-500 font-bold mt-1">{integrityStatus.integrityPercentage.toFixed(1)}% integrity</p>
             </div>
           )}
 
           {/* Action Statistics */}
           {statistics && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-                <h3 className="text-lg font-black text-gray-900 mb-4">Top Actions</h3>
-                <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+                <h3 className="text-sm font-black text-gray-900 mb-2">Top Actions</h3>
+                <div className="space-y-1.5">
                   {statistics.actionStatistics && Object.entries(statistics.actionStatistics)
                     .sort(([,a], [,b]) => b - a)
                     .slice(0, 10)
                     .map(([action, count]) => (
                       <div key={action} className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700 font-bold">{action}</span>
-                        <span className="font-black">{count}</span>
+                        <span className="text-xs text-gray-700 font-bold">{action}</span>
+                        <span className="text-xs font-black">{count}</span>
                       </div>
                     ))}
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-                <h3 className="text-lg font-black text-gray-900 mb-4">Resource Activity</h3>
-                <div className="space-y-3">
+              <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+                <h3 className="text-sm font-black text-gray-900 mb-2">Resource Activity</h3>
+                <div className="space-y-1.5">
                   {statistics.resourceTypeStatistics && Object.entries(statistics.resourceTypeStatistics)
                     .sort(([,a], [,b]) => b - a)
                     .slice(0, 10)
                     .map(([resource, count]) => (
                       <div key={resource} className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700 font-bold">{resource}</span>
-                        <span className="font-black">{count}</span>
+                        <span className="text-xs text-gray-700 font-bold">{resource}</span>
+                        <span className="text-xs font-black">{count}</span>
                       </div>
                     ))}
                 </div>
@@ -228,59 +230,51 @@ const AuditDashboardPage = () => {
           )}
 
           {/* Most Active Users */}
-          {statistics && Object.keys(statistics.mostActiveUsers).length > 0 && (
-            <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-              <h3 className="text-lg font-black text-gray-900 mb-4">Most Active Users</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Object.entries(statistics.mostActiveUsers)
-                  .sort(([,a], [,b]) => b - a)
-                  .slice(0, 9)
-                  .map(([username, count]) => (
-                    <div key={username} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-300">
-                      <span className="text-sm font-black">{username}</span>
-                      <span className="text-sm text-gray-700 font-bold">{count} actions</span>
-                    </div>
-                  ))}
+          {statistics && statistics.mostActiveUsers && (() => {
+            const raw = statistics.mostActiveUsers as any;
+            const entries: [string, number][] = Array.isArray(raw)
+              ? raw.map((item: any) => [String(item.userId ?? item.username ?? 'Unknown'), Number(item.activityCount ?? item.count ?? 0)])
+              : Object.entries(raw).map(([k, v]) => [k, Number(v)]);
+            return entries.length > 0 ? (
+              <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+                <h3 className="text-sm font-black text-gray-900 mb-2">Most Active Users</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {entries
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 9)
+                    .map(([username, count]) => (
+                      <div key={username} className="flex justify-between items-center px-2 py-1.5 bg-gray-50 rounded border border-gray-200">
+                        <span className="text-xs font-black">{username}</span>
+                        <span className="text-xs text-gray-600 font-bold">{count}</span>
+                      </div>
+                    ))}
+                </div>
               </div>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           {/* Suspicious Activities */}
           {suspiciousActivities.length > 0 && (
-            <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-300">
-              <h3 className="text-lg font-black text-gray-900 mb-4">Suspicious Activities</h3>
+            <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+              <h3 className="text-sm font-black text-gray-900 mb-2">Suspicious Activities</h3>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-100">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-black text-gray-700 uppercase tracking-wider">
-                        IP Address
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-black text-gray-700 uppercase tracking-wider">
-                        User Count
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-black text-gray-700 uppercase tracking-wider">
-                        Action Count
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-black text-gray-700 uppercase tracking-wider">
-                        Risk Level
-                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-black text-gray-600 uppercase">IP Address</th>
+                      <th className="px-4 py-2 text-left text-xs font-black text-gray-600 uppercase">Users</th>
+                      <th className="px-4 py-2 text-left text-xs font-black text-gray-600 uppercase">Actions</th>
+                      <th className="px-4 py-2 text-left text-xs font-black text-gray-600 uppercase">Risk</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-100">
                     {suspiciousActivities.map((activity, index) => (
                       <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-gray-900">
-                          {activity.ipAddress}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
-                          {activity.userCount}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
-                          {activity.actionCount}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-black rounded-full border ${getRiskLevelColor(activity.riskLevel)}`}>
+                        <td className="px-4 py-2 text-xs font-black text-gray-900">{activity.ipAddress}</td>
+                        <td className="px-4 py-2 text-xs text-gray-700 font-bold">{activity.userCount}</td>
+                        <td className="px-4 py-2 text-xs text-gray-700 font-bold">{activity.actionCount}</td>
+                        <td className="px-4 py-2">
+                          <span className={`inline-flex px-2 py-0.5 text-xs font-black rounded-full border ${getRiskLevelColor(activity.riskLevel)}`}>
                             {activity.riskLevel}
                           </span>
                         </td>

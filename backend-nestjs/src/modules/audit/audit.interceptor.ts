@@ -16,6 +16,16 @@ export class AuditInterceptor implements NestInterceptor {
 
   constructor(private auditService: AuditService) {}
 
+  private sanitizeBody(body: any): any {
+    if (!body || typeof body !== 'object') return body;
+    const sensitiveFields = ['password', 'confirmPassword', 'currentPassword', 'newPassword', 'token', 'refreshToken', 'accessToken', 'secret'];
+    const sanitized = { ...body };
+    for (const field of sensitiveFields) {
+      if (field in sanitized) sanitized[field] = '[REDACTED]';
+    }
+    return sanitized;
+  }
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const { method, url, user, body, params, query } = request;
@@ -56,7 +66,7 @@ export class AuditInterceptor implements NestInterceptor {
             action as AuditAction,
             entityType,
             entityId || undefined,
-            { method, url, body, params, query },
+            { method, url, body: this.sanitizeBody(body), params, query },
             ipAddress,
             userAgent,
           );
@@ -74,15 +84,7 @@ export class AuditInterceptor implements NestInterceptor {
             action as AuditAction,
             entityType,
             entityId || undefined,
-            {
-              method,
-              url,
-              body,
-              params,
-              query,
-              error: errorMessage,
-              status: 'FAILED',
-            },
+            { method, url, body: this.sanitizeBody(body), params, query, error: errorMessage, status: 'FAILED' },
             ipAddress,
             userAgent,
           );

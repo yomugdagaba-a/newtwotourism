@@ -146,12 +146,11 @@ export default function HotelOwnerDashboard() {
         <div className="mb-6 bg-gradient-to-r from-slate-900 via-emerald-900 to-slate-900 p-6 rounded-xl shadow-xl">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-black text-white">🏨 Hotel Owner Dashboard</h1>
+              <h1 className="text-3xl font-black text-white">Hotel Owner Dashboard</h1>
               <p className="text-emerald-200 font-semibold mt-1">Manage your hotel bookings</p>
             </div>
             <button onClick={loadBookings} className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 font-black shadow-lg">
-              🔄 Refresh
-            </button>
+              Refresh            </button>
           </div>
         </div>
 
@@ -204,7 +203,7 @@ export default function HotelOwnerDashboard() {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Bookings List */}
             <div className="lg:col-span-1 space-y-3">
-              <h3 className="font-black text-gray-800 mb-2">📋 Bookings ({filteredBookings.length})</h3>
+              <h3 className="font-black text-gray-800 mb-2">Bookings ({filteredBookings.length})</h3>
               {filteredBookings.length === 0 ? (
                 <div className="bg-gray-100 p-6 rounded-xl text-center text-gray-800 font-bold shadow-lg">
                   No bookings found
@@ -230,13 +229,12 @@ export default function HotelOwnerDashboard() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-800 font-bold">
-                      📅 {booking.checkIn} → {booking.checkOut}
-                    </div>
+                      {booking.checkIn} → {booking.checkOut}                    </div>
                     <div className="text-sm text-gray-800 font-bold">
-                      👥 {booking.numberOfGuests} guests • 🛏️ {booking.numberOfRooms || 1} room(s)
+                      {booking.numberOfGuests} guests • {booking.numberOfRooms || 1} room(s)
                     </div>
                     {booking.problemReported && (
-                      <div className="mt-2 text-xs text-red-700 font-black bg-red-100 px-2 py-1 rounded">⚠️ Problem Reported</div>
+                      <div className="mt-2 text-xs text-red-700 font-black bg-red-100 px-2 py-1 rounded">Problem Reported</div>
                     )}
                   </div>
                 ))
@@ -251,7 +249,7 @@ export default function HotelOwnerDashboard() {
                   <div className="p-6 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-t-xl">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h2 className="text-2xl font-black text-gray-900">🏨 {selectedBooking.hotel.name}</h2>
+                        <h2 className="text-2xl font-black text-gray-900">{selectedBooking.hotel.name}</h2>
                         <p className="text-gray-800 font-bold">Booking #{selectedBooking.bookingId}</p>
                       </div>
                       <span className={`px-4 py-2 rounded-full font-black shadow-md ${BookingService.getStatusColor(selectedBooking.bookingStatus)}`}>
@@ -262,7 +260,7 @@ export default function HotelOwnerDashboard() {
 
                   {/* Client Info */}
                   <div className="bg-blue-100 p-5 m-4 rounded-xl shadow-lg">
-                    <h3 className="font-black text-blue-900 mb-3">👤 Client Information</h3>
+                    <h3 className="font-black text-blue-900 mb-3">Client Information</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="font-bold text-gray-800">Name: <strong className="text-gray-900">{selectedBooking.client.fullName || selectedBooking.client.username}</strong></div>
                       <div className="font-bold text-gray-800">Email: <strong className="text-gray-900">{selectedBooking.client.email || "N/A"}</strong></div>
@@ -281,7 +279,7 @@ export default function HotelOwnerDashboard() {
                   {/* Action Buttons based on status */}
                   {selectedBooking.bookingStatus === BOOKING_STATUS.REQUESTED && (
                     <div className="bg-yellow-200 p-5 m-4 rounded-xl shadow-lg">
-                      <h3 className="font-black text-yellow-900 mb-3">📋 New Booking Request</h3>
+                      <h3 className="font-black text-yellow-900 mb-3">New Booking Request</h3>
                       <div className="flex gap-3">
                         <button
                           onClick={() => handleAccept(selectedBooking.bookingId)}
@@ -309,7 +307,7 @@ export default function HotelOwnerDashboard() {
 
                   {selectedBooking.bookingStatus === BOOKING_STATUS.OWNER_ACCEPTED && (
                     <div className="bg-blue-200 p-5 m-4 rounded-xl shadow-lg">
-                      <h3 className="font-black text-blue-900 mb-3">💰 Propose Cost</h3>
+                      <h3 className="font-black text-blue-900 mb-3">Propose Cost</h3>
                       <div className="flex gap-3">
                         <input
                           type="number"
@@ -331,7 +329,7 @@ export default function HotelOwnerDashboard() {
 
                   {selectedBooking.bookingStatus === BOOKING_STATUS.COST_PROPOSED && (
                     <div className="bg-purple-200 p-5 m-4 rounded-xl shadow-lg">
-                      <h3 className="font-black text-purple-900 mb-2">⏳ Waiting for Payment</h3>
+                      <h3 className="font-black text-purple-900 mb-2">Waiting for Payment</h3>
                       <p className="text-purple-800 font-bold">Cost proposed: <strong className="text-2xl text-purple-900">{selectedBooking.totalCost} ETB</strong></p>
                       <p className="text-sm text-purple-700 font-semibold mt-1">Waiting for client to upload payment receipt...</p>
                     </div>
@@ -348,7 +346,7 @@ export default function HotelOwnerDashboard() {
                             className="max-w-sm rounded-xl border-2 border-indigo-400 shadow-lg"
                           />
                           <p className="text-xs text-indigo-700 mt-2 font-semibold">
-                            📅 Receipt visible until checkout: {selectedBooking.checkOut}
+                            Receipt visible until checkout: {selectedBooking.checkOut}
                           </p>
                         </div>
                       )}
@@ -394,14 +392,14 @@ export default function HotelOwnerDashboard() {
                   {/* Problem Report */}
                   {selectedBooking.problemReported && (
                     <div className="bg-red-200 p-5 m-4 rounded-xl shadow-lg">
-                      <h3 className="font-black text-red-900 mb-2">⚠️ Problem Reported to Admin</h3>
+                      <h3 className="font-black text-red-900 mb-2">Problem Reported to Admin</h3>
                       <p className="text-red-800 font-bold">{selectedBooking.problemReport}</p>
                     </div>
                   )}
 
                   {/* Messages */}
                   <div className="bg-green-900 rounded-b-xl p-6">
-                    <h3 className="font-black text-white mb-4">💬 Messages ({selectedBooking.messages?.length || 0})</h3>
+                    <h3 className="font-black text-white mb-4">Messages ({selectedBooking.messages?.length || 0})</h3>
                     <div className="space-y-3 max-h-60 overflow-y-auto mb-4 bg-green-300 p-4 rounded-xl shadow-inner [&::-webkit-scrollbar]:w-4 [&::-webkit-scrollbar-track]:bg-gray-300 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-black [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-gray-300">
                       {selectedBooking.messages?.length > 0 ? (
                         selectedBooking.messages.map((m) => (
@@ -443,7 +441,6 @@ export default function HotelOwnerDashboard() {
                 </div>
               ) : (
                 <div className="bg-gray-100 rounded-xl shadow-xl p-12 text-center">
-                  <div className="text-6xl mb-4">📋</div>
                   <p className="text-gray-800 font-black">Select a booking to view details</p>
                 </div>
               )}

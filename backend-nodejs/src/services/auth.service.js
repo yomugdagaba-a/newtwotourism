@@ -154,12 +154,16 @@ async function register({ username, email, password, fullName }) {
   const existing = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
   if (existing) throw Object.assign(new Error('Username or email already exists'), { status: 400 });
 
+  // Ensure CLIENT role exists
+  await prisma.role.upsert({ where: { name: 'CLIENT' }, update: {}, create: { name: 'CLIENT' } });
+
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { username, email, passwordHash, fullName, roles: { connect: { name: 'CLIENT' } } },
     include: { roles: true },
   });
 
+  // Send verification email — non-blocking, never crash register
   try {
     const otp = generateOtp();
     await prisma.emailVerificationToken.create({
@@ -167,7 +171,7 @@ async function register({ username, email, password, fullName }) {
     });
     await emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES);
     await emailService.sendWelcomeEmail(email, fullName || username);
-  } catch (e) { console.error('Verification email failed:', e.message); }
+  } catch (e) { console.error('Verification email failed (non-fatal):', e.message); }
 
   return generateTokens(user);
 }

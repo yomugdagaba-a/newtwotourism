@@ -489,27 +489,38 @@ export class AuditService {
   static exportToCsv(auditLogs: AuditLogEntry[], filename: string = 'audit-logs.csv') {
     const headers = [
       'ID', 'User ID', 'Username', 'Action', 'Resource Type', 'Resource ID',
-      'IP Address', 'Timestamp', 'Severity', 'Category', 'Description'
+      'IP Address', 'Timestamp', 'Severity', 'Category', 'Status', 'Error Message', 'Changes'
     ];
 
     const csvContent = [
       headers.join(','),
-      ...auditLogs.map(log => [
-        log.id,
-        log.userId || '',
-        log.username || '',
-        log.action,
-        log.resourceType || '',
-        log.resourceId || '',
-        log.ipAddress,
-        log.timestamp,
-        log.severity,
-        log.category,
-        `"${(log.description || '').replace(/"/g, '""')}"`
-      ].join(','))
+      ...auditLogs.map(log => {
+        const username = log.username || log.user?.username || '';
+        const category = log.category || AuditService.getCategoryFromActionPublic(log.action);
+        const severity = log.severity || AuditService.getSeverityFromActionPublic(log.action);
+        const timestamp = log.createdAt ? new Date(log.createdAt).toLocaleString() : (log.timestamp || '');
+        const changes = log.changes ? `"${log.changes.replace(/"/g, '""')}"` : '';
+        const errorMsg = log.errorMessage ? `"${log.errorMessage.replace(/"/g, '""')}"` : '';
+
+        return [
+          log.id,
+          log.userId || '',
+          username,
+          log.action,
+          log.entityType || '',
+          log.entityId || '',
+          log.ipAddress || '',
+          timestamp,
+          severity,
+          category,
+          log.status || '',
+          errorMsg,
+          changes,
+        ].join(',');
+      })
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -518,5 +529,14 @@ export class AuditService {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  // Public wrappers for use in exportToCsv
+  static getCategoryFromActionPublic(action: string): string {
+    return AuditService['getCategoryFromAction'](action);
+  }
+
+  static getSeverityFromActionPublic(action: string): string {
+    return AuditService['getSeverityFromAction'](action);
   }
 }

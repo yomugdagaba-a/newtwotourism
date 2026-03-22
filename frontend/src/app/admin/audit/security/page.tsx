@@ -113,10 +113,19 @@ const SecurityEventsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white container mx-auto px-4 py-8 admin-page">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900 mb-2">Security Events</h1>
-        <p className="text-gray-700 font-semibold">Monitor authentication, authorization, and security-related activities</p>
+    <div className="min-h-screen bg-white container mx-auto px-4 pt-4 pb-8 admin-page">
+      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
+        <button
+          onClick={() => router.push('/admin')}
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="font-bold">Back to Dashboard</span>
+        </button>
+        <h1 className="text-lg font-black text-gray-900 mb-0.5">Security Events</h1>
+        <p className="text-gray-600 text-sm">Monitor authentication, authorization, and security-related activities</p>
       </div>
 
       {/* Controls */}

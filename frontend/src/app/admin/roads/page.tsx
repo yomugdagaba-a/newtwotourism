@@ -273,19 +273,19 @@ const RoadsManagementPage = () => {
   return (
     <div className="min-h-screen bg-white admin-page">
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 bg-white border border-gray-200 p-6 rounded-xl shadow-lg">
+      <div className="container mx-auto px-4 pt-4 pb-8">
+        <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
           <button onClick={() => router.push('/admin')}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors font-bold">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             <span className="font-bold">Back to Dashboard</span>
           </button>
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-black text-gray-900 mb-2">🛣️ Roads Management</h1>
-              <p className="text-gray-600 font-semibold">Manage travel routes and pathways for tourism places</p>
+              <h1 className="text-lg font-black text-gray-900 mb-0.5">Roads Management</h1>
+              <p className="text-gray-600 text-sm">Manage travel routes and pathways for tourism places</p>
             </div>
             <button onClick={() => { resetForm(); setShowModal(true); }} disabled={!selectedTourismId}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 transition-colors font-black shadow-lg">
@@ -324,7 +324,6 @@ const RoadsManagementPage = () => {
         <div className="bg-orange-100 rounded-xl shadow-xl overflow-hidden">
           {!selectedTourismId ? (
             <div className="p-8 text-center text-gray-800 font-bold bg-white">
-              <span className="text-5xl mb-4 block">🏞️</span>
               <p className="text-lg font-black">Please select a tourism place to view its roads</p>
             </div>
           ) : loading ? (
@@ -339,7 +338,6 @@ const RoadsManagementPage = () => {
             </div>
           ) : filteredRoads.length === 0 ? (
             <div className="p-8 text-center text-gray-800 bg-white">
-              <span className="text-5xl mb-4 block">🛣️</span>
               <p className="text-lg mb-4 font-black">No roads found for {getSelectedTourismName()}</p>
               <button onClick={() => { resetForm(); setShowModal(true); }} className="bg-orange-200 text-orange-800 px-4 py-2 rounded-lg hover:bg-orange-300 font-black shadow-md">Add First Road</button>
             </div>
@@ -360,7 +358,6 @@ const RoadsManagementPage = () => {
                     <tr key={road.id} className="hover:bg-orange-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span className="text-2xl mr-3">🛣️</span>
                           <div>
                             <div className="text-sm font-black text-gray-900">Road #{road.id}</div>
                           </div>
@@ -410,7 +407,7 @@ const RoadsManagementPage = () => {
               <div className="sticky top-0 bg-gray-100 border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-black text-gray-900">
-                    {editingRoad ? '✏️ Edit Road' : '➕ Add New Road'}
+                    {editingRoad ? 'Edit Road' : 'Add New Road'}
                   </h3>
                   <p className="text-sm text-gray-600 font-bold mt-1">Tourism Place: {getSelectedTourismName()}</p>
                 </div>

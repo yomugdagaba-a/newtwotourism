@@ -33,8 +33,8 @@ const AuditLogsPage = () => {
       setLoading(true);
       setError(null);
       
-      console.log('📋 Loading audit logs, page:', currentPage, 'size:', pageSize);
-      console.log('📋 Search params:', searchParams);
+      console.log('Loading audit logs, page:', currentPage, 'size:', pageSize);
+      console.log('Search params:', searchParams);
       
       let response;
       // Check if any search params have values
@@ -43,25 +43,25 @@ const AuditLogsPage = () => {
       );
       
       if (hasSearchParams) {
-        console.log('🔍 Using search endpoint');
+        console.log('Using search endpoint');
         response = await AuditService.searchAuditLogs({
           ...searchParams,
           page: currentPage,
           size: pageSize
         });
       } else {
-        console.log('📋 Using getAllAuditLogs endpoint');
+        console.log('Using getAllAuditLogs endpoint');
         response = await AuditService.getAllAuditLogs(currentPage, pageSize);
       }
 
-      console.log('📋 Response:', response);
+      console.log('Response:', response);
       setAuditLogs(response?.content || []);
       setTotalPages(response?.totalPages || 0);
       setTotalElements(response?.totalElements || 0);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load audit logs';
       setError(errorMessage);
-      console.error('❌ Error loading audit logs:', err);
+      console.error('Error loading audit logs:', err);
       setAuditLogs([]);
       setTotalPages(0);
       setTotalElements(0);
@@ -81,8 +81,24 @@ const AuditLogsPage = () => {
     loadAuditLogs();
   };
 
-  const handleExportCsv = () => {
-    AuditService.exportToCsv(auditLogs, `audit-logs-${new Date().toISOString().split('T')[0]}.csv`);
+  const handleExportCsv = async () => {
+    try {
+      // Export all logs matching current search (up to 1000)
+      let allLogs: AuditLogEntry[] = [];
+      const hasSearchParams = Object.entries(searchParams).some(([, value]) =>
+        value !== undefined && value !== null && value !== ''
+      );
+      if (hasSearchParams) {
+        const res = await AuditService.searchAuditLogs({ ...searchParams, page: 0, size: 1000 });
+        allLogs = res?.content || [];
+      } else {
+        const res = await AuditService.getAllAuditLogs(0, 1000);
+        allLogs = res?.content || [];
+      }
+      AuditService.exportToCsv(allLogs, `audit-logs-export-${new Date().toISOString().split('T')[0]}.csv`);
+    } catch {
+      AuditService.exportToCsv(auditLogs, `audit-logs-export-${new Date().toISOString().split('T')[0]}.csv`);
+    }
   };
 
   const getSeverityBadgeClass = (severity: string) => {
@@ -97,13 +113,13 @@ const AuditLogsPage = () => {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'AUTHENTICATION': return '🔐';
-      case 'AUTHORIZATION': return '🛡️';
-      case 'DATA_CHANGE': return '📝';
-      case 'SECURITY': return '🚨';
-      case 'MAINTENANCE': return '🔧';
-      case 'SYSTEM': return '⚙️';
-      default: return '📋';
+      case 'AUTHENTICATION': return '[AUTH]';
+      case 'AUTHORIZATION': return '[AUTHZ]';
+      case 'DATA_CHANGE': return '[DATA]';
+      case 'SECURITY': return '[SEC]';
+      case 'MAINTENANCE': return '[MAINT]';
+      case 'SYSTEM': return '[SYS]';
+      default: return '[LOG]';
     }
   };
 
@@ -113,19 +129,19 @@ const AuditLogsPage = () => {
 
   return (
     <div className="min-h-screen bg-white admin-page">
-      <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 bg-white border border-gray-200 p-6 rounded-xl shadow-lg">
+      <div className="container mx-auto px-4 pt-4 pb-8">
+      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
         <button
           onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors font-bold"
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span className="font-bold">Back to Dashboard</span>
         </button>
-        <h1 className="text-3xl font-black text-gray-900 mb-2">📋 Audit Logs</h1>
-        <p className="text-gray-600 font-semibold">Monitor and review system activities and security events</p>
+        <h1 className="text-lg font-black text-gray-900 mb-0.5">Audit Logs</h1>
+        <p className="text-gray-600 text-sm">Monitor and review system activities and security events</p>
       </div>
 
       {/* Search and Filters */}

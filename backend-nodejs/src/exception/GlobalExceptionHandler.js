@@ -19,7 +19,11 @@ function globalExceptionHandler(err, req, res, next) {
 
   if (status === 500) {
     response.message = 'Internal server error';
-    console.error(err.stack);
+    console.error('FULL ERROR:', err.stack);
+    // In development, expose the real error message to help debug
+    if (process.env.NODE_ENV !== 'production') {
+      response.detail = err.message;
+    }
   }
 
   return res.status(status).json(response);

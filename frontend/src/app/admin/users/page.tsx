@@ -245,19 +245,19 @@ const UsersManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-white admin-page">
-      <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 bg-white border border-gray-200 p-6 rounded-xl shadow-lg">
+      <div className="container mx-auto px-4 pt-4 pb-8">
+      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
         <button
           onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors font-bold"
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span className="font-bold">Back to Dashboard</span>
         </button>
-        <h1 className="text-3xl font-black text-gray-900 mb-2">👥 User Management</h1>
-        <p className="text-gray-600 font-semibold">Manage user accounts, roles, and permissions</p>
+        <h1 className="text-lg font-black text-gray-900 mb-0.5">User Management</h1>
+        <p className="text-gray-600 text-sm">Manage user accounts, roles, and permissions</p>
       </div>
 
       {/* Success/Error Messages */}
@@ -416,7 +416,7 @@ const UsersManagementPage = () => {
       </div>
 
       {/* Pagination */}
-      <div className="mt-6 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 rounded-xl shadow-xl p-4 border border-slate-600">
+      <div className="mt-4 bg-white rounded-xl shadow-sm p-2 border border-gray-200">
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -487,7 +487,7 @@ const UsersManagementPage = () => {
                   
                   {/* Step 2a: Select Tourism Place */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="text-blue-700 font-medium mb-2">📍 Step 1: Select Tourism Place</h4>
+                    <h4 className="text-blue-700 font-medium mb-2">Step 1: Select Tourism Place</h4>
                     <p className="text-blue-600 text-sm mb-3">
                       First, select the tourism destination where the hotel is located.
                     </p>
@@ -498,7 +498,7 @@ const UsersManagementPage = () => {
                       </div>
                     ) : tourisms.length === 0 ? (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <p className="text-yellow-700 text-sm">⚠️ No tourism places found.</p>
+                        <p className="text-yellow-700 text-sm">No tourism places found.</p>
                       </div>
                     ) : (
                       <select
@@ -519,7 +519,7 @@ const UsersManagementPage = () => {
                   {/* Step 2b: Select Hotel (only shown after tourism place is selected) */}
                   {selectedTourismId && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h4 className="text-blue-700 font-medium mb-2">🏨 Step 2: Select Hotel to Manage</h4>
+                      <h4 className="text-blue-700 font-medium mb-2">Step 2: Select Hotel to Manage</h4>
                       <p className="text-blue-600 text-sm mb-3">
                         Choose which hotel in <strong>{tourisms.find(t => t.id === selectedTourismId)?.name}</strong> this user will own and manage.
                       </p>
@@ -530,7 +530,7 @@ const UsersManagementPage = () => {
                         </div>
                       ) : hotels.length === 0 ? (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                          <p className="text-yellow-700 text-sm">⚠️ No hotels found in this location.</p>
+                          <p className="text-yellow-700 text-sm">No hotels found in this location.</p>
                           <p className="text-yellow-600 text-xs mt-1">You can still grant the role and assign a hotel later from the Hotels page.</p>
                         </div>
                       ) : (
@@ -550,7 +550,7 @@ const UsersManagementPage = () => {
                           </select>
                           {selectedHotelId && hotels.find(h => h.id === selectedHotelId)?.ownerId && (
                             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2">
-                              <p className="text-orange-700 text-sm">⚠️ This hotel already has an owner.</p>
+                              <p className="text-orange-700 text-sm">This hotel already has an owner.</p>
                               <p className="text-orange-600 text-xs mt-1">Assigning this hotel will transfer ownership from the current owner.</p>
                             </div>
                           )}

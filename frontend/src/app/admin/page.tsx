@@ -41,48 +41,12 @@ const AdminDashboard = () => {
   };
 
   const quickActions = [
-    {
-      name: 'View All Users',
-      href: '/admin/users',
-      icon: '👥',
-      description: 'Manage user accounts and permissions',
-      color: 'bg-gray-200'
-    },
-    {
-      name: 'Manage Hotels',
-      href: '/admin/hotels',
-      icon: '🏨',
-      description: 'Add, edit, and manage hotel listings',
-      color: 'bg-gray-200'
-    },
-    {
-      name: 'Tourism Places',
-      href: '/admin/tourisms',
-      icon: '🏞️',
-      description: 'Manage tourism destinations',
-      color: 'bg-gray-200'
-    },
-    {
-      name: 'View Bookings',
-      href: '/admin/bookings',
-      icon: '📅',
-      description: 'Monitor and manage bookings',
-      color: 'bg-gray-200'
-    },
-    {
-      name: 'Audit Logs',
-      href: '/admin/audit',
-      icon: '📋',
-      description: 'Review system activity logs',
-      color: 'bg-gray-200'
-    },
-    {
-      name: 'Security Events',
-      href: '/admin/audit/security',
-      icon: '🚨',
-      description: 'Monitor security events',
-      color: 'bg-gray-200'
-    }
+    { name: 'View All Users',   href: '/admin/users',          description: 'Manage user accounts and permissions', iconBg: 'bg-blue-100',   iconColor: 'text-blue-600' },
+    { name: 'Manage Hotels',    href: '/admin/hotels',         description: 'Add, edit, and manage hotel listings',  iconBg: 'bg-amber-100',  iconColor: 'text-amber-600' },
+    { name: 'Tourism Places',   href: '/admin/tourisms',       description: 'Manage tourism destinations',           iconBg: 'bg-emerald-100',iconColor: 'text-emerald-600' },
+    { name: 'View Bookings',    href: '/admin/bookings',       description: 'Monitor and manage bookings',           iconBg: 'bg-purple-100', iconColor: 'text-purple-600' },
+    { name: 'Audit Logs',       href: '/admin/audit',          description: 'Review system activity logs',           iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600' },
+    { name: 'Security Events',  href: '/admin/audit/security', description: 'Monitor security events',               iconBg: 'bg-rose-100',   iconColor: 'text-rose-600' },
   ];
 
   if (!isAuthenticated || role !== 'ADMIN') {
@@ -97,22 +61,22 @@ const AdminDashboard = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-gray-100/30 via-transparent to-transparent"></div>
       </div>
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-4 pb-8">
       {/* Back Button & Welcome Section */}
-      <div className="mb-8 bg-white p-6 rounded-xl shadow-[0_8px_25px_rgba(0,0,0,0.12)] border border-gray-200">
+      <div className="mb-8 bg-white p-3 rounded-xl shadow-[0_8px_25px_rgba(0,0,0,0.12)] border border-gray-200">
         <button
           onClick={() => router.push('/')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors font-bold"
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span className="font-bold">Back to Home</span>
         </button>
-        <h1 className="text-3xl font-black text-gray-900 mb-2">
+        <h1 className="text-lg font-black text-gray-900 mb-0.5">
           Welcome back, {username}!
         </h1>
-        <p className="text-gray-600 font-semibold">
+        <p className="text-gray-600 text-sm">
           Here's what's happening with your North Wollo Tourism platform today.
         </p>
       </div>
@@ -131,7 +95,7 @@ const AdminDashboard = () => {
         <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-8">
           <div className="flex">
             <div className="flex-shrink-0">
-              <span className="text-red-600">❌</span>
+              <span className="text-red-600 font-black text-lg">✕</span>
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-black text-red-800">
@@ -153,50 +117,50 @@ const AdminDashboard = () => {
         </div>
       ) : auditStats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-8">
-          <div className="bg-blue-50 rounded-lg shadow-[0_8px_25px_rgba(0,0,0,0.12)] p-4 hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] transition-shadow border border-blue-200">
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <span className="text-2xl">📊</span>
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg></div>
               </div>
               <div className="ml-3">
-                <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wide">Total Events (24h)</p>
-                <p className="text-2xl font-black text-blue-700">{auditStats.totalAuditLogs}</p>
+                <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide">Total Events (24h)</p>
+                <p className="text-2xl font-black text-gray-900">{auditStats.totalAuditLogs}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-amber-50 rounded-lg shadow-[0_8px_25px_rgba(0,0,0,0.12)] p-4 hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] transition-shadow border border-amber-200">
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <span className="text-2xl">🚨</span>
+                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
               </div>
               <div className="ml-3">
-                <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wide">Security Events</p>
-                <p className="text-2xl font-black text-amber-700">{auditStats.securityEvents}</p>
+                <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide">Security Events</p>
+                <p className="text-2xl font-black text-gray-900">{auditStats.securityEvents}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-red-50 rounded-lg shadow-[0_8px_25px_rgba(0,0,0,0.12)] p-4 hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] transition-shadow border border-red-200">
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <span className="text-2xl">⚠️</span>
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"><svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
               </div>
               <div className="ml-3">
-                <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wide">High Severity</p>
-                <p className="text-2xl font-black text-red-700">{auditStats.highSeverityEvents}</p>
+                <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide">High Severity</p>
+                <p className="text-2xl font-black text-gray-900">{auditStats.highSeverityEvents}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-green-50 rounded-lg shadow-[0_8px_25px_rgba(0,0,0,0.12)] p-4 hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] transition-shadow border border-green-200">
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <span className="text-2xl">✅</span>
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
               </div>
               <div className="ml-3">
-                <p className="text-xs font-extrabold text-gray-700 uppercase tracking-wide">System Status</p>
-                <p className="text-sm font-black text-green-700">Operational</p>
+                <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide">System Status</p>
+                <p className="text-sm font-black text-gray-900">Operational</p>
               </div>
             </div>
           </div>
@@ -211,17 +175,20 @@ const AdminDashboard = () => {
             <Link
               key={action.name}
               href={action.href}
-              className="quick-action-card bg-white rounded-lg shadow-[0_8px_25px_rgba(0,0,0,0.12)] p-4 hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] transition-all duration-300 hover:bg-gray-50 hover:-translate-y-0.5 border border-gray-200"
+              className="bg-white rounded-xl shadow-[0_8px_25px_rgba(0,0,0,0.12)] border border-gray-200 p-4 hover:shadow-[0_15px_40px_rgba(0,0,0,0.18)] hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-4"
             >
-              <div className="flex items-center mb-3">
-                <div className={`flex-shrink-0 w-12 h-12 ${action.color} rounded-lg flex items-center justify-center shadow-md`}>
-                  <span className="text-gray-800 text-2xl">{action.icon}</span>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-base font-black text-gray-900">{action.name}</h3>
-                </div>
+              <div className={`flex-shrink-0 w-11 h-11 ${action.iconBg} rounded-xl flex items-center justify-center`}>
+                <svg className={`w-5 h-5 ${action.iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
               </div>
-              <p className="text-sm font-bold text-gray-700">{action.description}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-black text-gray-900">{action.name}</h3>
+                <p className="text-xs font-semibold text-gray-500 truncate">{action.description}</p>
+              </div>
+              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </Link>
           ))}
         </div>
@@ -288,17 +255,17 @@ const AdminDashboard = () => {
         <h3 className="text-base font-black text-green-900 mb-3">System Health</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center p-3 bg-white rounded-lg shadow-lg border border-gray-200">
-            <div className="text-3xl mb-1">🟢</div>
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1"><svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
             <p className="text-sm font-black text-gray-900">Database</p>
             <p className="text-xs text-green-700 font-bold">Connected</p>
           </div>
           <div className="text-center p-3 bg-white rounded-lg shadow-lg border border-gray-200">
-            <div className="text-3xl mb-1">🟢</div>
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1"><svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
             <p className="text-sm font-black text-gray-900">Audit Logging</p>
             <p className="text-xs text-green-700 font-bold">Active</p>
           </div>
           <div className="text-center p-3 bg-white rounded-lg shadow-lg border border-gray-200">
-            <div className="text-3xl mb-1">🟢</div>
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1"><svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
             <p className="text-sm font-black text-gray-900">Security</p>
             <p className="text-xs text-green-700 font-bold">Monitoring</p>
           </div>

@@ -234,21 +234,21 @@ const GuidersManagementPage = () => {
   return (
     <div className="min-h-screen bg-white admin-page">
       
-      <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 bg-white border border-gray-200 p-6 rounded-xl shadow-lg">
+      <div className="container mx-auto px-4 pt-4 pb-8">
+      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
         <button
           onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors font-bold"
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span className="font-bold">Back to Dashboard</span>
         </button>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-black text-gray-900 mb-2">🗺️ Guiders Management</h1>
-            <p className="text-gray-600 font-semibold">Manage tour guides and language specialists</p>
+            <h1 className="text-lg font-black text-gray-900 mb-0.5">Guiders Management</h1>
+            <p className="text-gray-600 text-sm">Manage tour guides and language specialists</p>
           </div>
           <button onClick={() => { resetForm(); setShowModal(true); }} disabled={!selectedTourismId}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 transition-colors font-black shadow-lg">
@@ -287,7 +287,6 @@ const GuidersManagementPage = () => {
       <div className="bg-purple-100 rounded-xl shadow-xl overflow-hidden">
         {!selectedTourismId ? (
           <div className="p-8 text-center text-gray-800 font-bold bg-white">
-            <span className="text-5xl mb-4 block">🗺️</span>
             <p className="text-lg font-black">Please select a tourism place to view its guiders</p>
           </div>
         ) : loading ? (
@@ -302,7 +301,6 @@ const GuidersManagementPage = () => {
           </div>
         ) : filteredGuiders.length === 0 ? (
           <div className="p-8 text-center text-gray-800 bg-white">
-            <span className="text-5xl mb-4 block">🗺️</span>
             <p className="text-lg mb-4 font-black">No guiders found for {getSelectedTourismName()}</p>
             <button onClick={() => { resetForm(); setShowModal(true); }} className="bg-purple-200 text-purple-800 px-4 py-2 rounded-lg hover:bg-purple-300 font-black shadow-md">Add First Guider</button>
           </div>
@@ -379,7 +377,7 @@ const GuidersManagementPage = () => {
             <div className="sticky top-0 bg-gray-100 border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center">
               <div>
                 <h3 className="text-xl font-black text-gray-900">
-                  {editingGuider ? '✏️ Edit Guider' : '➕ Add New Guider'}
+                  {editingGuider ? 'Edit Guider' : 'Add New Guider'}
                 </h3>
                 <p className="text-sm text-gray-600 font-semibold mt-1">Tourism Place: {getSelectedTourismName()}</p>
               </div>

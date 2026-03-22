@@ -1,16 +1,53 @@
 const prisma = require('../lib/prisma');
 const emailService = require('./email.service');
 
-const INCLUDE = { hotel: true, user: true, status: true, messages: { include: { user: true } } };
+const INCLUDE = {
+  hotel: { include: { owner: true } },
+  user: true,
+  status: true,
+  messages: { include: { user: true }, orderBy: { createdAt: 'asc' } },
+};
+
+function formatDate(dt) {
+  if (!dt) return null;
+  // Return YYYY-MM-DD if it's a full ISO datetime, otherwise as-is
+  const s = dt instanceof Date ? dt.toISOString() : String(dt);
+  return s.length > 10 ? s.substring(0, 10) : s;
+}
 
 function transform(b) {
   if (!b) return b;
   return {
-    ...b, bookingId: b.id, bookingStatus: b.status?.name || 'UNKNOWN',
+    ...b,
+    bookingId: b.id,
+    bookingStatus: b.status?.name || 'UNKNOWN',
+    checkIn: formatDate(b.checkIn),
+    checkOut: formatDate(b.checkOut),
     totalCost: b.totalCost ? parseFloat(b.totalCost.toString()) : null,
-    hotel: { id: b.hotel?.id, name: b.hotel?.name, contactInfo: b.hotel?.contactInfo, active: b.hotel?.active },
-    client: { id: b.user?.id, fullName: b.user?.fullName, username: b.user?.username, email: b.user?.email, phone: b.clientPhone },
-    messages: (b.messages || []).map(m => ({ id: m.id, senderId: m.userId, senderName: m.user?.fullName || m.user?.username || 'Unknown', message: m.message, messageType: m.isFromOwner ? 'OWNER' : 'GENERAL', createdAt: m.createdAt })),
+    hotel: {
+      id: b.hotel?.id,
+      name: b.hotel?.name,
+      contactInfo: b.hotel?.contactInfo,
+      active: b.hotel?.active,
+      ownerId: b.hotel?.ownerId,
+      ownerName: b.hotel?.owner?.fullName || b.hotel?.owner?.username || null,
+    },
+    client: {
+      id: b.user?.id,
+      fullName: b.user?.fullName,
+      username: b.user?.username,
+      email: b.user?.email,
+      phone: b.clientPhone,
+    },
+    messages: (b.messages || []).map(m => ({
+      id: m.id,
+      senderId: m.userId,
+      senderName: m.user?.fullName || m.user?.username || 'Unknown',
+      message: m.message,
+      messageType: m.isFromOwner ? 'OWNER' : 'GENERAL',
+      isRead: false,
+      createdAt: m.createdAt,
+    })),
   };
 }
 
@@ -27,7 +64,32 @@ async function addMessage(bookingId, userId, message, isFromOwner) {
 
 async function create(data, userId) {
   const status = await getOrCreateStatus('REQUESTED');
-  const booking = await prisma.hotelBooking.create({ data: { ...data, userId, statusId: status.id }, include: INCLUDE });
+
+  // Coerce date-only strings (YYYY-MM-DD) to ISO DateTime
+  const checkIn = data.checkIn && data.checkIn.length === 10 ? `${data.checkIn}T00:00:00Z` : data.checkIn;
+  const checkOut = data.checkOut && data.checkOut.length === 10 ? `${data.checkOut}T00:00:00Z` : data.checkOut;
+
+  // Only pass known Prisma fields — never spread unknown keys
+  const booking = await prisma.hotelBooking.create({
+    data: {
+      hotelId: parseInt(data.hotelId),
+      userId,
+      statusId: status.id,
+      checkIn: new Date(checkIn),
+      checkOut: new Date(checkOut),
+      numberOfGuests: parseInt(data.numberOfGuests),
+      numberOfRooms: data.numberOfRooms ? parseInt(data.numberOfRooms) : null,
+      specialRequests: data.specialRequests || null,
+      clientPhone: data.clientPhone || null,
+      clientEmail: data.clientEmail || null,
+      totalCost: data.totalCost ? parseFloat(data.totalCost) : null,
+      receiptImageUrl: data.receiptImageUrl || null,
+      rejectionReason: data.rejectionReason || null,
+      problemReport: data.problemReport || null,
+      problemReported: data.problemReported || false,
+    },
+    include: INCLUDE,
+  });
   return transform(booking);
 }
 
@@ -51,7 +113,23 @@ async function findById(id) {
 async function update(id, data) {
   const booking = await prisma.hotelBooking.findUnique({ where: { id } });
   if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
-  const updated = await prisma.hotelBooking.update({ where: { id }, data, include: INCLUDE });
+
+  // Build safe update object — only known Prisma fields
+  const updateData = {};
+  if (data.checkIn !== undefined) updateData.checkIn = new Date(data.checkIn.length === 10 ? `${data.checkIn}T00:00:00Z` : data.checkIn);
+  if (data.checkOut !== undefined) updateData.checkOut = new Date(data.checkOut.length === 10 ? `${data.checkOut}T00:00:00Z` : data.checkOut);
+  if (data.numberOfGuests !== undefined) updateData.numberOfGuests = parseInt(data.numberOfGuests);
+  if (data.numberOfRooms !== undefined) updateData.numberOfRooms = data.numberOfRooms ? parseInt(data.numberOfRooms) : null;
+  if (data.specialRequests !== undefined) updateData.specialRequests = data.specialRequests;
+  if (data.clientPhone !== undefined) updateData.clientPhone = data.clientPhone;
+  if (data.clientEmail !== undefined) updateData.clientEmail = data.clientEmail;
+  if (data.totalCost !== undefined) updateData.totalCost = data.totalCost ? parseFloat(data.totalCost) : null;
+  if (data.receiptImageUrl !== undefined) updateData.receiptImageUrl = data.receiptImageUrl;
+  if (data.rejectionReason !== undefined) updateData.rejectionReason = data.rejectionReason;
+  if (data.problemReport !== undefined) updateData.problemReport = data.problemReport;
+  if (data.problemReported !== undefined) updateData.problemReported = data.problemReported;
+
+  const updated = await prisma.hotelBooking.update({ where: { id }, data: updateData, include: INCLUDE });
   return transform(updated);
 }
 
@@ -70,17 +148,33 @@ async function remove(id) {
 }
 
 async function getByUser(userId, skip = 0, take = 100) {
-  const bookings = await prisma.hotelBooking.findMany({ where: { userId }, skip: parseInt(skip), take: parseInt(take), include: INCLUDE });
+  const bookings = await prisma.hotelBooking.findMany({
+    where: { userId },
+    skip: parseInt(skip),
+    take: parseInt(take),
+    include: INCLUDE,
+    orderBy: { createdAt: 'desc' },
+  });
   return bookings.map(transform);
 }
 
 async function getByHotel(hotelId, skip = 0, take = 10) {
-  const bookings = await prisma.hotelBooking.findMany({ where: { hotelId }, skip: parseInt(skip), take: parseInt(take), include: INCLUDE });
+  const bookings = await prisma.hotelBooking.findMany({
+    where: { hotelId },
+    skip: parseInt(skip),
+    take: parseInt(take),
+    include: INCLUDE,
+    orderBy: { createdAt: 'desc' },
+  });
   return bookings.map(transform);
 }
 
 async function getByOwner(ownerId) {
-  const bookings = await prisma.hotelBooking.findMany({ where: { hotel: { ownerId } }, include: INCLUDE });
+  const bookings = await prisma.hotelBooking.findMany({
+    where: { hotel: { ownerId } },
+    include: INCLUDE,
+    orderBy: { createdAt: 'desc' },
+  });
   return bookings.map(transform);
 }
 
@@ -185,16 +279,21 @@ async function reportProblem(bookingId, problem) {
 }
 
 async function getAllAdmin(page = 0, size = 20) {
-  const p = parseInt(page), s = parseInt(size);
+  const p = parseInt(page) || 0;
+  const s = parseInt(size) || 20;
   const [bookings, total] = await Promise.all([
-    prisma.hotelBooking.findMany({ skip: p * s, take: s, include: INCLUDE }),
+    prisma.hotelBooking.findMany({ skip: p * s, take: s, include: INCLUDE, orderBy: { createdAt: 'desc' } }),
     prisma.hotelBooking.count(),
   ]);
   return { content: bookings.map(transform), totalElements: total, totalPages: Math.ceil(total / s) };
 }
 
 async function getProblemBookings() {
-  const bookings = await prisma.hotelBooking.findMany({ where: { problemReported: true }, include: INCLUDE });
+  const bookings = await prisma.hotelBooking.findMany({
+    where: { problemReported: true },
+    include: INCLUDE,
+    orderBy: { createdAt: 'desc' },
+  });
   return bookings.map(transform);
 }
 

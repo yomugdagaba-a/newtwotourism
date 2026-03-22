@@ -46,7 +46,7 @@ export default function HorsersPage() {
         
         setHorseServices(services);
       } catch (err: any) {
-        console.error("❌ Horse services load failed:", err);
+        console.error("Horse services load failed:", err);
         setError("Services temporarily unavailable. Please try calling providers directly.");
         setHorseServices([]);
       } finally {
@@ -77,7 +77,6 @@ export default function HorsersPage() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-4 mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center shadow-2xl">
-              <span className="text-4xl">🐎</span>
             </div>
             <h1 className="text-6xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-emerald-600 bg-clip-text text-transparent">
               Horse Services
@@ -103,7 +102,6 @@ export default function HorsersPage() {
         : error ? (
           <div className="max-w-2xl mx-auto bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-3xl p-12 text-center shadow-2xl">
             <div className="w-24 h-24 bg-red-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-              <span className="text-4xl">🐎</span>
             </div>
             <h2 className="text-3xl font-bold text-red-800 mb-4">Services Unavailable</h2>
             <p className="text-xl text-red-700 mb-8 leading-relaxed">{error}</p>
@@ -111,7 +109,7 @@ export default function HorsersPage() {
               onClick={() => window.location.reload()} 
               className="px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
             >
-              🔄 Retry Loading
+              Retry Loading
             </button>
           </div>
         )
@@ -120,7 +118,6 @@ export default function HorsersPage() {
         : horseServices.length === 0 ? (
           <div className="text-center py-32 max-w-2xl mx-auto">
             <div className="w-32 h-32 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl">
-              <span className="text-6xl opacity-50">🐎</span>
             </div>
             <h2 className="text-4xl font-black text-gray-900 mb-6">No Services Available</h2>
             <p className="text-2xl text-gray-600 mb-8 leading-relaxed">
@@ -152,7 +149,6 @@ export default function HorsersPage() {
                   {/* Header */}
                   <div className="flex items-start gap-4 mb-8">
                     <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center flex-shrink-0 shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                      <span className="text-3xl">🐎</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-3xl font-black text-gray-900 truncate mb-2 group-hover:text-purple-600 transition-colors">{service.ownerName}</h3>
@@ -168,7 +164,7 @@ export default function HorsersPage() {
                     <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                          <span className="text-xl font-bold text-white">💰</span>
+                          <span className="text-xl font-bold text-white">ETB</span>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Price</p>
@@ -182,7 +178,7 @@ export default function HorsersPage() {
                     <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                          <span className="text-xl font-bold text-white">📞</span>
+                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-1">Contact</p>
@@ -200,7 +196,7 @@ export default function HorsersPage() {
                       href={`tel:${service.contactInfo}`}
                       className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-4 px-6 rounded-2xl text-center font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 flex items-center justify-center gap-2"
                     >
-                      📞 Call Now
+                      Call Now
                     </a>
                     <button 
                       onClick={() => openBookingModal(service.id, service.ownerName)}

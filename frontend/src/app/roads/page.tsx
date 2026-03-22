@@ -55,7 +55,7 @@ export default function RoadsPage() {
         </button>
 
         <h1 className="text-5xl font-black bg-gradient-to-r from-gray-900 to-emerald-700 bg-clip-text text-transparent mb-8">
-          🛤️ Roads & Travel Routes
+          Roads & Travel Routes
         </h1>
 
         {loading && (
@@ -69,14 +69,12 @@ export default function RoadsPage() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-            <div className="text-4xl mb-4">🚫</div>
             <p className="text-xl text-red-700">{error}</p>
           </div>
         )}
 
         {!loading && !error && roads.length === 0 && (
           <div className="text-center py-20">
-            <div className="text-6xl mb-6 mx-auto">🛤️</div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">No Routes Available</h2>
             <p className="text-xl text-gray-600 mb-8">No road information for this destination yet.</p>
           </div>
@@ -93,7 +91,7 @@ export default function RoadsPage() {
                   onClick={() => router.push(`/horsers?roadId=${road.id}&tourismId=${tourismId}`)}
                   className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-semibold text-lg transition-all duration-300 transform bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-xl hover:shadow-2xl hover:scale-105 hover:from-purple-600 hover:to-pink-700"
                 >
-                  🐎 View Horse Services
+                  View Horse Services
                 </button>
               </div>
 
@@ -103,7 +101,7 @@ export default function RoadsPage() {
                   onClick={() => router.push(`/roads/${road.id}?tourismId=${tourismId}`)} 
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  🗺️ View Map Details
+                  View Map Details
                 </button>
                 <button 
                   onClick={() => router.back()} 

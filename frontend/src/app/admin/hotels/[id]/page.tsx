@@ -192,7 +192,7 @@ export default function AdminHotelDetailPage() {
 
         {/* Owner Section */}
         <div className="p-6 border-b bg-blue-50">
-          <h2 className="text-xl font-semibold mb-4">🏠 Hotel Owner</h2>
+          <h2 className="text-xl font-semibold mb-4">Hotel Owner</h2>
           {hotel.ownerId ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -236,7 +236,7 @@ export default function AdminHotelDetailPage() {
         {/* Images */}
         {hotel.images && hotel.images.length > 0 && (
           <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">📷 Images</h2>
+            <h2 className="text-xl font-semibold mb-4">Images</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {hotel.images.map((img, index) => (
                 <div key={img.id || `img-${index}`} className="aspect-video bg-gray-100 rounded-lg overflow-hidden">

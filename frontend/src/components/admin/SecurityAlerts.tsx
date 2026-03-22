@@ -143,10 +143,14 @@ const SecurityAlerts: React.FC<SecurityAlertsProps> = ({
       </div>
 
       {!hasAlerts ? (
-        <div className="text-center py-8">
-          <div className="text-4xl mb-2">✅</div>
-          <p className="text-gray-600">No security alerts in the last {timeRange} hours</p>
-          <p className="text-sm text-gray-500 mt-1">System is operating normally</p>
+        <div className="text-center py-4">
+          <div className="flex items-center justify-center mb-2">
+            <svg className="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <p className="text-gray-600 text-sm">No security alerts in the last {timeRange} hours</p>
+          <p className="text-xs text-gray-500 mt-1">System is operating normally</p>
         </div>
       ) : (
         <div className="space-y-4">

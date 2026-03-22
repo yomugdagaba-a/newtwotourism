@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import TopBar from "@/components/layout/TopBar";
 import { getHotelsByTourism, getAllHotels } from "@/services/hotel.service";
 import { submitHotelRating } from "@/services/rating.service";
 import { HotelSummaryDto } from "@/types/hotel";
 import LoginForm from "@/app/auth/login/page";
 import Modal from "@/components/common/Modal";
-import Image from "next/image";
 import HotelRatingModal from "@/components/hotel/HotelRatingModal";
 import RatingsViewModal from "@/components/common/RatingsViewModal";
 import { API_BASE_URL } from "@/services/api";
@@ -137,36 +136,30 @@ export default function HotelsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-100 relative overflow-hidden">
-        {/* Light background */}
-        <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-teal-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-2000" />
-        </div>
-        
-        <TopBar />
-
-        <div className="px-6 py-12">
+      <div className="min-h-screen bg-gray-100">
+        <div className="px-6 py-8">
           <div className="max-w-6xl mx-auto">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 font-medium mb-8 text-lg"
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-purple-700 hover:text-purple-900 font-semibold mb-6 text-sm"
             >
-              ← {tourismId ? `Back to ${tourismName}` : 'Back to Home'}
-            </button>
+              ← Back to Home
+            </Link>
 
-            <div className="text-center mb-10">
-              <h1 className="text-5xl md:text-6xl font-black text-white mb-4">🏨 Hotels</h1>
-              <p className="text-2xl text-slate-400 mb-6">
+            <div className="mb-8">
+              <h1 className="text-3xl font-black text-gray-900 mb-1">Hotels</h1>
+              <p className="text-gray-500 font-semibold">
                 {tourismId 
                   ? `${filteredHotels.length} accommodations near ${tourismName}`
                   : `${filteredHotels.length} hotels available`
                 }
               </p>
-              
-              {/* Search Input */}
-              <div className="max-w-md mx-auto relative mb-4">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            </div>
+
+            {/* Search + Sort */}
+            <div className="flex flex-col md:flex-row gap-3 mb-8">
+              <div className="relative flex-1">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
@@ -174,117 +167,83 @@ export default function HotelsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search hotels by name..."
-                  className="w-full pl-12 pr-10 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-semibold"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 font-semibold shadow-sm"
                 />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
               </div>
-              
-              {/* Sort Dropdown */}
-              <div className="flex justify-center items-center gap-2">
-                <span className="text-slate-400 font-semibold">Sort:</span>
-                <select
-                  value={`${sortBy}-${sortDir}`}
-                  onChange={(e) => {
-                    const [newSortBy, newSortDir] = e.target.value.split('-');
-                    setSortBy(newSortBy);
-                    setSortDir(newSortDir as 'asc' | 'desc');
-                  }}
-                  className="bg-slate-800/80 border border-slate-600 text-white rounded-xl px-4 py-2 font-semibold focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="name-asc">Name A-Z</option>
-                  <option value="name-desc">Name Z-A</option>
-                  <option value="stars-desc">Highest Rating</option>
-                  <option value="stars-asc">Lowest Rating</option>
-                </select>
-              </div>
+              <select
+                value={`${sortBy}-${sortDir}`}
+                onChange={(e) => {
+                  const [newSortBy, newSortDir] = e.target.value.split('-');
+                  setSortBy(newSortBy);
+                  setSortDir(newSortDir as 'asc' | 'desc');
+                }}
+                className="bg-white border border-gray-200 text-gray-900 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-purple-400 shadow-sm"
+              >
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+                <option value="stars-desc">Highest Rating</option>
+                <option value="stars-asc">Lowest Rating</option>
+              </select>
             </div>
           </div>
         </div>
 
         <div className="px-6 pb-20">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             {loading ? (
-              <div className="flex justify-center items-center min-h-[50vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500" />
+              <div className="flex justify-center items-center min-h-[40vh]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
               </div>
             ) : filteredHotels.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredHotels.map((hotel) => (
-                  <div key={hotel.id} className="group bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden border border-slate-700/50 hover:border-emerald-500/50 h-full flex flex-col">
-                    {hotel.imageUrl ? (
-                      <div className="relative h-80 w-full mb-6 overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800">
-                        <Image
-                          src={hotel.imageUrl}
-                          alt={hotel.name}
-                          fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredHotels.map((hotel) => {
+                  const imgUrl = hotel.imageUrl || (hotel.images?.[0] && typeof hotel.images[0] === 'string' ? hotel.images[0] : (hotel.images?.[0] as any)?.imageUrl) || '';
+                  return (
+                    <div key={hotel.id} onClick={() => handleAction("detail", hotel)} className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border border-gray-200 cursor-pointer">
+                      <div className="relative h-48 w-full bg-gray-100">
+                        {imgUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={imgUrl} alt={hotel.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="h-80 w-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center mb-6">
-                        <span className="text-4xl">🏨</span>
-                      </div>
-                    )}
-
-                    <div className="px-6 pb-8 flex-1 flex flex-col">
-                      <h3 className="text-2xl font-black text-white mb-3 group-hover:text-emerald-400 transition-colors">
-                        {hotel.name}
-                      </h3>
-                      <div className="flex items-center gap-2 mb-8">
-                        <div className="flex text-yellow-400 text-2xl">
-                          {[...Array(hotel.stars)].map((_, i) => <span key={i}>★</span>)}
+                      <div className="p-5">
+                        <h3 className="text-lg font-black text-gray-900 mb-1 group-hover:text-purple-700 transition-colors">{hotel.name}</h3>
+                        {hotel.stars && (
+                          <div className="flex items-center gap-1 mb-3">
+                            <span className="text-yellow-500 font-bold">{'★'.repeat(hotel.stars)}{'☆'.repeat(5 - hotel.stars)}</span>
+                            <span className="text-xs text-gray-500 font-semibold">{hotel.stars}/5</span>
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-3">
+                          <button onClick={(e) => { e.stopPropagation(); handleAction("book", hotel); }} className="flex-1 py-2 bg-purple-50 text-purple-700 rounded-lg text-xs font-bold hover:bg-purple-100 transition border border-purple-200">
+                            Book
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleAction("rate", hotel); }} className="flex-1 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-100 transition border border-gray-200">
+                            Rate
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleAction("view-ratings", hotel); }} className="flex-1 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-100 transition border border-gray-200">
+                            Reviews
+                          </button>
                         </div>
-                        <span className="text-lg font-semibold text-slate-400">{hotel.stars}/5</span>
                       </div>
                     </div>
-
-                    <div className="px-6 pb-8">
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500 delay-200">
-                        <button onClick={() => handleAction("book", hotel)} className="bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-semibold flex-1 hover:scale-105 transition-all shadow">
-                          📅 Book
-                        </button>
-                        <button onClick={() => handleAction("detail", hotel)} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-semibold flex-1 hover:scale-105 transition-all shadow">
-                          👁️ Detail
-                        </button>
-                        <button onClick={() => handleAction("rate", hotel)} className="bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-semibold flex-1 hover:scale-105 transition-all shadow">
-                          ⭐ Rate
-                        </button>
-                        <button onClick={() => handleAction("view-ratings", hotel)} className="bg-slate-600 text-white px-3 py-2 rounded-lg text-xs font-semibold flex-1 hover:scale-105 transition-all shadow">
-                          📝 Reviews
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="text-center py-24">
-                <div className="text-6xl mb-8">🏨</div>
-                <h2 className="text-3xl font-bold text-white mb-4">
-                  {searchTerm ? "No hotels match your search" : "No hotels found"}
-                </h2>
-                <p className="text-xl text-slate-400 mb-8">
-                  {searchTerm 
-                    ? "Try a different search term." 
-                    : "No accommodations available for this destination yet."
-                  }
+              <div className="text-center py-24 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                <h2 className="text-xl font-black text-gray-900 mb-2">No hotels found</h2>
+                <p className="text-gray-500 font-semibold mb-6">
+                  {searchTerm ? "Try a different search term." : "No accommodations available yet."}
                 </p>
-                {searchTerm ? (
-                  <button onClick={() => setSearchTerm("")} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl text-lg font-semibold hover:bg-emerald-700 transition">
+                {searchTerm && (
+                  <button onClick={() => setSearchTerm("")} className="bg-purple-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-purple-700 transition">
                     Clear Search
-                  </button>
-                ) : (
-                  <button onClick={() => router.back()} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl text-lg font-semibold hover:bg-emerald-700 transition">
-                    ← Explore Other Destinations
                   </button>
                 )}
               </div>

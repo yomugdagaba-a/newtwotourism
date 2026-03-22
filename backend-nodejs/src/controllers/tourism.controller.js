@@ -22,6 +22,10 @@ publicRouter.get('/public/homepage', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+publicRouter.get('/public/hero-images', async (req, res, next) => {
+  try { res.json(await tourismService.getActiveHeroImages()); } catch (e) { next(e); }
+});
+
 publicRouter.get('/:id/images', async (req, res, next) => {
   try { res.json(await tourismService.getImages(parseInt(req.params.id))); } catch (e) { next(e); }
 });

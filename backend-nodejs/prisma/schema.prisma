@@ -432,6 +432,22 @@ model RoadInfo {
   @@map("road_infos")
 }
 
+// ==================== HERO IMAGE ENTITIES ====================
+
+model HeroImage {
+  id           Int     @id @default(autoincrement())
+  imageUrl     String
+  title        String?
+  description  String?
+  displayOrder Int     @default(0)
+  active       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hero_images")
+}
+
 // ==================== AUDIT ENTITIES ====================
 
 model AuditLogEntry {

@@ -78,21 +78,21 @@ export default function Pagination({
     <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}>
       {/* Info Section */}
       {showInfo && (
-        <div className="flex items-center gap-4 text-sm text-white">
+        <div className="flex items-center gap-4 text-sm text-gray-700">
           <span className="font-bold">
-            Showing <span className="font-black text-emerald-300">{startItem}</span> to{' '}
-            <span className="font-black text-emerald-300">{endItem}</span> of{' '}
-            <span className="font-black text-emerald-300">{totalElements.toLocaleString()}</span> results
+            Showing <span className="font-black text-blue-600">{startItem}</span> to{' '}
+            <span className="font-black text-blue-600">{endItem}</span> of{' '}
+            <span className="font-black text-blue-600">{totalElements.toLocaleString()}</span> results
           </span>
           
           {/* Page Size Selector */}
           {showPageSizeSelector && onPageSizeChange && (
             <div className="flex items-center gap-2">
-              <span className="text-white font-bold">Show:</span>
+              <span className="text-gray-700 font-bold">Show:</span>
               <select
                 value={pageSize}
                 onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                className="border-2 border-emerald-500 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-800 text-white font-black cursor-pointer"
+                className="border-2 border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-black cursor-pointer"
               >
                 {pageSizeOptions.map((size) => (
                   <option key={size} value={size}>
@@ -112,7 +112,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(0)}
             disabled={currentPage === 0}
-            className="p-2 rounded-lg text-white hover:bg-emerald-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+            className="p-2 rounded-lg text-gray-600 hover:bg-blue-100 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
             title="First page"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -124,7 +124,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 0}
-            className="p-2 rounded-lg text-white hover:bg-emerald-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+            className="p-2 rounded-lg text-gray-600 hover:bg-blue-100 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
             title="Previous page"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -136,7 +136,7 @@ export default function Pagination({
           <div className="flex items-center gap-1 mx-2">
             {getPageNumbers().map((page, index) => (
               page === '...' ? (
-                <span key={`ellipsis-${index}`} className="px-2 py-1 text-white font-bold">
+                <span key={`ellipsis-${index}`} className="px-2 py-1 text-gray-500 font-bold">
                   •••
                 </span>
               ) : (
@@ -145,8 +145,8 @@ export default function Pagination({
                   onClick={() => onPageChange(page as number)}
                   className={`min-w-[40px] h-10 rounded-lg text-sm font-black transition-all ${
                     currentPage === page
-                      ? 'bg-emerald-600 text-white shadow-md border-2 border-emerald-400'
-                      : 'text-white hover:bg-emerald-700 border-2 border-slate-500 bg-slate-700'
+                      ? 'bg-blue-600 text-white shadow-md border-2 border-blue-400'
+                      : 'text-gray-700 hover:bg-blue-50 border-2 border-gray-300 bg-white'
                   }`}
                 >
                   {(page as number) + 1}
@@ -159,7 +159,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
-            className="p-2 rounded-lg text-white hover:bg-emerald-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+            className="p-2 rounded-lg text-gray-600 hover:bg-blue-100 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
             title="Next page"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,7 +171,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(totalPages - 1)}
             disabled={currentPage >= totalPages - 1}
-            className="p-2 rounded-lg text-white hover:bg-emerald-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+            className="p-2 rounded-lg text-gray-600 hover:bg-blue-100 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
             title="Last page"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

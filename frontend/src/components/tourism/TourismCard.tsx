@@ -12,10 +12,10 @@ const TourismCard: React.FC<Props> = ({ tourism, onClick }) => {
   // ✅ ID Validation - Prevent 404 errors
   const handleClick = () => {
     if (!tourism.id || tourism.id <= 0) {
-      console.error(`❌ Invalid ID clicked: ${tourism.id} (${tourism.name})`);
+      console.error(`Invalid ID clicked: ${tourism.id} (${tourism.name})`);
       return;
     }
-    console.log(`🖱️ TourismCard clicked: "${tourism.name}" (ID: ${tourism.id})`);
+    console.log(`TourismCard clicked: "${tourism.name}" (ID: ${tourism.id})`);
     onClick?.(tourism.id);
   };
 
@@ -48,7 +48,7 @@ const TourismCard: React.FC<Props> = ({ tourism, onClick }) => {
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
             <div className="text-center p-8">
               <div className="w-16 h-16 bg-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                <span className="text-gray-500 text-2xl">🏞️</span>
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               </div>
               <span className="text-gray-500 text-sm font-medium block">No image available</span>
             </div>
@@ -79,7 +79,7 @@ const TourismCard: React.FC<Props> = ({ tourism, onClick }) => {
 
           <div className="flex items-center justify-between text-sm mb-4">
             <div className="flex items-center space-x-2 text-emerald-600 font-bold text-lg">
-              <span>👁️</span>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
               <span>{tourism.viewersCount?.toLocaleString() || 0}</span>
             </div>
           </div>

@@ -697,13 +697,27 @@ export class AdminTourismService {
     return handleResponse<void>(response);
   }
 
-  // Backend: PUT /api/admin/tourism/{tourismId}/images/{imageId}/set-main
-  static async setMainTourismImage(token: string, tourismId: number, imageId: number): Promise<void> {
+  // Set main image by updating tourismPlace.imageUrl via PUT /api/admin/tourism/{tourismId}
+  static async setMainTourismImage(token: string, tourismId: number, imageUrl: string): Promise<void> {
     const response = await fetch(
-      `${API_BASE_URL}/admin/tourism/${tourismId}/images/${imageId}/set-main`,
-      { method: "PUT", headers: getAuthHeaders(token) }
+      `${API_BASE_URL}/admin/tourism/${tourismId}`,
+      {
+        method: "PUT",
+        headers: getAuthHeaders(token),
+        body: JSON.stringify({ imageUrl }),
+      }
     );
     return handleResponse<void>(response);
+  }
+
+  // Get the current main imageUrl for a tourism place
+  static async getTourismMainImageUrl(token: string, tourismId: number): Promise<string | null> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/tourism/${tourismId}`,
+      { headers: getAuthHeaders(token) }
+    );
+    const data = await handleResponse<{ imageUrl?: string }>(response);
+    return data.imageUrl || null;
   }
 }
 

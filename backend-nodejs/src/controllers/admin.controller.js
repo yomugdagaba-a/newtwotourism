@@ -304,7 +304,13 @@ router.get('/audit/statistics', ...guard, async (req, res, next) => {
     const hours = parseInt(req.query.hours) || 24;
     const days = Math.ceil(hours / 24);
     const stats = await auditService.getStatistics(days);
-    res.json({ actionStatistics: stats.actionCounts, resourceTypeStatistics: stats.entityTypeCounts, mostActiveUsers: stats.mostActiveUsers, totalLogs: stats.totalLogs, period: stats.period });
+    res.json({
+      actionStatistics: stats.actionCounts,
+      resourceTypeStatistics: stats.entityTypeCounts,
+      mostActiveUsers: stats.mostActiveUsers,
+      totalLogs: stats.totalLogs,
+      period: stats.period,
+    });
   } catch (e) { next(e); }
 });
 
@@ -312,7 +318,8 @@ router.get('/audit/security', ...guard, async (req, res, next) => {
   try {
     const days = Math.ceil((parseInt(req.query.hours) || 24) / 24);
     const logs = await auditService.getSecurityLogs(days);
-    res.json({ content: logs, totalElements: logs.length });
+    // Support both array and wrapped response (frontend uses both)
+    res.json(logs);
   } catch (e) { next(e); }
 });
 
@@ -320,7 +327,7 @@ router.get('/audit/high-severity', ...guard, async (req, res, next) => {
   try {
     const days = Math.ceil((parseInt(req.query.hours) || 24) / 24);
     const logs = await auditService.getHighSeverityLogs(days);
-    res.json({ content: logs, totalElements: logs.length });
+    res.json(logs);
   } catch (e) { next(e); }
 });
 
@@ -428,6 +435,23 @@ router.get('/audit', ...guard, async (req, res, next) => {
     const { logs, total } = await auditService.findAll(skip, take, req.query.userId, req.query.action);
     res.json({ content: logs, totalElements: total, totalPages: Math.ceil(total / take), size: take, number: page, first: page === 0, last: page >= Math.ceil(total / take) - 1, empty: logs.length === 0 });
   } catch (e) { next(e); }
+});
+
+// ── Hero Images ────────────────────────────────────────────────────────────────
+router.get('/hero-images', ...guard, async (req, res, next) => {
+  try { res.json(await tourismService.getAllHeroImages()); } catch (e) { next(e); }
+});
+
+router.post('/hero-images', ...guard, async (req, res, next) => {
+  try { res.status(201).json(await tourismService.addHeroImage(req.body)); } catch (e) { next(e); }
+});
+
+router.put('/hero-images/:id', ...guard, async (req, res, next) => {
+  try { res.json(await tourismService.updateHeroImage(parseInt(req.params.id), req.body)); } catch (e) { next(e); }
+});
+
+router.delete('/hero-images/:id', ...guard, async (req, res, next) => {
+  try { res.json(await tourismService.deleteHeroImage(parseInt(req.params.id))); } catch (e) { next(e); }
 });
 
 // ── Security ───────────────────────────────────────────────────────────────────

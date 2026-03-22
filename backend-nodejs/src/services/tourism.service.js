@@ -116,4 +116,31 @@ async function removeImage(imageId) {
   return prisma.tourismImage.delete({ where: { id: imageId } });
 }
 
-module.exports = { create, findAll, findById, update, remove, search, searchPublic, getHomepage, getImages, getNearbyPlaces, addImage, updateImage, setMainImage, removeImage };
+// ── Hero Images ────────────────────────────────────────────────────────────────
+async function getActiveHeroImages() {
+  return prisma.heroImage.findMany({ where: { active: true }, orderBy: { displayOrder: 'asc' } });
+}
+
+async function getAllHeroImages() {
+  return prisma.heroImage.findMany({ orderBy: { displayOrder: 'asc' } });
+}
+
+async function addHeroImage(data) {
+  const { imageUrl, title, description, displayOrder, active } = data;
+  return prisma.heroImage.create({ data: { imageUrl, title, description, displayOrder: displayOrder ?? 0, active: active !== false } });
+}
+
+async function updateHeroImage(id, data) {
+  const img = await prisma.heroImage.findUnique({ where: { id } });
+  if (!img) throw Object.assign(new Error('Hero image not found'), { status: 404 });
+  const { imageUrl, title, description, displayOrder, active } = data;
+  return prisma.heroImage.update({ where: { id }, data: { ...(imageUrl !== undefined && { imageUrl }), ...(title !== undefined && { title }), ...(description !== undefined && { description }), ...(displayOrder !== undefined && { displayOrder }), ...(active !== undefined && { active }) } });
+}
+
+async function deleteHeroImage(id) {
+  const img = await prisma.heroImage.findUnique({ where: { id } });
+  if (!img) throw Object.assign(new Error('Hero image not found'), { status: 404 });
+  return prisma.heroImage.delete({ where: { id } });
+}
+
+module.exports = { create, findAll, findById, update, remove, search, searchPublic, getHomepage, getImages, getNearbyPlaces, addImage, updateImage, setMainImage, removeImage, getActiveHeroImages, getAllHeroImages, addHeroImage, updateHeroImage, deleteHeroImage };

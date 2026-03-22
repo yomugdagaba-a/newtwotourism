@@ -15,8 +15,8 @@ import {
 } from '../../../utils/ethiopianValidation';
 
 const STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: '✅ Active' },
-  { value: 'BLOCKED', label: '🚫 Blocked' }
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'BLOCKED', label: 'Blocked' }
 ];
 
 const PAGE_SIZE_OPTIONS = [9, 12, 15, 20, 30];
@@ -60,15 +60,15 @@ const TourismsManagementPage = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Loading tourisms with page:', currentPage, 'size:', pageSize);
+      console.log('Loading tourisms with page:', currentPage, 'size:', pageSize);
       const response = await AdminTourismService.getAllTourism(token, currentPage, pageSize);
-      console.log('✅ Response received:', response);
+      console.log('Response received:', response);
       setTourisms(response.content || []);
       setTotalPages(response.totalPages || 0);
       setTotalElements(response.totalElements || 0);
-      console.log('📊 Set tourisms:', response.content?.length, 'Total pages:', response.totalPages);
+      console.log('Set tourisms:', response.content?.length, 'Total pages:', response.totalPages);
     } catch (err) {
-      console.error('❌ Error loading tourisms:', err);
+      console.error('Error loading tourisms:', err);
       setError(err instanceof Error ? err.message : 'Failed to load tourism places');
     } finally {
       setLoading(false);
@@ -263,30 +263,38 @@ const TourismsManagementPage = () => {
   return (
     <div className="min-h-screen bg-white admin-page">
       
-      <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 bg-white border border-gray-200 p-6 rounded-xl shadow-lg">
+      <div className="container mx-auto px-4 pt-4 pb-8">
+      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
         <button
           onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors font-bold"
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span className="font-bold">Back to Dashboard</span>
         </button>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-black text-gray-900 mb-2">🏞️ Tourism Places Management</h1>
-            <p className="text-gray-600 font-semibold">Manage tourism destinations and attractions</p>
+            <h1 className="text-lg font-black text-gray-900 mb-0.5">Tourism Places Management</h1>
+            <p className="text-gray-600 text-sm">Manage tourism destinations and attractions</p>
           </div>
-          <button onClick={() => { resetForm(); setShowModal(true); }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors font-bold shadow-lg">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Tourism Place
-          </button>
-        </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.push('/admin/hero-images')}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2 transition-colors font-bold shadow-lg">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Hero Images
+            </button>
+            <button onClick={() => { resetForm(); setShowModal(true); }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors font-bold shadow-lg">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Tourism Place
+            </button>
+          </div>        </div>
       </div>
 
       {/* Search and Sort */}
@@ -353,25 +361,11 @@ const TourismsManagementPage = () => {
               <div key={tourism.id} className="rounded-xl overflow-hidden shadow-2xl hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-300 group bg-white hover:-translate-y-1">
                 <div className="h-48 bg-gray-100 flex items-center justify-center relative">
                   {tourism.images && tourism.images.length > 0 ? (
-                    <img src={tourism.images[0]} alt={tourism.name} className="w-full h-full object-cover" />
+                    <img src={typeof tourism.images[0] === 'string' ? tourism.images[0] : (tourism.images[0] as any).imageUrl} alt={tourism.name} className="w-full h-full object-cover" />
                   ) : (tourism as any).imageUrl ? (
                     <img src={(tourism as any).imageUrl} alt={tourism.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-6xl">🏞️</span>
-                  )}
-                  {((tourism as any).categories || []).length > 0 && (
-                    <div className="absolute top-3 right-3 flex flex-wrap gap-1 max-w-xs">
-                      {((tourism as any).categories || []).slice(0, 2).map((cat: string, idx: number) => (
-                        <span key={idx} className="px-2 py-1 text-xs bg-gray-200 text-gray-800 rounded-full font-black shadow-lg">
-                          {cat}
-                        </span>
-                      ))}
-                      {((tourism as any).categories || []).length > 2 && (
-                        <span className="px-2 py-1 text-xs bg-gray-200 text-gray-800 rounded-full font-black shadow-lg">
-                          +{((tourism as any).categories || []).length - 2}
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-6xl"></span>
                   )}
                 </div>
                 <div className="p-4 bg-white shadow-inner border-t border-gray-200">
@@ -380,8 +374,24 @@ const TourismsManagementPage = () => {
                   
                   {/* Location */}
                   <p className="text-sm font-black text-gray-700 mt-2 flex items-center gap-2">
-                    📍 {tourism.wereda}, {tourism.kebele}
+                    {tourism.wereda}, {tourism.kebele}
                   </p>
+
+                  {/* Categories */}
+                  {((tourism as any).categories || []).length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {((tourism as any).categories || []).slice(0, 2).map((cat: string, idx: number) => (
+                        <span key={idx} className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full font-black">
+                          {cat}
+                        </span>
+                      ))}
+                      {((tourism as any).categories || []).length > 2 && (
+                        <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full font-black">
+                          +{((tourism as any).categories || []).length - 2}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Description */}
                   <p className="text-sm font-bold text-gray-800 mt-3 line-clamp-2">{tourism.description}</p>
@@ -400,23 +410,23 @@ const TourismsManagementPage = () => {
                   
                   {/* Views */}
                   <div className="mt-3 text-sm font-black text-gray-800 flex items-center gap-1">
-                    👁️ {tourism.viewersCount || 0} views
+                    {tourism.viewersCount || 0} views
                   </div>
                   
                   {/* Action Buttons - Stacked vertically for better visibility */}
                   <div className="mt-4 flex flex-col gap-2 pt-3 border-t border-gray-200">
                     <button onClick={() => router.push(`/admin/tourisms/${tourism.id}/images`)} 
                       className="w-full py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-lg text-sm font-black transition-all shadow-md hover:shadow-lg hover:scale-105">
-                      📸 Images
+                      Images
                     </button>
                     <div className="flex gap-2">
                       <button onClick={() => openEditModal(tourism)} 
                         className="flex-1 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-lg text-sm font-black transition-all shadow-md hover:shadow-lg hover:scale-105">
-                        ✏️ Edit
+                        Edit
                       </button>
                       <button onClick={() => handleDelete(tourism.id)} disabled={actionLoading === tourism.id}
                         className="flex-1 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-lg text-sm font-black transition-all shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50">
-                        {actionLoading === tourism.id ? '...' : '🗑️ Delete'}
+                        {actionLoading === tourism.id ? '...' : 'Delete'}
                       </button>
                     </div>
                   </div>
@@ -446,7 +456,7 @@ const TourismsManagementPage = () => {
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
             <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
               <h3 className="text-xl font-black text-gray-900">
-                {editingTourism ? '✏️ Edit Tourism Place' : '➕ Add New Tourism Place'}
+                {editingTourism ? 'Edit Tourism Place' : 'Add New Tourism Place'}
               </h3>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="text-gray-500 hover:text-gray-700 font-bold">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -541,7 +551,7 @@ const TourismsManagementPage = () => {
 
               {/* Main Image URL */}
               <div className="border-t-2 border-gray-300 pt-4 mt-4">
-                <h4 className="text-md font-black text-gray-800 mb-3">📷 Main Image</h4>
+                <h4 className="text-md font-black text-gray-800 mb-3">Main Image</h4>
                 <FormInput label="Main Image URL" name="imageUrl" value={(formData as any).imageUrl || ''}
                   onChange={handleInputChange} placeholder="https://example.com/image.jpg"
                   helpText="Enter the URL of the main/cover image for this tourism place"
@@ -561,11 +571,11 @@ const TourismsManagementPage = () => {
               <div className="border-t-2 border-gray-300 pt-4 mt-4">
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">💡</span>
+                    <span className="text-2xl"></span>
                     <div>
                       <h4 className="text-md font-black text-blue-800 mb-1">Adding Internal/Gallery Images</h4>
                       <p className="text-sm text-blue-700 font-semibold">
-                        After creating the tourism place, use the "📸 Images" button on the tourism card to add detailed internal images (like Bete Giorgis, Bete Maryam, etc.).
+                        After creating the tourism place, use the "Images" button on the tourism card to add detailed internal images (like Bete Giorgis, Bete Maryam, etc.).
                       </p>
                     </div>
                   </div>

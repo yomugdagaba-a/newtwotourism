@@ -277,21 +277,21 @@ export default function TourismMapModal({
       {/* Error Bar */}
       {error && (
         <div className="bg-red-50 border-b border-red-200 px-6 py-3">
-          <p className="text-red-700 font-semibold">⚠️ {error}</p>
+          <p className="text-red-700 font-semibold">{error}</p>
         </div>
       )}
 
       {/* Fallback Location Warning */}
       {usingFallbackLocation && (
         <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
-          <p className="text-amber-700 font-semibold">ℹ️ Showing approximate location for {tourismWereda}. The exact tourism place coordinates are not available.</p>
+          <p className="text-amber-700 font-semibold">Showing approximate location for {tourismWereda}. The exact tourism place coordinates are not available.</p>
         </div>
       )}
 
       {/* Loading Bar */}
       {loading && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3">
-          <p className="text-yellow-700 font-semibold">📍 Getting your location...</p>
+          <p className="text-yellow-700 font-semibold">Getting your location...</p>
         </div>
       )}
 
@@ -365,21 +365,21 @@ export default function TourismMapModal({
         {/* Error Section */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700 font-semibold">⚠️ {error}</p>
+            <p className="text-red-700 font-semibold">{error}</p>
           </div>
         )}
 
         {/* Fallback Location Warning */}
         {usingFallbackLocation && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <p className="text-amber-700 font-semibold">ℹ️ Showing approximate location for {tourismWereda}. The exact tourism place coordinates are not available.</p>
+            <p className="text-amber-700 font-semibold">Showing approximate location for {tourismWereda}. The exact tourism place coordinates are not available.</p>
           </div>
         )}
 
         {/* Loading Section */}
         {loading && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-yellow-700 font-semibold">📍 Getting your location...</p>
+            <p className="text-yellow-700 font-semibold">Getting your location...</p>
           </div>
         )}
 
