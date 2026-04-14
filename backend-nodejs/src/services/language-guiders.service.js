@@ -34,4 +34,11 @@ async function findByLanguage(language) {
   return prisma.languageGuider.findMany({ where: { languages: { has: language } } });
 }
 
-module.exports = { create, findAll, findById, update, remove, findByLanguage };
+async function findByTourismPlace(tourismPlaceId) {
+  return prisma.languageGuider.findMany({
+    where: { tourismPlaceId: parseInt(tourismPlaceId), active: true },
+    orderBy: { name: 'asc' },
+  });
+}
+
+module.exports = { create, findAll, findById, update, remove, findByLanguage, findByTourismPlace };

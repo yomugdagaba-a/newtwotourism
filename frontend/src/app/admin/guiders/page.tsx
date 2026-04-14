@@ -31,7 +31,7 @@ const GuidersManagementPage = () => {
   const [formSuccess, setFormSuccess] = useState('');
   const [formError, setFormError] = useState('');
   const [formData, setFormData] = useState<GuiderCreateDto>({
-    name: '', contactInfo: '', languages: [], experience: '', active: true
+    name: '', contactInfo: '', languages: [], experience: '', active: true, tourismPlaceId: undefined
   });
 
   const { token, role, isAuthenticated } = useAuthStore();
@@ -109,12 +109,13 @@ const GuidersManagementPage = () => {
     if (!token) return;
     setFormError('');
     if (!validateFormData()) return;
+    if (!selectedTourismId) { setFormError('Please select a tourism place first.'); return; }
     
     try {
       setActionLoading(-1);
-      await AdminGuiderService.createGuider(token, formData);
+      await AdminGuiderService.createGuider(token, { ...formData, tourismPlaceId: selectedTourismId });
       setFormSuccess('Guider created successfully!');
-      await loadGuiders();
+      await loadGuiders(selectedTourismId);
       setTimeout(() => {
         setShowModal(false);
         resetForm();
@@ -181,7 +182,7 @@ const GuidersManagementPage = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', contactInfo: '', languages: [], experience: '', active: true });
+    setFormData({ name: '', contactInfo: '', languages: [], experience: '', active: true, tourismPlaceId: undefined });
     setEditingGuider(null);
     setFormErrors({});
     setFormError('');

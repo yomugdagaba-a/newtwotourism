@@ -121,19 +121,6 @@ export interface NearbyTourismDto {
   wereda?: string;
 }
 
-export interface RatingSummaryResponseDto {
-  avgRating: number;
-  totalRatings: number;
-}
-
-export interface TourismRatingResponseDto {
-  id: number;
-  rating: number;
-  comment?: string;
-  userFullName: string;
-  createdAt: string;
-}
-
 // TourismFullDetailDto is imported from @/types/tourism
 
 // ========================
@@ -151,23 +138,4 @@ export const fetchTourismDetail = async (tourismId: number, token?: string): Pro
 
   const fallback = await api.get<TourismFullDetailDto>(`/tourisms/${tourismId}`);
   return fallback as unknown as TourismFullDetailDto;
-};
-
-// ========================
-// Submit tourism rating
-// ========================
-export interface TourismRatingRequestDto {
-  rating: number;
-  comment?: string;
-}
-
-export const submitTourismRating = async (
-  tourismId: number,
-  rating: number,
-  comment: string | undefined,
-  token: string
-): Promise<TourismRatingResponseDto> => {
-  const payload: TourismRatingRequestDto = { rating, comment };
-  const res = await api.post<TourismRatingResponseDto>(`/tourisms/${tourismId}/rate`, payload, token);
-  return res as unknown as TourismRatingResponseDto;
 };

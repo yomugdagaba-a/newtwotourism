@@ -187,6 +187,7 @@ export interface GuiderCreateDto {
   languages: string[];
   experience?: string;
   active?: boolean;
+  tourismPlaceId?: number;
 }
 
 export interface GuiderUpdateDto {

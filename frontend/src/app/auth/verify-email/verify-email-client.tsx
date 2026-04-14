@@ -26,42 +26,73 @@ export default function VerifyEmailClient() {
   const [countdown, setCountdown] = useState(0);
   const [canResend, setCanResend] = useState(false);
   
+  const [resendCooldown, setResendCooldown] = useState(0); // seconds remaining before resend allowed
+
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Parse error message — backend may return JSON string or plain text
+  const parseErrorMessage = (raw: string): string => {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed.message || raw;
+    } catch {
+      return raw;
+    }
+  };
+
+  // Extract wait seconds from "Please wait N seconds." message
+  const extractWaitSeconds = (msg: string): number => {
+    const match = msg.match(/(\d+)\s*second/i);
+    return match ? parseInt(match[1]) : 60;
+  };
+
+  const startResendCooldown = (seconds: number) => {
+    setCanResend(false);
+    setResendCooldown(seconds);
+  };
+
+  // Resend cooldown ticker
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      setCanResend(true);
+      return;
+    }
+    const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleSendOtp = useCallback(async () => {
     if (!email) {
-      console.error('❌ No email provided');
       setError("Please enter your email address");
       return;
     }
-
-    console.log('📤 Sending OTP to:', email);
     setLoading(true);
     setError("");
-
     try {
       const response = await sendVerificationEmail({ email });
-      console.log('✅ OTP Send Response:', response);
-      
       if (response.success) {
-        console.log('✅ OTP sent successfully, expires in:', response.expiresInMinutes);
         setExpiresIn(response.expiresInMinutes || 15);
         setStep('verify');
-        setTimeout(() => {
-          console.log('🎯 Focusing first OTP input');
-          otpRefs.current[0]?.focus();
-        }, 100);
+        startResendCooldown(60);
+        setTimeout(() => otpRefs.current[0]?.focus(), 100);
       } else {
-        console.warn('⚠️ OTP send warning:', response.message);
         setError(response.message || "Failed to send OTP");
       }
     } catch (err: any) {
-      console.error('❌ OTP send error:', err);
-      setError(err.message || "Failed to send verification OTP");
+      const msg = parseErrorMessage(err.message || "Failed to send verification OTP");
+      const waitSecs = extractWaitSeconds(msg);
+      if (waitSecs > 0 && msg.toLowerCase().includes('wait')) {
+        startResendCooldown(waitSecs);
+        setError(`Please wait ${waitSecs} seconds before requesting a new code.`);
+        // Still move to verify step if we're not there yet
+        if (step === 'request') setStep('verify');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
-  }, [email]);
+  }, [email, step]);
 
   // Auto-send OTP if email is provided
   useEffect(() => {
@@ -90,12 +121,10 @@ export default function VerifyEmailClient() {
     }
   }, [expiresIn, step]);
 
-  // Resend cooldown
+  // Resend cooldown — start at 60s when entering verify step
   useEffect(() => {
     if (step === 'verify') {
-      setCanResend(false);
-      const timer = setTimeout(() => setCanResend(true), 60000);
-      return () => clearTimeout(timer);
+      startResendCooldown(60);
     }
   }, [step]);
 
@@ -135,22 +164,27 @@ export default function VerifyEmailClient() {
     if (!canResend) return;
     setLoading(true);
     setError("");
-
     try {
       const response = await sendVerificationEmail({ email });
       if (response.success) {
         setExpiresIn(response.expiresInMinutes || 15);
         setOtp(['', '', '', '', '', '']);
-        setCanResend(false);
-        setTimeout(() => setCanResend(true), 60000);
+        startResendCooldown(60);
         otpRefs.current[0]?.focus();
-        setSuccess("New OTP sent successfully!");
+        setSuccess("New verification code sent!");
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(response.message || "Failed to resend OTP");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to resend OTP");
+      const msg = parseErrorMessage(err.message || "Failed to resend OTP");
+      const waitSecs = extractWaitSeconds(msg);
+      if (waitSecs > 0 && msg.toLowerCase().includes('wait')) {
+        startResendCooldown(waitSecs);
+        setError(`Please wait ${waitSecs} seconds before requesting a new code.`);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -159,33 +193,23 @@ export default function VerifyEmailClient() {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const otpCode = otp.join('');
-    
-    console.log('🔐 Verifying OTP:', otpCode, 'for email:', email);
-    
     if (otpCode.length !== 6) {
-      console.error('❌ Invalid OTP length:', otpCode.length);
-      setError("Please enter the complete 6-digit OTP");
+      setError("Please enter the complete 6-digit code");
       return;
     }
-
     setLoading(true);
     setError("");
-
     try {
       const response = await verifyEmailWithOtp(email, otpCode);
-      console.log('✅ Verification Response:', response);
-      
       if (response.success) {
-        console.log('✅ Email verified successfully');
         updateEmailVerified(true);
         setStep('success');
       } else {
-        console.warn('⚠️ Verification warning:', response.message);
         setError(response.message || "Verification failed");
       }
     } catch (err: any) {
-      console.error('❌ Verification error:', err);
-      setError(err.message || "Verification failed. Please try again.");
+      const msg = parseErrorMessage(err.message || "Verification failed");
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -340,9 +364,9 @@ export default function VerifyEmailClient() {
                     type="button"
                     onClick={handleResendOtp}
                     disabled={!canResend || loading}
-                    className={`font-medium ${canResend ? 'text-emerald-600 hover:text-emerald-700' : 'text-gray-400 cursor-not-allowed'}`}
+                    className={`font-medium transition-colors ${canResend ? 'text-emerald-600 hover:text-emerald-700' : 'text-gray-400 cursor-not-allowed'}`}
                   >
-                    Resend Code
+                    {canResend ? 'Resend Code' : `Resend in ${resendCooldown}s`}
                   </button>
                 </div>
               </div>

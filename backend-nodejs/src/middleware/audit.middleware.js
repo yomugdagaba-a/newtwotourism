@@ -1,7 +1,34 @@
 const auditService = require('../services/audit.service');
 const { getClientIp } = require('./auth.middleware');
 
-// Maps HTTP method + URL to an AuditAction enum value (mirrors NestJS interceptor)
+// Fields that must NEVER appear in audit logs — security requirement
+const SENSITIVE_FIELDS = new Set([
+  'password', 'passwordhash', 'newpassword', 'oldpassword', 'confirmpassword',
+  'token', 'refreshtoken', 'accesstoken', 'jwttoken',
+  'otp', 'secret', 'apikey', 'authorization',
+  'creditcard', 'cardnumber', 'cvv', 'pin',
+  // also catch common variations
+  'refresh_token', 'access_token', 'id_token', 'bearer',
+]);
+
+/**
+ * Recursively redact sensitive fields from any object before storing in audit log.
+ * Comparison is case-insensitive so "Password", "PASSWORD", "password" are all caught.
+ */
+function sanitizeBody(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeBody);
+  const clean = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
+      clean[key] = '[REDACTED]';
+    } else {
+      clean[key] = sanitizeBody(value);
+    }
+  }
+  return clean;
+}
+
 function determineAction(method, url) {
   if (method === 'POST') {
     if (url.includes('/login')) return 'LOGIN';
@@ -44,10 +71,9 @@ function extractEntityId(params, body) {
 
 /**
  * Express middleware that automatically records audit log entries for all
- * POST, PUT, PATCH, and DELETE requests — mirroring the NestJS AuditInterceptor.
+ * POST, PUT, PATCH, and DELETE requests.
  *
- * It wraps res.json() so it fires after the response is built, capturing both
- * successful operations and failures.
+ * Sensitive fields (passwords, tokens, OTPs) are redacted before storage.
  */
 function auditMiddleware(req, res, next) {
   const { method, url, params, body } = req;
@@ -61,6 +87,9 @@ function auditMiddleware(req, res, next) {
   const userAgent = req.get('user-agent') || 'Unknown';
   const action = determineAction(method, url);
   const entityType = determineEntityType(url);
+
+  // Sanitize body — remove passwords, tokens, OTPs before storing
+  const safeBody = sanitizeBody(body);
 
   // Wrap res.json to intercept the outgoing response
   const originalJson = res.json.bind(res);
@@ -79,7 +108,7 @@ function auditMiddleware(req, res, next) {
         {
           method,
           url,
-          body,
+          body: safeBody,
           params,
           status,
           ...(failed ? { error: data?.message || 'Request failed' } : {}),

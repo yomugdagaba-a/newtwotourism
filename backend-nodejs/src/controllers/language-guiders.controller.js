@@ -16,10 +16,8 @@ router.get('/language/:language', async (req, res, next) => {
 // Guiders by tourism place (must be before /:id)
 router.get('/tourism/:tourismPlaceId', async (req, res, next) => {
   try {
-    // Language guiders are not directly linked to tourism places in the schema,
-    // so return all guiders (same as NestJS which has no such filter either)
-    const result = await languageGuidersService.findAll(0, 100);
-    res.json(result.guiders);
+    const guiders = await languageGuidersService.findByTourismPlace(req.params.tourismPlaceId);
+    res.json(guiders);
   } catch (e) { next(e); }
 });
 

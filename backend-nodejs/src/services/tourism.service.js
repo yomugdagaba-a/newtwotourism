@@ -5,7 +5,7 @@ const INCLUDE_LIST = { images: true, ratings: true };
 
 async function create(data) {
   const { images, ...rest } = data;
-  if (rest.visitTime) rest.visitTime = parseInt(rest.visitTime);
+  if (rest.visitTime !== undefined) rest.visitTime = rest.visitTime ? String(rest.visitTime) : null;
   return prisma.tourismPlace.create({ data: rest, include: INCLUDE_LIST });
 }
 

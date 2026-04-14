@@ -192,7 +192,7 @@ model TourismPlace {
   kebele        String
   bestTime      String?
   peaceInfo     String?
-  visitTime     Int? // in minutes
+  visitTime     String? // visit duration as descriptive text
   languages     String[] @default([])
   status        PlaceStatus @default(ACTIVE)
   viewersCount  Int @default(0)
@@ -206,6 +206,7 @@ model TourismPlace {
   ratings       TourismRating[]
   mapPoints     MapPoint[]
   roadInfos     RoadInfo[]
+  languageGuiders LanguageGuider[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -374,12 +375,14 @@ model HorseService {
 // ==================== LANGUAGE GUIDER ENTITIES ====================
 
 model LanguageGuider {
-  id          Int     @id @default(autoincrement())
-  name        String
-  languages   String[]
-  experience  String?
-  contactInfo String
-  active      Boolean @default(true)
+  id              Int     @id @default(autoincrement())
+  name            String
+  languages       String[]
+  experience      String?
+  contactInfo     String
+  active          Boolean @default(true)
+  tourismPlaceId  Int?
+  tourismPlace    TourismPlace? @relation(fields: [tourismPlaceId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

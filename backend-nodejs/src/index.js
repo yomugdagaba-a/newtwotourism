@@ -154,4 +154,10 @@ async function start() {
   }
 }
 
-start().catch(err => { console.error('Startup error:', err); process.exit(1); });
+// Only start the server when run directly (not when required by tests)
+if (require.main === module) {
+  start().catch(err => { console.error('Startup error:', err); process.exit(1); });
+}
+
+// Export app for Supertest integration tests
+module.exports = app;

@@ -31,6 +31,22 @@ const TourismMapModal = dynamic(() => import("@/components/map/TourismMapModal")
 
 type TabType = 'overview' | 'nearby' | 'hotels' | 'roads' | 'guiders';
 
+// Format visitTime — now stored as plain descriptive text
+function formatVisitTime(visitTime: string | number | undefined | null): string {
+  if (!visitTime) return "Duration not specified";
+  return String(visitTime);
+}
+
+// Compute rating summary from raw ratings array if ratingSummary is missing
+function computeRatingSummary(detail: TourismFullDetailDto | null) {
+  if (!detail) return { avgRating: 0, totalRatings: 0 };
+  if (detail.ratingSummary?.totalRatings > 0) return detail.ratingSummary;
+  const ratings = (detail as any).ratings as Array<{ rating: number }> | undefined;
+  if (!ratings || ratings.length === 0) return { avgRating: 0, totalRatings: 0 };
+  const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+  return { avgRating: Math.round(avg * 10) / 10, totalRatings: ratings.length };
+}
+
 export default function TourismDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -326,8 +342,8 @@ export default function TourismDetailPage() {
                 <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white font-medium">Tourism Place</span>
               )}
               <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white font-medium">{detail.viewersCount.toLocaleString()} views</span>
-              {detail.ratingSummary && (
-                <span className="bg-[#F59E0B] px-3 py-1 rounded-full text-white font-bold">{detail.ratingSummary.avgRating?.toFixed(1) || 0} ★ ({detail.ratingSummary.totalRatings})</span>
+              {computeRatingSummary(detail).totalRatings > 0 && (
+                <span className="bg-[#F59E0B] px-3 py-1 rounded-full text-white font-bold">{computeRatingSummary(detail).avgRating?.toFixed(1)} ★ ({computeRatingSummary(detail).totalRatings})</span>
               )}
             </div>
           </div>
@@ -364,7 +380,7 @@ export default function TourismDetailPage() {
 
                 <div className="rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] transition-all duration-300 cursor-pointer bg-white border-2 border-gray-200">
                   <h3 className="text-gray-900 font-black text-base mb-2">Visit Duration</h3>
-                  <p className="text-gray-700 text-sm leading-relaxed font-semibold line-clamp-2">{detail.visitTime || "2-3 hours recommended"}</p>
+                  <p className="text-gray-700 text-sm leading-relaxed font-semibold line-clamp-2">{detail.visitTime ? formatVisitTime(detail.visitTime) : "Duration not specified"}</p>
                   <button
                     onClick={() => openDetailModal('visitTime')}
                     className="mt-4 w-full py-2 px-3 bg-purple-100 text-purple-700 text-sm font-bold rounded-lg hover:bg-purple-200 hover:scale-105 transition-all shadow-md"
@@ -404,8 +420,8 @@ export default function TourismDetailPage() {
 
                 <div className="rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] transition-all duration-300 cursor-pointer bg-white border-2 border-gray-200">
                   <h3 className="text-gray-900 font-black text-base mb-2">Rating</h3>
-                  <div className="text-4xl font-black text-yellow-500">{detail.ratingSummary?.avgRating?.toFixed(1) || '0'}/5</div>
-                  <p className="text-gray-700 text-xs font-bold">{detail.ratingSummary?.totalRatings || 0} reviews</p>
+                  <div className="text-4xl font-black text-yellow-500">{computeRatingSummary(detail).avgRating?.toFixed(1) || '0'}/5</div>
+                  <p className="text-gray-700 text-xs font-bold">{computeRatingSummary(detail).totalRatings || 0} reviews</p>
                 </div>
               </div>
 
@@ -902,7 +918,7 @@ export default function TourismDetailPage() {
         onClose={() => setDetailModalOpen(false)}
         title="Visit Duration"
         icon=""
-        content={detail?.visitTime || "2-3 hours recommended"}
+        content={detail?.visitTime ? formatVisitTime(detail.visitTime) : "Duration not specified"}
         type="visitTime"
       />
 

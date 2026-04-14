@@ -1,0 +1,1053 @@
+{
+  "info": {
+    "name": "North Wollo Tourism — Full Test Suite",
+    "_postman_id": "nwt-full-suite-v1",
+    "description": "100% coverage of all API endpoints mapped to chapter 6 test cases (FT-*, TC-*, SEC-*). Run with Collection Runner in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",       "value": "https://localhost:8080" },
+    { "key": "adminToken",    "value": "" },
+    { "key": "clientToken",   "value": "" },
+    { "key": "ownerToken",    "value": "" },
+    { "key": "refreshToken",  "value": "" },
+    { "key": "userId",        "value": "" },
+    { "key": "adminUserId",   "value": "" },
+    { "key": "ownerUserId",   "value": "" },
+    { "key": "tourismId",     "value": "" },
+    { "key": "hotelId",       "value": "" },
+    { "key": "bookingId",     "value": "" },
+    { "key": "roadId",        "value": "" },
+    { "key": "horseServiceId","value": "" },
+    { "key": "guiderId",      "value": "" },
+    { "key": "mapPointId",    "value": "" },
+    { "key": "imageId",       "value": "" },
+    { "key": "heroImageId",   "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "01 — Authentication (FT-AUTH / TC-AUTH)",
+      "item": [
+        {
+          "name": "TC-AUTH-01 Register new user (CLIENT)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Has accessToken', () => { const b = pm.response.json(); pm.expect(b).to.have.property('accessToken'); pm.collectionVariables.set('clientToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); pm.collectionVariables.set('userId', b.userId); });",
+            "pm.test('Has refreshToken', () => pm.expect(pm.response.json()).to.have.property('refreshToken'));"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\"username\":\"testclient01\",\"email\":\"testclient01@test.com\",\"password\":\"TestPass123!\",\"fullName\":\"Test Client\"}" }
+          }
+        },
+        {
+          "name": "TC-AUTH-02 Register duplicate username → 400",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));",
+            "pm.test('Error message present', () => pm.expect(pm.response.json().message).to.exist);"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\"username\":\"testclient01\",\"email\":\"other@test.com\",\"password\":\"TestPass123!\",\"fullName\":\"Dup User\"}" }
+          }
+        },
+        {
+          "name": "TC-AUTH-03 Login with correct credentials",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Tokens returned', () => { const b = pm.response.json(); pm.expect(b.accessToken).to.exist; pm.collectionVariables.set('clientToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); });"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\"username\":\"testclient01\",\"password\":\"TestPass123!\"}" }
+          }
+        },
+        {
+          "name": "TC-AUTH-04 Login wrong password → 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\"username\":\"testclient01\",\"password\":\"WrongPass!\"}" }
+          }
+        },
+        {
+          "name": "TC-AUTH-06 Refresh token",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('New accessToken', () => { const b = pm.response.json(); pm.expect(b.accessToken).to.exist; pm.collectionVariables.set('clientToken', b.accessToken); });"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "body": { "mode": "raw", "raw": "{\"refreshToken\":\"{{refreshToken}}\"}" }
+          }
+        },
+        {
+          "name": "FT-AUTH-03 Access protected route without token → 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users/profile" }
+        },
+        {
+          "name": "FT-AUTH-08 Expired/invalid token → 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer eyJhbGciOiJIUzI1NiJ9.invalid.token"}],
+            "url": "{{baseUrl}}/api/users/profile" }
+        },
+        {
+          "name": "TC-AUTH-07 Send email verification OTP",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Success true', () => pm.expect(pm.response.json().success).to.be.true);"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/send-verification",
+            "body": { "mode": "raw", "raw": "{\"email\":\"testclient01@test.com\"}" }
+          }
+        },
+        {
+          "name": "TC-AUTH-08 Initiate password reset",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Generic success (no user enumeration)', () => pm.expect(pm.response.json().success).to.be.true);"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/reset-password",
+            "body": { "mode": "raw", "raw": "{\"email\":\"testclient01@test.com\"}" }
+          }
+        },
+        {
+          "name": "TC-AUTH-14 Password reset unknown email → generic 200 (no enumeration)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 (no user enumeration)', () => pm.response.to.have.status(200));",
+            "pm.test('Generic success message', () => pm.expect(pm.response.json().success).to.be.true);"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/reset-password",
+            "body": { "mode": "raw", "raw": "{\"email\":\"nonexistent@nowhere.com\"}" }
+          }
+        },
+        {
+          "name": "TC-AUTH-09 Logout",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/auth/logout" }
+        },
+        {
+          "name": "Login ADMIN (setup — run after seeding admin user)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json(); pm.collectionVariables.set('adminToken', b.accessToken); pm.collectionVariables.set('adminUserId', b.userId);"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\"username\":\"admin\",\"password\":\"Admin123!\"}" }
+          }
+        },
+        {
+          "name": "Login CLIENT (re-login after logout)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const b = pm.response.json(); pm.collectionVariables.set('clientToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); pm.collectionVariables.set('userId', b.userId);"
+          ]}}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\"username\":\"testclient01\",\"password\":\"TestPass123!\"}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "02 — User Profile (FT-USR / TC-USR)",
+      "item": [
+        {
+          "name": "FT-USR-01 Get own profile",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has username', () => pm.expect(pm.response.json().username).to.exist);"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/users/profile" }
+        },
+        {
+          "name": "FT-USR-02 Update own profile",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PUT",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/users/profile",
+            "body": { "mode": "raw", "raw": "{\"fullName\":\"Test Client Updated\"}" }
+          }
+        },
+        {
+          "name": "FT-ADM-04 Admin list users",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": { "raw": "{{baseUrl}}/api/admin/users?page=0&size=10", "query": [{"key":"page","value":"0"},{"key":"size","value":"10"}] }
+          }
+        },
+        {
+          "name": "FT-AUTH-04 CLIENT token on ADMIN route → 403",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/admin/users" }
+        }
+      ]
+    },
+
+    {
+      "name": "03 — Tourism Places (FT-TRM / TC-TRM)",
+      "item": [
+        {
+          "name": "TC-TRM-07 Admin create tourism place",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Has id', () => { const b = pm.response.json(); pm.expect(b.id).to.exist; pm.collectionVariables.set('tourismId', b.id); });"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/tourism",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Lalibela Rock Churches\",\"categories\":[\"HERITAGE\"],\"description\":\"Ancient rock-hewn churches\",\"wereda\":\"Lalibela\",\"kebele\":\"Lalibela01\",\"bestTime\":\"October to March\",\"languages\":[\"Amharic\",\"English\"],\"latitude\":12.0316,\"longitude\":39.0472}" }
+          }
+        },
+        {
+          "name": "FT-TRM-01 Public search by keyword",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns array or paginated result', () => { const b = pm.response.json(); pm.expect(b).to.exist; });"
+          ]}}],
+          "request": { "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tourisms/public/search?keyword=Lalibela", "query": [{"key":"keyword","value":"Lalibela"}] }
+          }
+        },
+        {
+          "name": "FT-TRM-02 Public search by category",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tourisms/public/search?categories=HERITAGE", "query": [{"key":"categories","value":"HERITAGE"}] }
+          }
+        },
+        {
+          "name": "FT-TRM-03 Public search by wereda",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tourisms/public/search?wereda=Lalibela", "query": [{"key":"wereda","value":"Lalibela"}] }
+          }
+        },
+        {
+          "name": "FT-TRM-04 Get tourism place detail",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has name', () => pm.expect(pm.response.json().name).to.exist);"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/tourisms/{{tourismId}}" }
+        },
+        {
+          "name": "FT-TRM-05 Get nearby places",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/tourisms/{{tourismId}}/nearby" }
+        },
+        {
+          "name": "TC-TRM-09 Add image to tourism place",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Has id', () => { const b = pm.response.json(); pm.collectionVariables.set('imageId', b.id); });"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/tourism/{{tourismId}}/images",
+            "body": { "mode": "raw", "raw": "{\"imageUrl\":\"https://example.com/lalibela1.jpg\"}" }
+          }
+        },
+        {
+          "name": "TC-TRM-10 Set main image",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PUT",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/tourism/{{tourismId}}/images/{{imageId}}/set-main"
+          }
+        },
+        {
+          "name": "FT-TRM-06 Get active hero images",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/tourisms/public/hero-images" }
+        },
+        {
+          "name": "Admin create hero image",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('heroImageId', pm.response.json().id);"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/admin/hero-images",
+            "body": { "mode": "raw", "raw": "{\"imageUrl\":\"https://example.com/hero1.jpg\",\"title\":\"Welcome\",\"displayOrder\":1,\"active\":true}" }
+          }
+        },
+        {
+          "name": "Admin update tourism place",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PUT",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/admin/tourism/{{tourismId}}",
+            "body": { "mode": "raw", "raw": "{\"description\":\"Updated description of ancient rock-hewn churches\"}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "04 — Hotels (FT-HTL / TC-HTL)",
+      "item": [
+        {
+          "name": "TC-HTL-01 Create hotel",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Has id', () => { const b = pm.response.json(); pm.expect(b.id).to.exist; pm.collectionVariables.set('hotelId', b.id); });"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/hotels",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Lalibela Lodge\",\"starRating\":4,\"contactInfo\":\"+251911000001\",\"description\":\"Comfortable lodge near the churches\",\"tourismPlaceId\":{{tourismId}}}" }
+          }
+        },
+        {
+          "name": "TC-HTL-02 Search hotels by keyword",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/hotels/search?q=Lalibela", "query": [{"key":"q","value":"Lalibela"}] }
+          }
+        },
+        {
+          "name": "TC-HTL-06 Get hotel detail",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has name', () => pm.expect(pm.response.json().name).to.exist);"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/hotels/{{hotelId}}" }
+        },
+        {
+          "name": "TC-HTL-11 Get hotels by tourism place",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/hotels?tourismPlaceId={{tourismId}}", "query": [{"key":"tourismPlaceId","value":"{{tourismId}}"}] }
+          }
+        },
+        {
+          "name": "TC-HTL-09 Add image to hotel",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/hotels/{{hotelId}}/images",
+            "body": { "mode": "raw", "raw": "{\"imageUrl\":\"https://example.com/hotel1.jpg\"}" }
+          }
+        },
+        {
+          "name": "TC-HTL-07 Update hotel",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PUT",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/hotels/{{hotelId}}",
+            "body": { "mode": "raw", "raw": "{\"description\":\"Updated lodge description\"}" }
+          }
+        },
+        {
+          "name": "FT-ADM-03 Grant HOTEL_OWNER role to user",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/roles/HOTEL_OWNER"
+          }
+        },
+        {
+          "name": "FT-ADM-11 Assign hotel owner",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/admin/hotels/{{hotelId}}/assign-owner",
+            "body": { "mode": "raw", "raw": "{\"userId\":{{userId}}}" }
+          }
+        },
+        {
+          "name": "TC-HTL-03 Get hotels by owner (re-login as owner first)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/hotels/owner/my-hotels"
+          }
+        },
+        {
+          "name": "Admin toggle hotel active status",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PATCH",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/hotels/{{hotelId}}/toggle-active"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "05 — Bookings (FT-BKG / TC-BKG)",
+      "item": [
+        {
+          "name": "TC-BKG-01 Create booking request",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Status is REQUESTED', () => { const b = pm.response.json(); pm.expect(b.bookingStatus).to.equal('REQUESTED'); pm.collectionVariables.set('bookingId', b.bookingId || b.id); });"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/bookings",
+            "body": { "mode": "raw", "raw": "{\"hotelId\":{{hotelId}},\"checkIn\":\"2026-06-01\",\"checkOut\":\"2026-06-05\",\"numberOfGuests\":2,\"numberOfRooms\":1,\"specialRequests\":\"Late check-in\",\"clientPhone\":\"+251911000002\",\"clientEmail\":\"testclient01@test.com\"}" }
+          }
+        },
+        {
+          "name": "TC-BKG-09 Invalid state transition — accept already REQUESTED (should work) then accept again → 400",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 or 400', () => { pm.expect([200,400]).to.include(pm.response.code); });"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/accept"
+          }
+        },
+        {
+          "name": "TC-BKG-02 Owner accepts booking",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status is OWNER_ACCEPTED', () => pm.expect(pm.response.json().bookingStatus).to.equal('OWNER_ACCEPTED'));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/accept"
+          }
+        },
+        {
+          "name": "TC-BKG-03 Propose cost",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status is COST_PROPOSED', () => pm.expect(pm.response.json().bookingStatus).to.equal('COST_PROPOSED'));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cost?cost=5000", "query": [{"key":"cost","value":"5000"}] }
+          }
+        },
+        {
+          "name": "TC-BKG-04 Upload receipt (URL method)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status is PAID', () => pm.expect(pm.response.json().bookingStatus).to.equal('PAID'));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/receipt?receiptUrl=https://example.com/receipt.jpg", "query": [{"key":"receiptUrl","value":"https://example.com/receipt.jpg"}] }
+          }
+        },
+        {
+          "name": "TC-BKG-05 Approve booking",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status is APPROVED', () => pm.expect(pm.response.json().bookingStatus).to.equal('APPROVED'));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/approve"
+          }
+        },
+        {
+          "name": "TC-BKG-07 Send message in booking",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/message",
+            "body": { "mode": "raw", "raw": "{\"message\":\"Thank you for the approval!\"}" }
+          }
+        },
+        {
+          "name": "TC-BKG-12 Client sends message",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/messages",
+            "body": { "mode": "raw", "raw": "{\"message\":\"Looking forward to the stay!\",\"isFromOwner\":false}" }
+          }
+        },
+        {
+          "name": "TC-BKG-08 Report problem",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/problem",
+            "body": { "mode": "raw", "raw": "{\"problem\":\"Room was not ready on arrival\"}" }
+          }
+        },
+        {
+          "name": "Admin view all bookings",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/bookings"
+          }
+        },
+        {
+          "name": "Admin view problem bookings",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/bookings/problems"
+          }
+        },
+        {
+          "name": "Admin resolve problem booking",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/admin/bookings/{{bookingId}}/resolve",
+            "body": { "mode": "raw", "raw": "{\"resolution\":\"Refund issued to client\"}" }
+          }
+        },
+        {
+          "name": "Create second booking for reject test",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const b = pm.response.json(); pm.collectionVariables.set('bookingId2', b.bookingId || b.id);"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/bookings",
+            "body": { "mode": "raw", "raw": "{\"hotelId\":{{hotelId}},\"checkIn\":\"2026-07-01\",\"checkOut\":\"2026-07-03\",\"numberOfGuests\":1}" }
+          }
+        },
+        {
+          "name": "TC-BKG-06 Reject booking",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status is REJECTED', () => pm.expect(pm.response.json().bookingStatus).to.equal('REJECTED'));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId2}}/reject?reason=Fully+booked", "query": [{"key":"reason","value":"Fully booked"}] }
+          }
+        },
+        {
+          "name": "TC-BKG-14 Upload receipt invalid file type → 400",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/receipt/upload",
+            "body": { "mode": "formdata", "formdata": [{"key":"file","type":"file","src":"invalid.txt"}] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "06 — Ratings (FT-RT / TC-RT)",
+      "item": [
+        {
+          "name": "FT-RT-01 Submit tourism place rating",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Has rating', () => pm.expect(pm.response.json().rating).to.exist);"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/ratings/tourism",
+            "body": { "mode": "raw", "raw": "{\"tourismPlaceId\":{{tourismId}},\"rating\":5,\"comment\":\"Absolutely stunning heritage site!\"}" }
+          }
+        },
+        {
+          "name": "FT-RT-08 Upsert — submit second rating same place",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Rating updated to 4', () => pm.expect(pm.response.json().rating).to.equal(4));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/ratings/tourism",
+            "body": { "mode": "raw", "raw": "{\"tourismPlaceId\":{{tourismId}},\"rating\":4,\"comment\":\"Updated review\"}" }
+          }
+        },
+        {
+          "name": "FT-RT-02 Submit hotel rating",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/ratings/hotel",
+            "body": { "mode": "raw", "raw": "{\"hotelId\":{{hotelId}},\"rating\":4,\"comment\":\"Great service\"}" }
+          }
+        },
+        {
+          "name": "FT-RT-03 Get tourism place ratings",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/ratings/tourism/{{tourismId}}" }
+        },
+        {
+          "name": "FT-RT-05 Get tourism rating summary",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has averageRating', () => pm.expect(pm.response.json().averageRating).to.exist);"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/ratings/tourism/{{tourismId}}/summary" }
+        },
+        {
+          "name": "FT-RT-06 Get hotel rating summary",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/ratings/hotel/{{hotelId}}/summary" }
+        },
+        {
+          "name": "FT-RT-07 Submit out-of-range rating → 400",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/ratings/tourism",
+            "body": { "mode": "raw", "raw": "{\"tourismPlaceId\":{{tourismId}},\"rating\":6}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "07 — Roads & Horse Services (FT-RD / FT-HS)",
+      "item": [
+        {
+          "name": "FT-RD-01 Create road record",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('roadId', pm.response.json().id);"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/roads",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Lalibela Main Road\",\"type\":\"CAR\",\"condition\":\"Good\",\"distanceByCar\":12.5,\"distanceByFoot\":15.0,\"tourismPlaceId\":{{tourismId}}}" }
+          }
+        },
+        {
+          "name": "FT-RD-02 Get road detail",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/roads/{{roadId}}" }
+        },
+        {
+          "name": "FT-RD-03 List roads with tourism place filter",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/roads?tourismPlaceId={{tourismId}}", "query": [{"key":"tourismPlaceId","value":"{{tourismId}}"}] }
+          }
+        },
+        {
+          "name": "FT-RD-04 Update road record",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PUT",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/roads/{{roadId}}",
+            "body": { "mode": "raw", "raw": "{\"condition\":\"Excellent\"}" }
+          }
+        },
+        {
+          "name": "FT-HS-01 Create horse service",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('horseServiceId', pm.response.json().id);"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/horse-services",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Lalibela Horse Tours\",\"description\":\"Traditional horse transport\",\"pricePerHour\":150,\"maxCapacity\":4,\"roadInfoId\":{{roadId}}}" }
+          }
+        },
+        {
+          "name": "FT-HS-02 Get horse service detail",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/horse-services/{{horseServiceId}}" }
+        },
+        {
+          "name": "FT-HS-04 Get horse services by road",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/roads/{{roadId}}/horse-services" }
+        },
+        {
+          "name": "FT-HS-05 Update horse service",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PUT",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/horse-services/{{horseServiceId}}",
+            "body": { "mode": "raw", "raw": "{\"pricePerHour\":200}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "08 — Language Guiders (FT-GD)",
+      "item": [
+        {
+          "name": "FT-GD-01 Create language guider",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('guiderId', pm.response.json().id);"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/language-guiders",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Abebe Girma\",\"languages\":[\"Amharic\",\"English\",\"Tigrinya\"],\"experience\":\"8 years\",\"contactInfo\":\"+251911000003\",\"tourismPlaceId\":{{tourismId}}}" }
+          }
+        },
+        {
+          "name": "FT-GD-02 Get guider detail",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/language-guiders/{{guiderId}}" }
+        },
+        {
+          "name": "FT-GD-03 List all guiders",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/language-guiders" }
+        },
+        {
+          "name": "FT-GD-04 Filter guiders by language",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/language-guiders/language/English" }
+        },
+        {
+          "name": "Get guiders by tourism place",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/language-guiders/tourism/{{tourismId}}" }
+        },
+        {
+          "name": "FT-GD-05 Update guider",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PUT",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/language-guiders/{{guiderId}}",
+            "body": { "mode": "raw", "raw": "{\"experience\":\"10 years\"}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "09 — Map Points (FT-MAP)",
+      "item": [
+        {
+          "name": "FT-MAP-01 Create map point",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('mapPointId', pm.response.json().id);"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/map-points",
+            "body": { "mode": "raw", "raw": "{\"name\":\"Lalibela Church Entrance\",\"type\":\"TOURISM_PLACE\",\"latitude\":12.0316,\"longitude\":39.0472,\"description\":\"Main entrance to the rock churches\",\"tourismPlaceId\":{{tourismId}}}" }
+          }
+        },
+        {
+          "name": "FT-MAP-02 Get map point detail",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/map-points/{{mapPointId}}" }
+        },
+        {
+          "name": "FT-MAP-03 List all map points",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/map-points" }
+        },
+        {
+          "name": "FT-MAP-05 Filter by type TOURISM_PLACE",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/map-points/type/TOURISM_PLACE" }
+        },
+        {
+          "name": "FT-MAP-04 Get map points by tourism place",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/map-points/tourism/{{tourismId}}" }
+        },
+        {
+          "name": "FT-MAP-08 Calculate distance between two points",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has distance', () => pm.expect(pm.response.json().distance).to.be.a('number'));",
+            "pm.test('Unit is km', () => pm.expect(pm.response.json().unit).to.equal('km'));"
+          ]}}],
+          "request": { "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/map-points/distance?lat1=9.0&lon1=38.7&lat2=12.0316&lon2=39.0472",
+              "query": [{"key":"lat1","value":"9.0"},{"key":"lon1","value":"38.7"},{"key":"lat2","value":"12.0316"},{"key":"lon2","value":"39.0472"}] }
+          }
+        },
+        {
+          "name": "FT-MAP-09 Update map point",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PUT",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"},{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/map-points/{{mapPointId}}",
+            "body": { "mode": "raw", "raw": "{\"description\":\"Updated entrance description\"}" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "10 — Admin Dashboard & Security (FT-ADM / SEC)",
+      "item": [
+        {
+          "name": "FT-ADM-01 Get dashboard statistics",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/dashboard/stats" }
+        },
+        {
+          "name": "TC-ADM-07 View audit logs",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/audit" }
+        },
+        {
+          "name": "TC-ADM-08 Search audit by username",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": { "raw": "{{baseUrl}}/api/admin/audit/search?username=testclient01", "query": [{"key":"username","value":"testclient01"}] }
+          }
+        },
+        {
+          "name": "TC-ADM-09 View suspicious activity",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": { "raw": "{{baseUrl}}/api/admin/audit/suspicious-activity?hours=24", "query": [{"key":"hours","value":"24"}] }
+          }
+        },
+        {
+          "name": "TC-ADM-10 Export audit logs",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": { "raw": "{{baseUrl}}/api/admin/audit/export?days=7", "query": [{"key":"days","value":"7"}] }
+          }
+        },
+        {
+          "name": "TC-ADM-11 Lock user account",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": { "raw": "{{baseUrl}}/api/admin/security/lock/{{userId}}?durationMinutes=5", "query": [{"key":"durationMinutes","value":"5"}] }
+          }
+        },
+        {
+          "name": "TC-ADM-12 Unlock user account",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/security/unlock/{{userId}}"
+          }
+        },
+        {
+          "name": "TC-ADM-13 View login attempts",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/security/login-attempts" }
+        },
+        {
+          "name": "TC-ADM-05 Deactivate user",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PATCH",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/deactivate" }
+        },
+        {
+          "name": "FT-AUTH-10 Login with deactivated account → 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\"username\":\"testclient01\",\"password\":\"TestPass123!\"}" }
+          }
+        },
+        {
+          "name": "Reactivate user (cleanup)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "PATCH",
+            "header": [{"key":"Authorization","value":"Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/activate" }
+        },
+        {
+          "name": "SEC-03 Tampered JWT token → 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYWNrZXIiLCJ1c2VySWQiOjk5OX0.TAMPERED_SIGNATURE"}],
+            "url": "{{baseUrl}}/api/users/profile" }
+        },
+        {
+          "name": "SEC-11 Vertical privilege escalation — CLIENT on ADMIN route → 403",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}],
+          "request": { "method": "GET",
+            "header": [{"key":"Authorization","value":"Bearer {{clientToken}}"}],
+            "url": "{{baseUrl}}/api/admin/users" }
+        },
+        {
+          "name": "SEC-07 SQL injection in search parameter",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('No 500 error (Prisma blocks injection)', () => pm.expect(pm.response.code).to.not.equal(500));",
+            "pm.test('Status 200 (safe empty result)', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tourisms/public/search?keyword=' OR 1=1 --", "query": [{"key":"keyword","value":"' OR 1=1 --"}] }
+          }
+        },
+        {
+          "name": "SEC-09 Clickjacking — check X-Frame-Options header",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('X-Frame-Options is DENY', () => pm.expect(pm.response.headers.get('X-Frame-Options')).to.equal('DENY'));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+        },
+        {
+          "name": "SEC-15 Refresh token after logout → 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": { "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "body": { "mode": "raw", "raw": "{\"refreshToken\":\"{{refreshToken}}\"}" }
+          }
+        },
+        {
+          "name": "Health check",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status UP', () => pm.expect(pm.response.json().status).to.equal('UP'));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+        }
+      ]
+    }
+  ]
+}

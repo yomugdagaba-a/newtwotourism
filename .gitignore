@@ -12,6 +12,7 @@ out/
 .env
 .env.local
 .env.*.local
+.env.test
 
 # Logs
 *.log
@@ -43,5 +44,10 @@ certificates/
 # Uploads (runtime data)
 uploads/
 
-# Prisma migrations (optional - remove if you want to track them)
-# prisma/migrations/
+# Test artifacts
+frontend/test-results/
+frontend/playwright-report/
+
+# Documentation and test guide (not for GitHub)
+documentation/
+TESTGUIDE.md

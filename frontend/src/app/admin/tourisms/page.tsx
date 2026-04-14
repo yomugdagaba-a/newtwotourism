@@ -517,7 +517,7 @@ const TourismsManagementPage = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormInput label="Visit Duration" name="visitTime" value={formData.visitTime || ''}
-                  onChange={handleInputChange} placeholder="e.g., 2-3 hours"
+                  onChange={handleInputChange} placeholder="e.g., 2-3 hours, half day, full day"
                 />
                 <FormInput label="Peace Info" name="peaceInfo" value={formData.peaceInfo || ''}
                   onChange={handleInputChange} placeholder="Safety information"
