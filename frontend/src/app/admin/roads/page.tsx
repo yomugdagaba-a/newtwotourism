@@ -140,7 +140,7 @@ const RoadsManagementPage = () => {
       }
       await AdminRoadService.createRoad(token, dataToSend);
       setFormSuccess('Road created successfully!');
-      await loadRoads(selectedTourismId || undefined);
+      await loadRoads(selectedTourismId ?? 0);
       setTimeout(() => {
         setShowModal(false);
         resetForm();
@@ -171,7 +171,7 @@ const RoadsManagementPage = () => {
       };
       await AdminRoadService.updateRoad(token, editingRoad.id, updateData);
       setFormSuccess('Road updated successfully!');
-      await loadRoads(selectedTourismId || undefined);
+      await loadRoads(selectedTourismId ?? 0);
       setTimeout(() => {
         setShowModal(false);
         setEditingRoad(null);
