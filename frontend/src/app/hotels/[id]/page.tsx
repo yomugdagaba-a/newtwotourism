@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { getHotelDetails } from "@/services/hotel.service";
 import { submitHotelRating } from "@/services/rating.service";
 import { BookingService, Booking, BookingRequest, BOOKING_STATUS } from "@/services/booking.service";
+import { COUNTRIES } from "@/components/common/PhoneInput";
 import { HotelDetailInfoDto } from "@/types/hotel";
 import HotelRatingModal from "@/components/hotel/HotelRatingModal";
 import RatingsViewModal from "@/components/common/RatingsViewModal";
@@ -657,28 +658,11 @@ export default function HotelDetailPage() {
                         <select
                           value={phoneCountryCode}
                           onChange={(e) => setPhoneCountryCode(e.target.value)}
-                          className="w-28 bg-white border-2 border-gray-300 rounded-xl px-2 py-3 text-gray-900 font-bold focus:border-purple-500 focus:ring-4 focus:ring-purple-200 hover:border-gray-400 transition-all shadow-sm"
+                          className="w-32 bg-white border-2 border-gray-300 rounded-xl px-2 py-3 text-gray-900 font-bold focus:border-purple-500 focus:ring-4 focus:ring-purple-200 hover:border-gray-400 transition-all shadow-sm"
                         >
-                          <option value="+251">🇪🇹 +251</option>
-                          <option value="+1">🇺🇸 +1</option>
-                          <option value="+44">🇬🇧 +44</option>
-                          <option value="+49">🇩🇪 +49</option>
-                          <option value="+33">🇫🇷 +33</option>
-                          <option value="+39">🇮🇹 +39</option>
-                          <option value="+34">🇪🇸 +34</option>
-                          <option value="+81">🇯🇵 +81</option>
-                          <option value="+86">🇨🇳 +86</option>
-                          <option value="+91">🇮🇳 +91</option>
-                          <option value="+971">🇦🇪 +971</option>
-                          <option value="+966">🇸🇦 +966</option>
-                          <option value="+254">🇰🇪 +254</option>
-                          <option value="+255">🇹🇿 +255</option>
-                          <option value="+256">🇺🇬 +256</option>
-                          <option value="+27">🇿🇦 +27</option>
-                          <option value="+20">🇪🇬 +20</option>
-                          <option value="+234">🇳🇬 +234</option>
-                          <option value="+61">🇦🇺 +61</option>
-                          <option value="+55">🇧🇷 +55</option>
+                          {COUNTRIES.map(c => (
+                            <option key={c.code} value={c.dialCode}>{c.flag} {c.dialCode}</option>
+                          ))}
                         </select>
                         <input
                           type="tel"

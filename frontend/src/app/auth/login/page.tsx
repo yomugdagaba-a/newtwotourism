@@ -105,7 +105,7 @@ export default function LoginForm({ onSuccess, onRegisterClick, onCancel }: Prop
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-white py-4 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Light background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gray-200 rounded-full mix-blend-screen filter blur-[100px] opacity-10 animate-blob" />
@@ -125,8 +125,8 @@ export default function LoginForm({ onSuccess, onRegisterClick, onCancel }: Prop
 
       <div className="max-w-md w-full">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mb-4 shadow-lg border-2 border-blue-400">
+        <div className="text-center mb-4">
+          <div className="mx-auto h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mb-2 shadow-lg border-2 border-blue-400">
             <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -136,8 +136,8 @@ export default function LoginForm({ onSuccess, onRegisterClick, onCancel }: Prop
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white rounded-2xl shadow-lg p-5 border border-gray-200">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {successMessage && (
               <Alert type="success" message={successMessage} onClose={() => setSuccessMessage("")} />
             )}

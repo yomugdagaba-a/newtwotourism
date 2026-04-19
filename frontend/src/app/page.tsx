@@ -92,106 +92,96 @@ export default function HomePage() {
         </div>
       </section>
       <section style={{
-        background: "#f1f5f9",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.18), 0 2px 10px rgba(0,0,0,0.08)",
-        borderBottom: "1px solid #e2e8f0",
-      }} className="px-6 py-8">
+        background: "#dde4ed",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.28), inset 0 2px 12px rgba(0,0,0,0.10)",
+        borderBottom: "1px solid #c5cfd9",
+      }} className="px-6 py-5">
         <div className="max-w-6xl mx-auto">
 
-          {/* Action row */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <Link href="/tourisms"
-                style={{ fontFamily: TNR, background: "linear-gradient(135deg,#2563eb,#1d4ed8)", boxShadow: "0 6px 20px rgba(37,99,235,0.45), inset 0 1px 0 rgba(255,255,255,0.25)", fontWeight: 700, fontSize: "0.95rem" }}
-                className="px-6 py-2.5 text-white rounded-full hover:scale-105 hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                <span>View All Places</span>
-              </Link>
-              <button onClick={handleSelectAll}
-                style={{ fontFamily: TNR, fontSize: "0.88rem", fontWeight: 700, boxShadow: "0 2px 10px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.95)", background: "white", border: "1px solid #e2e8f0" }}
-                className="px-4 py-2 text-blue-600 hover:text-blue-800 rounded-full transition-all hover:-translate-y-0.5">
-                {selectedCategories.length === categories.length ? "Clear All" : "Select All"}
-              </button>
-              {selectedCategories.length > 0 &&
-                <span style={{ fontFamily: TNR, fontSize: "0.88rem", fontStyle: "italic", color: "#059669", fontWeight: 600 }}>
-                  {selectedCategories.length} selected
-                </span>}
-            </div>
+          {/* Row 1: View All Places | Select All | ✦ Filter text | → Select Categories Below */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <Link href="/tourisms"
+              style={{ fontFamily: TNR, background: "linear-gradient(135deg,#2563eb,#1d4ed8)", boxShadow: "0 6px 20px rgba(37,99,235,0.45)", fontWeight: 700, fontSize: "0.88rem" }}
+              className="px-5 py-2 text-white rounded-full hover:scale-105 transition-all flex-shrink-0">
+              View All Places
+            </Link>
+            <button onClick={handleSelectAll}
+              style={{ fontFamily: TNR, fontSize: "0.82rem", fontWeight: 700, background: "white", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+              className="px-3 py-1.5 text-blue-600 hover:text-blue-800 rounded-full transition-all flex-shrink-0">
+              {selectedCategories.length === categories.length ? "Clear All" : "Select All"}
+            </button>
+            {/* Filter label inline */}
+            <span style={{ fontFamily: TNR, fontSize: "0.85rem", color: "#1e293b", fontWeight: 800 }} className="flex-shrink-0">
+              ✦ Filter by category of interest:
+            </span>
+            {selectedCategories.length > 0 &&
+              <span style={{ fontFamily: TNR, fontSize: "0.78rem", fontStyle: "italic", color: "#059669", fontWeight: 600 }} className="flex-shrink-0">
+                {selectedCategories.length} selected
+              </span>}
+            {/* Push "Select Categories" to far right */}
+            <div className="flex-1" />
             <button onClick={handleViewSelected} disabled={!selectedCategories.length}
               style={{
-                fontFamily: TNR, fontSize: "0.88rem", fontWeight: 700,
+                fontFamily: TNR, fontSize: "0.85rem", fontWeight: 800, flexShrink: 0,
                 ...(selectedCategories.length
-                  ? { background: "linear-gradient(135deg,#059669,#047857)", boxShadow: "0 6px 20px rgba(5,150,105,0.4), inset 0 1px 0 rgba(255,255,255,0.25)" }
-                  : { background: "white", boxShadow: "0 2px 10px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.95)", border: "1px solid #e2e8f0" }),
+                  ? { background: "linear-gradient(135deg,#059669,#047857)", boxShadow: "0 6px 20px rgba(5,150,105,0.4)" }
+                  : { background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #e2e8f0" }),
               }}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full transition-all ${selectedCategories.length ? "text-white hover:scale-105 hover:-translate-y-0.5" : "text-gray-400 cursor-not-allowed"}`}>
-              <span>{!selectedCategories.length ? "Select Categories Below" : `View ${selectedCategories.length} Selected`}</span>
+              className={`px-4 py-2 rounded-full transition-all ${selectedCategories.length ? "text-white hover:scale-105" : "text-gray-700 cursor-not-allowed"}`}>
+              {!selectedCategories.length ? "Select Categories Below" : `View ${selectedCategories.length} Selected`}
             </button>
           </div>
 
-          <p style={{ fontFamily: TNR, fontSize: "0.85rem", fontStyle: "italic", color: "#475569", fontWeight: 700 }} className="mb-5">
-            ✦ Filter by category of interest:
-          </p>
-
-          {/* Cards grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" style={{ maxWidth: "70%", margin: "0 auto" }}>
+          {/* Row 2: All 6 category buttons in ONE row */}
+          <div className="grid grid-cols-6 gap-3" style={{ marginBottom: "48px" }}>
             {categories.map((cat) => {
               const sel = selectedCategories.includes(cat.id);
               return (
                 <button key={cat.id} onClick={() => toggleCategory(cat.id)}
                   style={{
                     fontFamily: TNR,
-                    borderRadius: "22px",
+                    borderRadius: "16px",
                     border: "none",
-                    background: sel
-                      ? `linear-gradient(145deg, ${cat.bgSel} 0%, rgba(255,255,255,0.4) 50%, ${cat.bgSel} 100%)`
-                      : `linear-gradient(145deg, ${cat.bgNorm} 0%, rgba(255,255,255,0.3) 50%, ${cat.bgNorm} 100%)`,
+                    minHeight: "115px",
+                    background: "#ffffff",
                     boxShadow: sel
-                      ? `0 24px 60px rgba(0,0,0,0.28), 0 10px 24px rgba(0,0,0,0.18), inset 0 2px 0 rgba(255,255,255,1), inset 0 -3px 8px rgba(0,0,0,0.08), inset 1px 0 0 rgba(255,255,255,0.8)`
-                      : `0 14px 40px rgba(0,0,0,0.20), 0 5px 15px rgba(0,0,0,0.12), inset 0 2px 0 rgba(255,255,255,1), inset 0 -2px 5px rgba(0,0,0,0.05), inset 1px 0 0 rgba(255,255,255,0.7)`,
-                    backdropFilter: "blur(20px)",
-                    WebkitBackdropFilter: "blur(20px)",
-                    transition: "all 0.25s ease",
-                    minHeight: "110px",
+                      ? `0 8px 22px rgba(0,0,0,0.18), inset 0 2px 0 rgba(255,255,255,1)`
+                      : `0 4px 14px rgba(0,0,0,0.12), inset 0 2px 0 rgba(255,255,255,1)`,
+                    transition: "all 0.2s ease",
                   }}
-                  className="group relative overflow-hidden text-left hover:scale-[1.04] hover:-translate-y-1.5">
-
-                  <div className="p-5 flex flex-col justify-center h-full">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2.5">
-                        {/* Icon bubble */}
+                  className="text-left hover:scale-[1.03] hover:-translate-y-1 transition-all">
+                  <div className="p-3 flex flex-col gap-2 h-full">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
                         <div style={{
                           background: `${cat.selBorder}18`,
                           border: `1.5px solid ${cat.border}`,
                           borderRadius: "50%",
-                        }} className="w-9 h-9 flex items-center justify-center text-lg flex-shrink-0">
+                        }} className="w-8 h-8 flex items-center justify-center text-base flex-shrink-0">
                           {cat.icon}
                         </div>
-                        <h3 style={{ color: cat.accent, fontWeight: 900, fontSize: "1.05rem", letterSpacing: "0.03em" }}>
+                        <h3 style={{ color: cat.accent, fontWeight: 900, fontSize: "0.88rem" }}>
                           {cat.name}
                         </h3>
                       </div>
-
-                      {/* Diamond checkbox */}
+                      {/* Square checkbox */}
                       <div style={{
-                        width: "22px", height: "22px", flexShrink: 0,
-                        transform: "rotate(45deg)",
-                        border: `2px solid ${sel ? cat.selBorder : "#d1d5db"}`,
-                        background: sel ? cat.selBorder : "#f9fafb",
-                        boxShadow: sel ? `0 0 10px ${cat.selBorder}70` : "0 1px 3px rgba(0,0,0,0.1)",
+                        width: "16px", height: "16px", flexShrink: 0,
+                        border: `2.5px solid #111827`,
+                        background: sel ? "#111827" : "#ffffff",
                         borderRadius: "3px",
                         transition: "all 0.2s ease",
                         display: "flex", alignItems: "center", justifyContent: "center",
                       }}>
                         {sel && (
-                          <svg style={{ transform: "rotate(-45deg)", width: "11px", height: "11px" }}
+                          <svg style={{ width: "9px", height: "9px" }}
                             fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={3.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
                       </div>
                     </div>
-
-                    <p style={{ color: "#4b5563", fontSize: "0.79rem", lineHeight: "1.6", fontWeight: 600 }}>
+                    <p style={{ color: "#374151", fontSize: "12px", lineHeight: "1.5", fontWeight: 700 }}>
                       {cat.short}
                     </p>
                   </div>
@@ -199,126 +189,63 @@ export default function HomePage() {
               );
             })}
           </div>
-        </div>
-      </section>
 
-      {/* ── About ── */}
-      <section id="about" className="px-6 py-14" style={{ background: pageBg, borderBottom: "1px solid #b8c4d0" }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <h2 style={{ fontFamily: TNR, color: "#1e293b", fontWeight: 700, fontSize: "1.75rem", lineHeight: 1.3 }}
-                className="mb-4">
-                Discover North Wollo&#39;s Rich Heritage
-              </h2>
-              <p style={{ fontFamily: TNR, color: "#475569", lineHeight: 1.85, fontSize: "0.92rem" }} className="mb-5">
-                North Wollo Tourism is your gateway to exploring one of Ethiopia&#39;s most beautiful regions.
-                Home to ancient churches, stunning highlands, mysterious caves, and vibrant cultural traditions.
-              </p>
-              <div className="grid grid-cols-2 gap-2.5">
-                {["Verified Destinations","Local Expert Guides","Sustainable Tourism","24/7 Support"].map(item => (
-                  <div key={item} style={{ fontFamily: TNR, color: "#334155", fontSize: "0.88rem", fontWeight: 600 }}
-                    className="flex items-center gap-2">
-                    <span style={{ color: "#059669" }}>✦</span> {item}
+          {/* Row 3: Minimal stats card below the 6 buttons */}
+          <div style={{
+            background: "#e8edf3",
+            border: "1px solid #d0d8e4",
+            borderRadius: "0.75rem",
+          }} className="p-3">
+            <div className="flex flex-wrap items-center gap-8">
+              <div style={{ fontFamily: TNR, color: "#1e293b", fontWeight: 700, fontSize: "0.9rem" }}>
+                North Wollo Tourism — Est. 2026
+              </div>
+              <div className="flex gap-6">
+                {[["2026","Established"],["100%","Local Team"],["50+","Destinations"],["21","Woredas Covered"]].map(([val, lbl]) => (
+                  <div key={lbl} className="text-center">
+                    <div style={{ fontFamily: TNR, color: "#2563eb", fontWeight: 700, fontSize: "1.1rem" }}>{val}</div>
+                    <div style={{ fontFamily: TNR, color: "#64748b", fontSize: "12px", fontWeight: 600 }}>{lbl}</div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Vision card — white, clean, matching screenshot */}
-            <div style={{
-              background: "#ffffff",
-              border: "1px solid #dde3ea",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.05)",
-              borderRadius: "1rem",
-            }} className="p-7">
-              <h3 style={{ fontFamily: TNR, color: "#1e293b", fontWeight: 700, fontSize: "1.15rem" }} className="mb-3">
-                Our Vision
-              </h3>
-              <p style={{ fontFamily: TNR, color: "#475569", lineHeight: 1.8, fontSize: "0.88rem" }} className="mb-5">
-                To make North Wollo a world-renowned tourism destination while empowering local communities.
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {[["2025","Established"],["100%","Local Team"]].map(([val, lbl]) => (
-                  <div key={lbl} style={{
-                    background: "#f8fafc", border: "1px solid #e2e8f0",
-                    borderRadius: "0.75rem",
-                  }} className="p-4 text-center">
-                    <div style={{ fontFamily: TNR, color: "#2563eb", fontWeight: 700, fontSize: "1.5rem" }}>{val}</div>
-                    <div style={{ fontFamily: TNR, color: "#94a3b8", fontSize: "0.75rem", marginTop: "2px" }}>{lbl}</div>
-                  </div>
-                ))}
+              <div className="flex-1" />
+              <div style={{ fontFamily: TNR, color: "#475569", fontSize: "12px", fontWeight: 600, fontStyle: "italic" }}>
+                Full details in the footer below ↓
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ── Contact ── */}
-      <section id="contact" className="px-6 py-14" style={{ background: pageBg, borderBottom: "1px solid #b8c4d0" }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 style={{ fontFamily: TNR, color: "#1e293b", fontWeight: 700, fontSize: "1.75rem" }} className="mb-1">
-              Get in Touch
-            </h2>
-            <p style={{ fontFamily: TNR, color: "#94a3b8", fontSize: "0.88rem", fontStyle: "italic" }}>
-              We&#39;d love to hear from you
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-            {[["📍","Visit Us","Woldia, North Wollo Zone"],["📞","Call Us","+251 911 234 567"],["📧","Email Us","info@northwollotourism.com"]].map(([icon,title,info]) => (
-              <div key={title} style={{
-                background: "#ffffff",
-                border: "1px solid #dde3ea",
-                boxShadow: "0 4px 18px rgba(0,0,0,0.08)",
-                borderRadius: "1.2rem 0.4rem 1.2rem 0.4rem",
-              }} className="p-6 text-center hover:scale-[1.02] transition-all">
-                <span style={{ fontSize: "1.8rem" }} className="mb-3 block">{icon}</span>
-                <h3 style={{ fontFamily: TNR, color: "#1e293b", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.03em" }}
-                  className="mb-1">{title}</h3>
-                <p style={{ fontFamily: TNR, color: "#64748b", fontSize: "0.8rem" }}>{info}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-center gap-3">
-            {[["📘","#1877f2"],["🐦","#0ea5e9"],["📷","#e1306c"],["▶️","#ff0000"],["✈️","#2563eb"]].map(([icon, color], i) => (
-              <a key={i} href="#"
-                style={{ background: "#dde3ea", border: "1px solid #c5cdd8", boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}
-                className="w-10 h-10 rounded-full flex items-center justify-center transition-all text-base hover:scale-110"
-                onMouseEnter={e => (e.currentTarget.style.background = color as string)}
-                onMouseLeave={e => (e.currentTarget.style.background = "#dde3ea")}>
-                {icon}
-              </a>
-            ))}
-          </div>
         </div>
       </section>
 
       {/* ── Newsletter ── */}
       <section className="px-6 py-7" style={{
-        background: "linear-gradient(135deg,#1e40af 0%,#2563eb 50%,#1e40af 100%)",
-        boxShadow: "0 -4px 20px rgba(0,0,0,0.1)",
+        background: pageBg,
+        borderTop: "1px solid #b8c4d0",
+        borderBottom: "1px solid #b8c4d0",
+        boxShadow: "inset 0 2px 8px rgba(0,0,0,0.06)",
       }}>
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-center md:text-left">
-            <h3 style={{ fontFamily: TNR, fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.03em" }}
-              className="text-white">Stay Updated</h3>
-            <p style={{ fontFamily: TNR, fontSize: "0.78rem", fontStyle: "italic" }} className="text-blue-200 mt-0.5">
+            <h3 style={{ fontFamily: TNR, fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.03em", color: "#1e293b" }}>
+              Stay Updated
+            </h3>
+            <p style={{ fontFamily: TNR, fontSize: "0.78rem", fontStyle: "italic", color: "#64748b" }} className="mt-0.5">
               Get the latest news from North Wollo
             </p>
           </div>
-          <form className="flex gap-2 w-full md:w-auto">
+          <div className="flex gap-2 w-full md:w-auto">
             <input type="email" placeholder="Enter your email"
-              style={{ fontFamily: TNR, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", fontSize: "0.88rem" }}
-              className="flex-1 md:w-56 px-4 py-2.5 rounded-full text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/40" />
-            <button type="submit"
-              style={{ fontFamily: TNR, fontWeight: 600, fontSize: "0.88rem", boxShadow: "0 3px 10px rgba(0,0,0,0.18)" }}
-              className="px-5 py-2.5 bg-white text-blue-900 rounded-full hover:bg-gray-50 transition-all">
+              style={{ fontFamily: TNR, background: "rgba(255,255,255,0.8)", border: "1px solid #cbd5e1", fontSize: "0.88rem", color: "#1e293b" }}
+              className="flex-1 md:w-56 px-4 py-2.5 rounded-full placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            <button
+              type="button"
+              onClick={() => router.push('/auth/register')}
+              style={{ fontFamily: TNR, fontWeight: 600, fontSize: "0.88rem", background: "linear-gradient(135deg,#2563eb,#1d4ed8)", boxShadow: "0 3px 10px rgba(37,99,235,0.35)" }}
+              className="px-5 py-2.5 text-white rounded-full hover:scale-105 transition-all">
               Subscribe
             </button>
-          </form>
+          </div>
         </div>
       </section>
 

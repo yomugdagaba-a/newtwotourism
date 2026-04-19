@@ -70,6 +70,8 @@ export default function TourismDetailPage() {
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedRoad, setSelectedRoad] = useState<RoadInfoDto | null>(null);
   const [tourismMapOpen, setTourismMapOpen] = useState(false);
+  const [hotelMapOpen, setHotelMapOpen] = useState(false);
+  const [selectedHotelForMap, setSelectedHotelForMap] = useState<HotelSummaryDto | null>(null);
   const [guiders, setGuiders] = useState<LanguageGuiderDto[]>([]);
   const [guidersLoading, setGuidersLoading] = useState(false);
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false);
@@ -627,15 +629,23 @@ export default function TourismDetailPage() {
                       </div>
                       <div className="p-5">
                         <h3 className="text-gray-900 font-black text-xl mb-4">{hotel.name}</h3>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           <div className="flex gap-2">
-                            <button onClick={() => router.push(`/hotels/${hotel.id}`)} className="flex-1 bg-purple-600 text-white py-3 rounded-xl text-sm font-black hover:bg-purple-700 hover:scale-105 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                            <button onClick={() => router.push(`/hotels/${hotel.id}`)} className="flex-1 bg-purple-600 text-white py-2.5 rounded-xl text-sm font-black hover:bg-purple-700 hover:scale-105 transition-all shadow-md flex items-center justify-center gap-2">
                               View Details
                             </button>
-                            <button onClick={() => router.push(`/hotels/${hotel.id}`)} className="flex-1 bg-purple-600 text-white py-3 rounded-xl text-sm font-black hover:bg-purple-700 hover:scale-105 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                            <button onClick={() => router.push(`/hotels/${hotel.id}`)} className="flex-1 bg-purple-600 text-white py-2.5 rounded-xl text-sm font-black hover:bg-purple-700 hover:scale-105 transition-all shadow-md flex items-center justify-center gap-2">
                               Booking
                             </button>
                           </div>
+                          <button
+                            onClick={() => {
+                              setSelectedHotelForMap(hotel);
+                              setHotelMapOpen(true);
+                            }}
+                            className="w-full bg-purple-50 text-purple-700 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 transition-all border border-purple-200">
+                            View on Map
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -677,91 +687,101 @@ export default function TourismDetailPage() {
                   </div>
 
                   {roads.map((road) => (
-                    <div key={road.id} className="bg-white rounded-2xl overflow-hidden shadow-md border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all">
-                      <div className="p-5 border-b-2 border-gray-200 flex justify-between items-start bg-white">
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <h3 className="text-gray-900 font-black text-lg">From {road.initialPlace}</h3>
-                          </div>
-                        </div>
-                        <div className="text-right bg-gray-100 px-4 py-2 rounded-xl border-2 border-gray-300 shadow-md">
-                          <div className="text-base font-semibold text-gray-900">{road.totalDistance?.toFixed(1) || '—'} km</div>
-                          <div className="text-xs text-gray-500">total</div>
+                    <div key={road.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all">
+                      {/* Compact header row */}
+                      <div className="px-4 py-2.5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                        <h3 className="text-gray-900 font-black text-sm">From {road.initialPlace}</h3>
+                        <div className="flex items-center gap-2">
+                          {road.totalDistance && (
+                            <span className="text-xs font-bold text-gray-600 bg-white px-2 py-1 rounded-lg border border-gray-200">
+                              {road.totalDistance.toFixed(1)} km total
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="p-5">
-                        {road.description && <p className="text-gray-700 text-sm mb-4 font-semibold bg-gray-50 p-3 rounded-xl border border-gray-200">{road.description}</p>}
+                      <div className="px-4 py-3">
+                        {road.description && (
+                          <p className="text-gray-600 text-xs font-semibold mb-2.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">{road.description}</p>
+                        )}
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        {/* Distance pills in one row */}
+                        <div className="flex flex-wrap gap-2 mb-3">
                           {road.distanceByCar && (
-                            <div className="bg-white p-3 rounded-xl text-center border border-gray-200 hover:border-purple-200 hover:scale-105 transition-all cursor-pointer shadow-sm">
-                              <div className="text-xs text-gray-700 font-bold uppercase mb-1">Car</div>
-                              <div className="text-sm font-semibold text-gray-800">{road.distanceByCar.toFixed(1)} km</div>
+                            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                              <span className="text-xs font-bold text-gray-500 uppercase">🚗 Car</span>
+                              <span className="text-xs font-black text-gray-900">{road.distanceByCar.toFixed(1)} km</span>
                             </div>
                           )}
                           {road.distanceByFoot && (
-                            <div className="bg-white p-3 rounded-xl text-center border border-gray-200 hover:border-purple-200 hover:scale-105 transition-all cursor-pointer shadow-sm">
-                              <div className="text-xs text-gray-700 font-bold uppercase mb-1">Foot</div>
-                              <div className="text-sm font-semibold text-gray-800">{road.distanceByFoot.toFixed(1)} km</div>
+                            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                              <span className="text-xs font-bold text-gray-500 uppercase">🚶 Foot</span>
+                              <span className="text-xs font-black text-gray-900">{road.distanceByFoot.toFixed(1)} km</span>
                             </div>
                           )}
                           {road.distanceByHorse && (
-                            <div className="bg-white p-3 rounded-xl text-center border border-gray-200 hover:border-purple-200 hover:scale-105 transition-all cursor-pointer shadow-sm">
-                              <div className="text-xs text-gray-700 font-bold uppercase mb-1">Horse</div>
-                              <div className="text-sm font-semibold text-gray-800">{road.distanceByHorse.toFixed(1)} km</div>
+                            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                              <span className="text-xs font-bold text-gray-500 uppercase">🐎 Horse</span>
+                              <span className="text-xs font-black text-gray-900">{road.distanceByHorse.toFixed(1)} km</span>
                             </div>
                           )}
                           {road.distanceByPlane && (
-                            <div className="bg-white p-3 rounded-xl text-center border border-gray-200 hover:border-purple-200 hover:scale-105 transition-all cursor-pointer shadow-sm">
-                              <div className="text-xs text-gray-700 font-bold uppercase mb-1">Plane</div>
-                              <div className="text-sm font-semibold text-gray-800">{road.distanceByPlane.toFixed(1)} km</div>
+                            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                              <span className="text-xs font-bold text-gray-500 uppercase">✈️ Plane</span>
+                              <span className="text-xs font-black text-gray-900">{road.distanceByPlane.toFixed(1)} km</span>
                             </div>
                           )}
                         </div>
 
-                        <div className="flex gap-3 items-start">
-                          <button onClick={() => { setSelectedRoad(road); setMapModalOpen(true); }} className="flex-1 bg-purple-50 text-purple-700 py-2 rounded-xl text-sm font-semibold hover:bg-purple-100 hover:scale-[1.02] transition-all border border-purple-200">
+                        {/* Action buttons — side by side, fixed height */}
+                        <div className="flex gap-2">
+                          <button onClick={() => { setSelectedRoad(road); setMapModalOpen(true); }}
+                            className="flex-1 bg-purple-50 text-purple-700 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 transition-all border border-purple-200">
                             View on Map
                           </button>
-                          <div className="flex-1 flex flex-col">
-                            <button onClick={() => toggleHorseServices(road.id)} disabled={loadingHorseServices[road.id]} className="w-full bg-purple-50 text-purple-700 py-2 rounded-xl text-sm font-semibold hover:bg-purple-100 hover:scale-[1.02] transition-all disabled:opacity-50 border border-purple-200 flex items-center justify-center gap-2">
-                              Horse Services
-                              {loadingHorseServices[road.id] ? (
-                                <span className="w-4 h-4 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></span>
-                              ) : (
-                                <svg className={`w-4 h-4 transition-transform ${expandedHorseServices[road.id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              )}
-                            </button>
-                            {expandedHorseServices[road.id] && (
-                              <div className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                                {horseServices[road.id]?.length > 0 ? (
-                                  <div className="space-y-2">
-                                    {horseServices[road.id].map((service) => (
-                                      <div key={service.id} className="bg-white p-4 rounded-lg border border-gray-200">
-                                        <div className="flex justify-between items-center">
-                                          <div className="space-y-1">
-                                            <p className="text-gray-900 font-bold text-sm">{service.ownerName}</p>
-                                            <p className="text-gray-600 text-xs font-bold">{service.initialPlace}</p>
-                                            <p className="text-gray-600 text-xs font-bold">{service.contactInfo}</p>
-                                          </div>
-                                          <div className="text-right pl-4">
-                                            <div className="text-base font-black text-gray-900">{service.cost ? service.cost.toLocaleString() : 'N/A'}</div>
-                                            <div className="text-xs font-bold text-gray-500">ETB</div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-gray-500 text-xs font-semibold text-center py-2">No horse services available.</p>
-                                )}
-                              </div>
+                          <button onClick={() => toggleHorseServices(road.id)} disabled={loadingHorseServices[road.id]}
+                            className="flex-1 bg-purple-50 text-purple-700 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 transition-all disabled:opacity-50 border border-purple-200 flex items-center justify-center gap-1.5">
+                            Horse Services
+                            {loadingHorseServices[road.id] ? (
+                              <span className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></span>
+                            ) : (
+                              <svg className={`w-3 h-3 transition-transform ${expandedHorseServices[road.id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
                             )}
-                          </div>
+                          </button>
                         </div>
+
+                        {/* Horse services — expands below the Horse Services button (right half) */}
+                        {expandedHorseServices[road.id] && (
+                          <div className="flex gap-2 mt-2">
+                            {/* Empty left half to align with View on Map button */}
+                            <div className="flex-1" />
+                            {/* Horse services panel aligned under Horse Services button */}
+                            <div className="flex-1 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                              {horseServices[road.id]?.length > 0 ? (
+                                <div className="space-y-1.5">
+                                  {horseServices[road.id].map((service) => (
+                                    <div key={service.id} className="bg-white px-3 py-2 rounded-lg border border-gray-200">
+                                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#374151', lineHeight: '1.7' }}>
+                                        <span style={{ color: '#6b7280' }}>Name: </span><span style={{ color: '#111827', fontWeight: 800 }}>{service.ownerName}</span><br/>
+                                        <span style={{ color: '#6b7280' }}>Initial Place: </span><span style={{ color: '#111827', fontWeight: 800 }}>{service.initialPlace}</span><br/>
+                                        <span style={{ color: '#6b7280' }}>Contact: </span><span style={{ color: '#111827', fontWeight: 800 }}>{service.contactInfo}</span>
+                                      </div>
+                                      {service.cost && (
+                                        <div className="mt-1" style={{ fontWeight: 900, fontSize: '13px', color: '#111827' }}>
+                                          {service.cost.toLocaleString()} ETB
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-gray-500 text-xs font-semibold text-center py-1">No horse services available.</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -891,6 +911,23 @@ export default function TourismDetailPage() {
       )}
 
       <TourismMapModal isOpen={tourismMapOpen} onClose={() => setTourismMapOpen(false)} tourismName={detail?.name || "Tourism Place"} tourismWereda={detail?.wereda} tourismKebele={detail?.kebele} />
+
+      {/* Hotel Map Modal — shows hotel location using hotel coordinates or tourism place coordinates */}
+      {selectedHotelForMap && detail && (
+        <TourismMapModal
+          isOpen={hotelMapOpen}
+          onClose={() => { setHotelMapOpen(false); setSelectedHotelForMap(null); }}
+          tourismName={
+            (selectedHotelForMap as any).latitude && (selectedHotelForMap as any).longitude
+              ? `${selectedHotelForMap.name}`
+              : `${selectedHotelForMap.name} (approximate location — near ${detail.name})`
+          }
+          tourismWereda={detail.wereda}
+          tourismKebele={detail.kebele}
+          latitude={(selectedHotelForMap as any).latitude ?? detail.latitude}
+          longitude={(selectedHotelForMap as any).longitude ?? detail.longitude}
+        />
+      )}
 
       <TourismImageGallery tourismId={tourismId} tourismName={detail?.name || "Tourism Place"} isOpen={imageGalleryOpen} onClose={() => setImageGalleryOpen(false)} preloadedImages={detail?.images} />
 

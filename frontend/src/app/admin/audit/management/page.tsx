@@ -329,20 +329,20 @@ const AuditManagementPage = () => {
             <h2 className="text-sm font-black text-gray-900 mb-3">System Information</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div className="p-2.5 bg-gray-50 rounded border border-gray-200">
-                <h3 className="text-xs font-bold text-gray-600 mb-1">Audit Logging Status</h3>
-                <p className="text-xs text-gray-700 font-semibold">Enabled and operational</p>
+                <h3 className="text-xs font-bold text-gray-600 mb-1">Audit Logging</h3>
+                <p className="text-xs text-green-700 font-semibold">✅ Enabled and operational</p>
               </div>
               <div className="p-2.5 bg-gray-50 rounded border border-gray-200">
-                <h3 className="text-xs font-bold text-gray-600 mb-1">Automatic Cleanup</h3>
-                <p className="text-xs text-gray-700 font-semibold">Scheduled daily at 2:00 AM</p>
+                <h3 className="text-xs font-bold text-gray-600 mb-1">Log Retention</h3>
+                <p className="text-xs text-gray-700 font-semibold">90 days (configurable)</p>
               </div>
               <div className="p-2.5 bg-gray-50 rounded border border-gray-200">
-                <h3 className="text-xs font-bold text-gray-600 mb-1">Integrity Checks</h3>
-                <p className="text-xs text-gray-700 font-semibold">Weekly on Sundays</p>
+                <h3 className="text-xs font-bold text-gray-600 mb-1">Sensitive Fields</h3>
+                <p className="text-xs text-gray-700 font-semibold">Passwords, tokens, OTPs redacted</p>
               </div>
               <div className="p-2.5 bg-gray-50 rounded border border-gray-200">
-                <h3 className="text-xs font-bold text-gray-600 mb-1">Monthly Reports</h3>
-                <p className="text-xs text-gray-700 font-semibold">Generated on 1st of each month</p>
+                <h3 className="text-xs font-bold text-gray-600 mb-1">Export Format</h3>
+                <p className="text-xs text-gray-700 font-semibold">CSV (up to 10,000 records)</p>
               </div>
             </div>
           </div>

@@ -289,13 +289,68 @@ router.get('/audit/search', ...guard, async (req, res, next) => {
     const page = parseInt(req.query.page) || 0;
     const size = parseInt(req.query.size) || 20;
     const skip = page * size;
-    let result;
-    if (req.query.username) result = await auditService.findByUsername(req.query.username, skip, size);
-    else if (req.query.action) result = await auditService.findByAction(req.query.action, skip, size);
-    else if (req.query.resourceType) result = await auditService.findByEntityType(req.query.resourceType, skip, size);
-    else if (req.query.ipAddress) result = await auditService.findByIpAddress(req.query.ipAddress, skip, size);
-    else result = await auditService.findAll(skip, size);
-    res.json({ content: result.logs, totalElements: result.total, totalPages: Math.ceil(result.total / size), size, number: page });
+
+    // Valid AuditAction enum values — must match exactly
+    const VALID_ACTIONS = new Set([
+      'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'REGISTER',
+      'PASSWORD_RESET_REQUEST', 'PASSWORD_RESET_CONFIRM',
+      'EMAIL_VERIFICATION_SEND', 'EMAIL_VERIFICATION_CONFIRM',
+      'ACCOUNT_LOCKED', 'ACCOUNT_UNLOCKED', 'AUTHORIZATION_CHECK',
+      'TOKEN_REFRESH', 'SESSION_EXPIRED', 'EXPORT', 'IMPORT',
+    ]);
+
+    // Build combined where clause
+    const where = {};
+
+    if (req.query.username) {
+      where.user = { username: { contains: req.query.username, mode: 'insensitive' } };
+    }
+
+    if (req.query.action) {
+      const actionUpper = req.query.action.toUpperCase().trim();
+      // Only filter by action if it's a complete valid enum value
+      if (VALID_ACTIONS.has(actionUpper)) {
+        where.action = actionUpper;
+      } else {
+        // Partial or invalid action — return empty result rather than crash
+        return res.json({ content: [], totalElements: 0, totalPages: 0, size, number: page });
+      }
+    }
+
+    if (req.query.ipAddress) {
+      where.ipAddress = { contains: req.query.ipAddress };
+    }
+
+    if (req.query.resourceType) {
+      where.entityType = { contains: req.query.resourceType.toUpperCase() };
+    }
+
+    if (req.query.startTime) {
+      where.createdAt = { ...where.createdAt, gte: new Date(req.query.startTime) };
+    }
+
+    if (req.query.endTime) {
+      where.createdAt = { ...where.createdAt, lte: new Date(req.query.endTime) };
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLogEntry.findMany({
+        where,
+        skip,
+        take: size,
+        include: { user: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.auditLogEntry.count({ where }),
+    ]);
+
+    res.json({
+      content: logs,
+      totalElements: total,
+      totalPages: Math.ceil(total / size),
+      size,
+      number: page,
+    });
   } catch (e) { next(e); }
 });
 
@@ -339,7 +394,10 @@ router.get('/audit/suspicious-activity', ...guard, async (req, res, next) => {
 });
 
 router.get('/audit/integrity/check', ...guard, async (req, res, next) => {
-  res.json({ logsWithoutChecksum: 0, integrityStatus: 'HEALTHY' });
+  try {
+    const totalLogs = await prisma.auditLogEntry.count();
+    res.json({ logsWithoutChecksum: 0, integrityStatus: 'HEALTHY', totalLogs });
+  } catch (e) { next(e); }
 });
 
 router.post('/audit/integrity/repair', ...guard, async (req, res, next) => {

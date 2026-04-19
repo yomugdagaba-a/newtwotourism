@@ -42,7 +42,8 @@ export default function ClientBookingsPage() {
     if (f === "ALL") return true;
     if (f === "ACTIVE") return [BOOKING_STATUS.REQUESTED, BOOKING_STATUS.OWNER_ACCEPTED, BOOKING_STATUS.COST_PROPOSED, BOOKING_STATUS.PAID].includes(b.bookingStatus);
     if (f === "APPROVED") return b.bookingStatus === BOOKING_STATUS.APPROVED;
-    if (f === "COMPLETED") return [BOOKING_STATUS.APPROVED, BOOKING_STATUS.REJECTED].includes(b.bookingStatus);
+    if (f === "REJECTED") return b.bookingStatus === BOOKING_STATUS.REJECTED;
+    // Individual status filters
     return b.bookingStatus === f;
   });
 
@@ -118,7 +119,7 @@ export default function ClientBookingsPage() {
     ALL: bookings.length,
     ACTIVE: activeCount,
     APPROVED: approvedCount,
-    COMPLETED: bookings.filter(b => [BOOKING_STATUS.APPROVED, BOOKING_STATUS.REJECTED].includes(b.bookingStatus)).length,
+    REJECTED: bookings.filter(b => b.bookingStatus === BOOKING_STATUS.REJECTED).length,
   };
 
   if (!mounted) return null;
@@ -151,13 +152,25 @@ export default function ClientBookingsPage() {
                 Refresh
               </button>
               <div className="border-t border-gray-100 pt-2 mt-1">
-                <p className="text-xs text-gray-400 px-3 pb-1 font-semibold">Filter</p>
-                {["ALL", "ACTIVE", "APPROVED", "COMPLETED"].map((f) => (
-                  <button key={f} onClick={() => { setFilter(f); setSidebarOpen(false); }}
+                <p className="text-xs text-gray-400 px-3 pb-1 font-semibold">Filter by Status</p>
+                {[
+                  { key: "ALL", label: "All Bookings" },
+                  { key: "REQUESTED", label: "Requested" },
+                  { key: "OWNER_ACCEPTED", label: "Accepted" },
+                  { key: "COST_PROPOSED", label: "Cost Sent" },
+                  { key: "PAID", label: "Paid" },
+                  { key: "APPROVED", label: "Approved" },
+                  { key: "REJECTED", label: "Rejected" },
+                ].map((f) => (
+                  <button key={f.key} onClick={() => { setFilter(f.key); setSidebarOpen(false); }}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-                    style={filter === f ? { backgroundColor: "#eff6ff", color: "#1d4ed8" } : { color: "#374151" }}>
-                    <span>{f}</span>
-                    <span className="text-xs bg-gray-100 rounded-full px-2 py-0.5">{filterCounts[f]}</span>
+                    style={filter === f.key ? { backgroundColor: "#eff6ff", color: "#1d4ed8" } : { color: "#374151" }}>
+                    <span>{f.label}</span>
+                    <span className="text-xs bg-gray-100 rounded-full px-2 py-0.5">
+                      {f.key === "ALL" ? bookings.length
+                        : f.key === "OWNER_ACCEPTED" ? bookings.filter(b => b.bookingStatus === "OWNER_ACCEPTED").length
+                        : bookings.filter(b => b.bookingStatus === f.key).length}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -176,11 +189,12 @@ export default function ClientBookingsPage() {
       </button>
 
       <div className="min-h-screen ml-16">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="mb-3">
-            <h1 className="text-base font-bold text-gray-900">My Bookings</h1>
-            <p className="text-gray-400 text-xs">Track and manage your hotel reservations</p>
-          </div>
+        {/* White top bar */}
+        <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: '14px 24px', marginBottom: '16px' }}>
+          <h1 style={{ fontWeight: 900, fontSize: '18px', color: '#111827', margin: 0 }}>My Bookings</h1>
+          <p style={{ fontWeight: 600, fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Track and manage your hotel reservations</p>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 pb-4">
 
           {error && <div className="bg-red-50 border border-red-200 text-red-600 p-2 rounded mb-3 text-xs">{error}</div>}
 
@@ -192,9 +206,9 @@ export default function ClientBookingsPage() {
               { label: "Needs Payment", value: needsPayment },
               { label: "Approved", value: approvedCount },
             ].map(s => (
-              <div key={s.label} className="bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
-                <div className="text-base font-bold text-gray-900">{s.value}</div>
-                <div className="text-gray-400 text-xs">{s.label}</div>
+              <div key={s.label} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                <div style={{ fontWeight: 900, fontSize: '20px', color: '#111827' }}>{s.value}</div>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: '#374151', marginTop: '2px' }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -232,19 +246,19 @@ export default function ClientBookingsPage() {
               {/* Detail */}
               <div className="lg:col-span-2">
                 {selectedBooking ? (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
                     {/* Header */}
-                    <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                    <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-center">
                       <div>
-                        <h2 className="text-sm font-extrabold text-gray-900">Booking {selectedBooking.bookingId}</h2>
-                        <p className="text-xs text-gray-400">{selectedBooking.hotel.name}</p>
+                        <h2 style={{ fontWeight: 900, fontSize: '16px', color: '#111827' }}>Booking {selectedBooking.bookingId}</h2>
+                        <p style={{ fontWeight: 600, fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{selectedBooking.hotel.name}</p>
                       </div>
-                      <span className={"px-2 py-0.5 rounded text-xs font-medium " + BookingService.getStatusColor(selectedBooking.bookingStatus)}>{BookingService.getStatusLabel(selectedBooking.bookingStatus)}</span>
+                      <span className={"px-3 py-1 rounded-full text-sm font-bold " + BookingService.getStatusColor(selectedBooking.bookingStatus)}>{BookingService.getStatusLabel(selectedBooking.bookingStatus)}</span>
                     </div>
 
-                    {/* Progress */}
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-xs font-extrabold text-gray-700 mb-2">Booking Progress</p>
+                    {/* Progress — dots only, no numbers */}
+                    <div className="px-5 py-4 border-b border-gray-200">
+                      <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '12px' }}>Booking Progress</p>
                       <div className="flex items-start justify-between">
                         {[
                           { status: "REQUESTED", label: "Requested" },
@@ -252,171 +266,213 @@ export default function ClientBookingsPage() {
                           { status: "COST_PROPOSED", label: "Cost Sent" },
                           { status: "PAID", label: "Paid" },
                           { status: "APPROVED", label: "Approved" },
-                        ].map((step, i) => {
+                        ].map((step) => {
                           const order = ["REQUESTED","OWNER_ACCEPTED","COST_PROPOSED","PAID","APPROVED"];
-                          const done = order.indexOf(step.status) <= order.indexOf(selectedBooking.bookingStatus);
+                          const isRejected = selectedBooking.bookingStatus === BOOKING_STATUS.REJECTED;
+                          const currentIdx = order.indexOf(selectedBooking.bookingStatus);
+                          const stepIdx = order.indexOf(step.status);
+                          const done = stepIdx <= currentIdx && !isRejected;
+                          const current = step.status === selectedBooking.bookingStatus;
+                          // Show ✗ on the step where rejection happened
+                          const rejected = isRejected && stepIdx === currentIdx;
                           return (
                             <div key={step.status} className="flex flex-col items-center flex-1">
-                              <div className={"w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold " + (done ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-400")}>{i + 1}</div>
-                              <span className={"text-xs mt-1 text-center leading-tight " + (done ? "text-gray-700 font-semibold" : "text-gray-400")}>{step.label}</span>
+                              <div style={{
+                                width: '26px', height: '26px', borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: rejected ? '#fef2f2' : done ? '#f0fdf4' : '#f3f4f6',
+                                border: rejected ? '2px solid #dc2626' : done ? '2px solid #16a34a' : '2px solid #d1d5db',
+                                fontWeight: 900,
+                                fontSize: '14px',
+                                color: rejected ? '#dc2626' : done ? '#16a34a' : '#9ca3af',
+                              }}>
+                                {rejected ? '✗' : done ? '✓' : '○'}
+                              </div>
+                              <span style={{ fontSize: '12px', marginTop: '6px', textAlign: 'center', fontWeight: done || rejected ? 800 : 500, color: rejected ? '#dc2626' : done ? '#14532d' : '#9ca3af' }}>{step.label}</span>
                             </div>
                           );
                         })}
                       </div>
                       {selectedBooking.bookingStatus === BOOKING_STATUS.REJECTED && (
-                        <div className="mt-2 p-2 bg-red-50 rounded text-red-600 text-xs border border-red-100">
-                          Rejected: {selectedBooking.rejectionReason || "Not specified"}
+                        <div style={{ marginTop: '12px', padding: '12px', background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: '8px' }}>
+                          <p style={{ fontWeight: 700, fontSize: '13px', color: '#b91c1c' }}>Rejected: {selectedBooking.rejectionReason || "Not specified"}</p>
                         </div>
                       )}
                     </div>
 
                     {/* Hotel Info */}
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-xs font-extrabold text-gray-700 mb-2">Hotel Information</p>
-                      <div className="grid grid-cols-2 gap-1.5 text-xs">
-                        <div className="bg-gray-50 p-2 rounded border border-gray-100"><span className="text-gray-400">Hotel: </span><span className="font-medium">{selectedBooking.hotel.name}</span></div>
-                        <div className="bg-gray-50 p-2 rounded border border-gray-100"><span className="text-gray-400">Contact: </span><span className="font-medium">{selectedBooking.hotel.contactInfo || "N/A"}</span></div>
-                        <div className="bg-gray-50 p-2 rounded border border-gray-100"><span className="text-gray-400">Owner: </span><span className="font-medium">{selectedBooking.hotel.ownerName || "N/A"}</span></div>
-                        <div className="bg-gray-50 p-2 rounded border border-gray-100"><span className="text-gray-400">Status: </span><span className={"font-medium " + (selectedBooking.hotel.active ? "text-green-600" : "text-red-500")}>{selectedBooking.hotel.active ? "Active" : "Inactive"}</span></div>
+                    <div className="px-5 py-4 border-b border-gray-200">
+                      <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '10px' }}>Hotel Information</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          ['Hotel', selectedBooking.hotel.name],
+                          ['Contact', selectedBooking.hotel.contactInfo || 'N/A'],
+                          ['Owner', selectedBooking.hotel.ownerName || 'N/A'],
+                          ['Status', selectedBooking.hotel.active ? 'Active' : 'Inactive'],
+                        ].map(([label, value]) => (
+                          <div key={String(label)} style={{ background: '#f9fafb', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '10px 12px' }}>
+                            <div style={{ color: '#374151', fontWeight: 800, fontSize: '13px', marginBottom: '3px' }}>{label}</div>
+                            <div style={{ fontWeight: 800, fontSize: '14px', color: label === 'Status' ? (selectedBooking.hotel.active ? '#15803d' : '#dc2626') : '#111827' }}>{value}</div>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
                     {/* Booking Details */}
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-xs font-extrabold text-gray-700 mb-2">Booking Details</p>
-                      <div className="grid grid-cols-4 gap-1.5 text-xs">
+                    <div className="px-5 py-4 border-b border-gray-200">
+                      <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '10px' }}>Booking Details</p>
+                      <div className="grid grid-cols-4 gap-2">
                         {[
                           { label: "Check-in", value: selectedBooking.checkIn },
                           { label: "Check-out", value: selectedBooking.checkOut },
                           { label: "Guests", value: selectedBooking.numberOfGuests },
                           { label: "Rooms", value: selectedBooking.numberOfRooms || 1 },
                         ].map(d => (
-                          <div key={d.label} className="bg-gray-50 p-2 rounded border border-gray-100 text-center">
-                            <div className="text-gray-400 text-xs">{d.label}</div>
-                            <div className="font-bold text-gray-900 text-sm mt-0.5">{d.value}</div>
+                          <div key={d.label} style={{ background: '#f9fafb', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '10px 12px', textAlign: 'center' }}>
+                            <div style={{ color: '#374151', fontWeight: 800, fontSize: '13px', marginBottom: '3px' }}>{d.label}</div>
+                            <div style={{ fontWeight: 800, fontSize: '15px', color: '#111827' }}>{d.value}</div>
                           </div>
                         ))}
                       </div>
                       {selectedBooking.specialRequests && (
-                        <div className="mt-1.5 p-2 bg-gray-50 rounded border border-gray-100 text-xs">
-                          <span className="text-gray-400">Special Requests: </span><span className="text-gray-700">{selectedBooking.specialRequests}</span>
+                        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f9fafb', border: '1.5px solid #d1d5db', borderRadius: '8px' }}>
+                          <span style={{ color: '#6b7280', fontWeight: 700, fontSize: '13px' }}>Special Requests: </span>
+                          <span style={{ fontWeight: 700, fontSize: '13px', color: '#374151' }}>{selectedBooking.specialRequests}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Payment */}
                     {selectedBooking.totalCost && (
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-xs font-extrabold text-gray-700 mb-2">Payment</p>
-                        <div className="bg-gray-50 p-2 rounded border border-gray-100 flex items-center justify-between text-xs">
-                          <span className="text-gray-400">Total Cost</span>
-                          <span className="text-base font-bold text-gray-900">{selectedBooking.totalCost} ETB</span>
+                      <div className="px-5 py-4 border-b border-gray-200">
+                        <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '10px' }}>Payment</p>
+                        <div style={{ background: '#f9fafb', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: '#6b7280', fontWeight: 700, fontSize: '13px' }}>Total Cost</span>
+                          <span style={{ fontWeight: 900, fontSize: '18px', color: '#111827' }}>{selectedBooking.totalCost} ETB</span>
                         </div>
                         {selectedBooking.bookingStatus === BOOKING_STATUS.COST_PROPOSED && (
-                          <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-100 text-xs text-amber-700 flex items-center justify-between">
-                            <span>Upload your payment receipt to proceed.</span>
-                            <button onClick={() => setShowReceiptModal(true)} className="bg-gray-800 text-white px-2 py-1 rounded text-xs font-medium hover:bg-gray-900 ml-2">Upload</button>
+                          <div style={{ marginTop: '10px', padding: '12px', background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, fontSize: '13px', color: '#92400e' }}>Upload your payment receipt to proceed.</span>
+                            <button onClick={() => setShowReceiptModal(true)} className="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-900 ml-3">Upload</button>
                           </div>
                         )}
                         {selectedBooking.bookingStatus === BOOKING_STATUS.PAID && (
-                          <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-100 text-xs text-blue-600">Receipt uploaded. Waiting for owner to verify.</div>
+                          <div style={{ marginTop: '10px', padding: '12px', background: '#eff6ff', border: '1.5px solid #93c5fd', borderRadius: '8px' }}>
+                            <p style={{ fontWeight: 700, fontSize: '13px', color: '#1d4ed8' }}>Receipt uploaded. Waiting for owner to verify.</p>
+                          </div>
                         )}
                       </div>
                     )}
 
                     {/* Receipt Image */}
                     {selectedBooking.receiptImageUrl && new Date(selectedBooking.checkOut) >= new Date(new Date().toDateString()) && (
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-xs font-extrabold text-gray-700 mb-2">Payment Receipt</p>
-                        <img src={selectedBooking.receiptImageUrl} alt="Receipt" className="max-w-xs rounded border border-gray-200"
+                      <div className="px-5 py-4 border-b border-gray-200">
+                        <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '10px' }}>Payment Receipt</p>
+                        <img src={selectedBooking.receiptImageUrl} alt="Receipt" className="max-w-xs rounded-lg border border-gray-200"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                       </div>
                     )}
 
                     {/* Approved banner */}
                     {selectedBooking.bookingStatus === BOOKING_STATUS.APPROVED && (
-                      <div className="px-4 py-3 border-b border-green-100 bg-green-50 text-center">
-                        <p className="text-xs font-bold text-green-700">Booking Approved</p>
-                        <p className="text-xs text-green-600">{selectedBooking.checkIn} to {selectedBooking.checkOut} · Contact: {selectedBooking.hotel.contactInfo}</p>
+                      <div style={{ padding: '14px 20px', borderBottom: '1px solid #bbf7d0', background: '#f0fdf4', textAlign: 'center' }}>
+                        <p style={{ fontWeight: 800, fontSize: '14px', color: '#15803d' }}>✓ Booking Approved</p>
+                        <p style={{ fontWeight: 600, fontSize: '13px', color: '#16a34a', marginTop: '3px' }}>{selectedBooking.checkIn} to {selectedBooking.checkOut} · Contact: {selectedBooking.hotel.contactInfo}</p>
                       </div>
                     )}
 
                     {/* Problem Report */}
                     {selectedBooking.problemReported && selectedBooking.problemReport && (
-                      <div className="px-4 py-3 border-b border-red-100 bg-red-50">
+                      <div style={{ padding: '14px 20px', borderBottom: '1px solid #fecaca', background: '#fef2f2' }}>
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-extrabold text-red-600">Problem Reported</p>
-                          <button
-                            onClick={() => setShowProblemDetail(v => !v)}
-                            className="bg-red-600 text-white px-2 py-0.5 rounded text-xs font-bold hover:bg-red-700"
-                          >
+                          <p style={{ fontWeight: 800, fontSize: '14px', color: '#dc2626' }}>Problem Reported</p>
+                          <button onClick={() => setShowProblemDetail(v => !v)}
+                            className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-700">
                             {showProblemDetail ? 'Hide' : 'View'}
                           </button>
                         </div>
                         {showProblemDetail && (
-                          <div className="mt-2 p-2 bg-white rounded border border-red-200 text-xs text-red-700">
-                            {selectedBooking.problemReport}
+                          <div style={{ marginTop: '10px', padding: '10px 12px', background: '#fff', border: '1.5px solid #fca5a5', borderRadius: '8px' }}>
+                            <p style={{ fontWeight: 700, fontSize: '13px', color: '#b91c1c' }}>{selectedBooking.problemReport}</p>
                           </div>
                         )}
                       </div>
                     )}
 
                     {/* Actions */}
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-xs font-extrabold text-gray-700 mb-2">Actions</p>
+                    <div className="px-5 py-4 border-b border-gray-200">
+                      <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '10px' }}>Actions</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedBooking.bookingStatus === BOOKING_STATUS.COST_PROPOSED && (
-                          <button onClick={() => setShowReceiptModal(true)} className="bg-gray-800 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-gray-900">Upload Receipt</button>
+                          <button onClick={() => setShowReceiptModal(true)} className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-900">Upload Receipt</button>
                         )}
                         {!selectedBooking.problemReported && selectedBooking.bookingStatus !== BOOKING_STATUS.REJECTED && (
-                          <button onClick={() => setShowProblemModal(true)} className="bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-red-600">Report Problem</button>
+                          <button onClick={() => setShowProblemModal(true)} className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600">Report Problem</button>
                         )}
-                        <button onClick={() => router.push("/hotels/" + selectedBooking.hotel.id)} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-gray-200 border border-gray-200">View Hotel</button>
+                        <button onClick={() => router.push("/hotels/" + selectedBooking.hotel.id)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-200 border border-gray-300">View Hotel</button>
                       </div>
                     </div>
 
-                    {/* Messages — chat style */}
-                    <div className="border-t-2 mt-1" style={{ borderColor: "#7c3aed" }}>
-                      <div className="px-4 pt-3 pb-2 bg-gray-50 border-b" style={{ borderColor: "#7c3aed" }}>
-                        <p className="text-sm font-extrabold" style={{ color: "#7c3aed" }}>Messages <span className="font-normal text-xs text-gray-400">({selectedBooking.messages?.length || 0})</span></p>
-                      </div>
-                      <div className="flex flex-col border-l border-r border-b rounded-b-xl" style={{ height: "280px", borderColor: "#7c3aed" }}>
-                        <div className="flex-1 overflow-y-auto py-3 space-y-2 bg-white">
-                          {!selectedBooking.messages?.length ? (
-                            <div className="flex items-center justify-center h-full">
-                              <p className="text-xs text-gray-400">No messages yet</p>
+                    {/* Messages — same style as owner page */}
+                    <div style={{
+                      background: '#f3f0ff',
+                      border: '2px solid #7c3aed',
+                      borderRadius: '16px',
+                      margin: '12px',
+                      padding: '16px',
+                    }}>
+                      <h4 className="text-purple-700 font-bold text-sm flex items-center gap-2"
+                        style={{ borderBottom: '2px solid #ede9fe', paddingBottom: '10px', marginBottom: '12px' }}>
+                        <span className="w-6 h-6 bg-purple-600 rounded-md flex items-center justify-center text-white text-xs font-bold">M</span>
+                        Messages ({selectedBooking.messages?.length || 0})
+                      </h4>
+                      {/* Scroll area */}
+                      <div className="space-y-2 max-h-64 overflow-y-auto mb-3 p-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-purple-300 [&::-webkit-scrollbar-thumb]:rounded-full"
+                        style={{ border: '2px solid #94a3b8', borderRadius: '10px', background: '#ffffff' }}>
+                        {!selectedBooking.messages?.length ? (
+                          <p className="text-gray-400 text-center py-5 text-sm">No messages yet</p>
+                        ) : selectedBooking.messages.map((m) => {
+                          const isOwn = m.senderId === userId;
+                          return (
+                            <div key={m.id}
+                              style={isOwn ? {
+                                background: '#ffffff',
+                                border: '1.5px solid #a78bfa',
+                                borderRadius: '10px',
+                                marginLeft: '2rem',
+                                padding: '10px 12px',
+                                boxShadow: '0 2px 8px rgba(124,58,237,0.15)',
+                              } : {
+                                background: '#ffffff',
+                                border: '1.5px solid #cbd5e1',
+                                borderRadius: '10px',
+                                marginRight: '2rem',
+                                padding: '10px 12px',
+                              }}
+                            >
+                              <div className="flex justify-between text-xs mb-1.5" style={{ color: isOwn ? '#7c3aed' : '#6b7280' }}>
+                                <span style={{ fontWeight: 700 }}>{m.senderName}</span>
+                                <span style={{ fontWeight: 600 }}>{new Date(m.createdAt).toLocaleString()}</span>
+                              </div>
+                              <p style={{ fontSize: '13px', fontWeight: 600, color: isOwn ? '#4c1d95' : '#1f2937' }}>{m.message}</p>
+                              {m.messageType !== "GENERAL" && (
+                                <p style={{ fontSize: '11px', fontWeight: 700, color: '#a78bfa', marginTop: '4px' }}>[{m.messageType}]</p>
+                              )}
                             </div>
-                          ) : (
-                            selectedBooking.messages.map((m) => {
-                              const isOwn = m.senderId === userId;
-                              return (
-                                <div key={m.id} className="flex justify-center">
-                                  <div className={"w-64 text-xs border rounded-xl px-3 py-2 " + (isOwn ? "ml-16 bg-slate-100 text-gray-800 border-slate-200" : "mr-16 bg-white text-gray-800 border-gray-200 shadow-sm")}>
-                                    <div className={"font-bold mb-0.5 " + (isOwn ? "text-slate-500" : "text-gray-500")}>{m.senderName}</div>
-                                    <div>{m.message}</div>
-                                    {m.messageType !== "GENERAL" && (
-                                      <div className="text-xs mt-0.5 text-gray-400">[{m.messageType}]</div>
-                                    )}
-                                    <div className="text-right mt-1 text-gray-400" style={{ fontSize: "10px" }}>
-                                      {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex gap-2">
-                          <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Type a message..."
-                            className="flex-1 bg-white rounded-full px-4 py-2 text-xs border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-300"
-                            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()} />
-                          <button onClick={handleSendMessage} disabled={!newMessage.trim()}
-                            className="text-white px-4 py-2 rounded-full text-xs font-bold disabled:opacity-40"
-                            style={{ backgroundColor: "#1d4ed8" }}>
-                            Send
-                          </button>
-                        </div>
+                          );
+                        })}
+                      </div>
+                      {/* Input area */}
+                      <div className="flex gap-2 pt-3" style={{ borderTop: '1.5px solid #ddd6fe' }}>
+                        <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Type a message..."
+                          className="flex-1 rounded-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none transition-all"
+                          style={{ border: '1.5px solid #9ca3af', background: '#fff' }}
+                          onKeyPress={(e) => e.key === "Enter" && handleSendMessage()} />
+                        <button onClick={handleSendMessage} disabled={!newMessage.trim()}
+                          className="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-sm">
+                          Send
+                        </button>
                       </div>
                     </div>
                   </div>

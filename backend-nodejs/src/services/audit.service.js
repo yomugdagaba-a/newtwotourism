@@ -57,40 +57,98 @@ async function findByIpAddress(ipAddress, skip = 0, take = 10) {
 async function getStatistics(days = 30) {
   const since = new Date();
   since.setDate(since.getDate() - parseInt(days));
-  const logs = await prisma.auditLogEntry.findMany({ where: { createdAt: { gte: since } } });
+  const logs = await prisma.auditLogEntry.findMany({ where: { createdAt: { gte: since } }, include: { user: true } });
   const actionCounts = {};
   const entityTypeCounts = {};
   const userActivityMap = new Map();
   logs.forEach(l => {
     actionCounts[l.action] = (actionCounts[l.action] || 0) + 1;
     entityTypeCounts[l.entityType] = (entityTypeCounts[l.entityType] || 0) + 1;
-    if (l.userId) userActivityMap.set(l.userId, (userActivityMap.get(l.userId) || 0) + 1);
+    if (l.userId) {
+      const key = l.user?.username || `User#${l.userId}`;
+      userActivityMap.set(key, (userActivityMap.get(key) || 0) + 1);
+    }
   });
-  const mostActiveUsers = Array.from(userActivityMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([userId, activityCount]) => ({ userId, activityCount }));
+  const mostActiveUsers = Array.from(userActivityMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([username, activityCount]) => ({ username, activityCount }));
   return { totalLogs: logs.length, actionCounts, entityTypeCounts, mostActiveUsers, period: `Last ${days} days` };
 }
+
+// Security events = actions that indicate a potential threat or policy violation.
+// Normal operations (LOGIN success, CREATE, UPDATE) are audit trail entries, NOT security events.
+// Security-relevant actions — must all be valid AuditAction enum values from the Prisma schema
+const SECURITY_ACTIONS = [
+  'ACCOUNT_LOCKED',         // SEC-02: account locked after repeated failures
+  'ACCOUNT_UNLOCKED',       // admin unlocked an account
+  'PASSWORD_RESET_REQUEST', // SEC-14: password reset initiated
+  'PASSWORD_RESET_CONFIRM', // password changed via reset
+  'AUTHORIZATION_CHECK',    // SEC-03/04/11/12: tampered/expired token, privilege escalation
+  'SESSION_EXPIRED',        // SEC-04: expired token used
+  'LOGOUT',                 // explicit logout — useful for session audit
+];
 
 async function getSecurityLogs(days = 1) {
   const since = new Date();
   since.setDate(since.getDate() - parseInt(days));
-  return prisma.auditLogEntry.findMany({ where: { createdAt: { gte: since } }, include: { user: true }, orderBy: { createdAt: 'desc' }, take: 100 });
+  return prisma.auditLogEntry.findMany({
+    where: {
+      createdAt: { gte: since },
+      action: { in: SECURITY_ACTIONS },
+    },
+    include: { user: true },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
 }
 
+// High severity = active attack attempts against the system.
+// DELETE by an authorized admin is a normal operation, NOT high severity.
+// High severity = brute force lockouts, privilege escalation, token attacks, injection attempts.
 async function getHighSeverityLogs(days = 1) {
   const since = new Date();
   since.setDate(since.getDate() - parseInt(days));
-  return prisma.auditLogEntry.findMany({ where: { createdAt: { gte: since }, action: { in: ['DELETE'] } }, include: { user: true }, orderBy: { createdAt: 'desc' } });
+  return prisma.auditLogEntry.findMany({
+    where: {
+      createdAt: { gte: since },
+      action: { in: ['ACCOUNT_LOCKED', 'AUTHORIZATION_CHECK', 'SESSION_EXPIRED'] },
+    },
+    include: { user: true },
+    orderBy: { createdAt: 'desc' },
+  });
 }
 
 async function findSuspiciousActivity(days = 1, actionThreshold = 50) {
   const since = new Date();
   since.setDate(since.getDate() - parseInt(days));
-  const logs = await prisma.auditLogEntry.findMany({ where: { createdAt: { gte: since } }, include: { user: true } });
-  const userActivityMap = new Map();
-  logs.forEach(l => { if (l.userId) userActivityMap.set(l.userId, (userActivityMap.get(l.userId) || 0) + 1); });
-  return Array.from(userActivityMap.entries())
-    .filter(([, count]) => count > parseInt(actionThreshold))
-    .map(([userId, count]) => ({ userId, activityCount: count, suspicionLevel: count > parseInt(actionThreshold) * 2 ? 'HIGH' : 'MEDIUM' }));
+  const logs = await prisma.auditLogEntry.findMany({
+    where: { createdAt: { gte: since }, ipAddress: { not: null } },
+    include: { user: true },
+  });
+
+  // Group by IP address
+  const ipMap = new Map();
+  logs.forEach(l => {
+    if (!l.ipAddress) return;
+    const entry = ipMap.get(l.ipAddress) || { actionCount: 0, userIds: new Set(), usernames: new Set() };
+    entry.actionCount++;
+    if (l.userId) entry.userIds.add(l.userId);
+    if (l.user?.username) entry.usernames.add(l.user.username);
+    ipMap.set(l.ipAddress, entry);
+  });
+
+  const threshold = parseInt(actionThreshold);
+  return Array.from(ipMap.entries())
+    .filter(([, entry]) => entry.actionCount > threshold)
+    .map(([ipAddress, entry]) => ({
+      ipAddress,
+      actionCount: entry.actionCount,
+      userCount: entry.userIds.size,
+      usernames: Array.from(entry.usernames).join(', ') || 'Unknown',
+      riskLevel: entry.actionCount > threshold * 2 ? 'HIGH' : 'MEDIUM',
+    }))
+    .sort((a, b) => b.actionCount - a.actionCount);
 }
 
 async function cleanup(retentionDays = 90) {

@@ -133,7 +133,7 @@ export default function RegisterForm({ onSuccess, onLoginClick, onCancel }: Prop
   const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-6 px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-white py-3 px-4 relative overflow-hidden">
       {/* Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gray-200 rounded-full mix-blend-screen filter blur-[100px] opacity-10" />

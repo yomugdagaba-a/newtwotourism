@@ -25,8 +25,28 @@ const AuditLogsPage = () => {
       router.push('/auth/login');
       return;
     }
-    loadAuditLogs();
-  }, [isAuthenticated, role, currentPage, pageSize]);
+    // Pre-fill IP filter from URL query param (e.g. from suspicious activity dashboard link)
+    const params = new URLSearchParams(window.location.search);
+    const ipFromUrl = params.get('ipAddress');
+    if (ipFromUrl) {
+      setSearchParams(prev => ({ ...prev, ipAddress: ipFromUrl }));
+    }
+  }, [isAuthenticated, role]);
+
+  // Reload when page/size changes
+  useEffect(() => {
+    if (isAuthenticated && role === 'ADMIN') {
+      loadAuditLogs();
+    }
+  }, [currentPage, pageSize]);
+
+  // Auto-search when searchParams are set from URL (e.g. IP pre-fill from dashboard)
+  useEffect(() => {
+    const hasParams = Object.values(searchParams).some(v => v !== undefined && v !== null && v !== '');
+    if (hasParams && isAuthenticated && role === 'ADMIN') {
+      loadAuditLogs();
+    }
+  }, [searchParams]);
 
   const loadAuditLogs = async () => {
     try {
@@ -78,6 +98,8 @@ const AuditLogsPage = () => {
   const handleClearSearch = () => {
     setSearchParams({});
     setCurrentPage(0);
+    // Remove URL params
+    window.history.replaceState({}, '', window.location.pathname);
     loadAuditLogs();
   };
 
@@ -101,25 +123,55 @@ const AuditLogsPage = () => {
     }
   };
 
-  const getSeverityBadgeClass = (severity: string) => {
-    switch (severity) {
-      case 'INFO': return 'bg-blue-100 text-blue-800';
-      case 'WARN': return 'bg-yellow-100 text-yellow-800';
-      case 'ERROR': return 'bg-red-100 text-red-800';
-      case 'CRITICAL': return 'bg-red-200 text-red-900';
-      default: return 'bg-gray-100 text-gray-800';
+  const getCategoryFromAction = (action: string): string => {
+    switch (action) {
+      case 'LOGIN':
+      case 'LOGOUT':
+      case 'REGISTER':
+      case 'TOKEN_REFRESH':
+      case 'SESSION_EXPIRED':
+        return 'AUTHENTICATION';
+      case 'AUTHORIZATION_CHECK':
+      case 'ACCOUNT_LOCKED':
+      case 'ACCOUNT_UNLOCKED':
+        return 'SECURITY';
+      case 'PASSWORD_RESET_REQUEST':
+      case 'PASSWORD_RESET_CONFIRM':
+      case 'EMAIL_VERIFICATION_SEND':
+      case 'EMAIL_VERIFICATION_CONFIRM':
+        return 'AUTHENTICATION';
+      case 'CREATE':
+      case 'UPDATE':
+      case 'DELETE':
+      case 'IMPORT':
+      case 'EXPORT':
+        return 'DATA_CHANGE';
+      default:
+        return 'SYSTEM';
     }
   };
 
-  const getCategoryIcon = (category: string) => {
+  const getSeverityFromAction = (action: string, status?: number): string => {
+    if (status && status >= 400) return 'WARN';
+    switch (action) {
+      case 'ACCOUNT_LOCKED':
+      case 'AUTHORIZATION_CHECK':
+      case 'SESSION_EXPIRED':
+        return 'WARN';
+      case 'DELETE':
+        return 'WARN';
+      default:
+        return 'INFO';
+    }
+  };
+
+  const getCategoryBadgeClass = (category: string): string => {
     switch (category) {
-      case 'AUTHENTICATION': return '[AUTH]';
-      case 'AUTHORIZATION': return '[AUTHZ]';
-      case 'DATA_CHANGE': return '[DATA]';
-      case 'SECURITY': return '[SEC]';
-      case 'MAINTENANCE': return '[MAINT]';
-      case 'SYSTEM': return '[SYS]';
-      default: return '[LOG]';
+      case 'AUTHENTICATION': return 'bg-blue-100 text-blue-800';
+      case 'SECURITY': return 'bg-red-100 text-red-800';
+      case 'DATA_CHANGE': return 'bg-purple-100 text-purple-800';
+      case 'SYSTEM': return 'bg-gray-100 text-gray-700';
+      default: return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -164,13 +216,28 @@ const AuditLogsPage = () => {
             onChange={(e) => setSearchParams({ ...searchParams, username: e.target.value })}
             className="border-2 border-slate-300 rounded-lg px-3 py-2 font-bold bg-white shadow-sm"
           />
-          <input
-            type="text"
-            placeholder="Action"
+          <select
             value={searchParams.action || ''}
             onChange={(e) => setSearchParams({ ...searchParams, action: e.target.value })}
             className="border-2 border-slate-300 rounded-lg px-3 py-2 font-bold bg-white shadow-sm"
-          />
+          >
+            <option value="">All Actions</option>
+            <option value="LOGIN">LOGIN</option>
+            <option value="LOGOUT">LOGOUT</option>
+            <option value="CREATE">CREATE</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="DELETE">DELETE</option>
+            <option value="REGISTER">REGISTER</option>
+            <option value="TOKEN_REFRESH">TOKEN_REFRESH</option>
+            <option value="PASSWORD_RESET_REQUEST">PASSWORD_RESET_REQUEST</option>
+            <option value="PASSWORD_RESET_CONFIRM">PASSWORD_RESET_CONFIRM</option>
+            <option value="EMAIL_VERIFICATION_SEND">EMAIL_VERIFICATION_SEND</option>
+            <option value="EMAIL_VERIFICATION_CONFIRM">EMAIL_VERIFICATION_CONFIRM</option>
+            <option value="ACCOUNT_LOCKED">ACCOUNT_LOCKED</option>
+            <option value="ACCOUNT_UNLOCKED">ACCOUNT_UNLOCKED</option>
+            <option value="AUTHORIZATION_CHECK">AUTHORIZATION_CHECK</option>
+            <option value="SESSION_EXPIRED">SESSION_EXPIRED</option>
+          </select>
           <input
             type="text"
             placeholder="IP Address"
@@ -313,13 +380,21 @@ const AuditLogsPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-100">
-                {auditLogs.map((log) => (
+                {auditLogs.map((log) => {
+                  const changes = log.changes ? (() => { try { return JSON.parse(log.changes as string); } catch { return null; } })() : null;
+                  const derivedCategory = getCategoryFromAction(log.action);
+                  const derivedSeverity = getSeverityFromAction(log.action, changes?.status);
+                  // Resolve username: from relation, from stored changes.username, or fallback
+                  const displayUser = log.user?.username
+                    || changes?.username
+                    || (log.userId ? `User#${log.userId}` : 'System');
+                  return (
                   <tr key={log.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-black">
-                      {log.username || log.user?.username || 'System'}
+                      {displayUser}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-black">
                       {log.action}
@@ -327,22 +402,24 @@ const AuditLogsPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
                       {log.entityType ? `${log.entityType}${log.entityId ? `:${log.entityId}` : ''}` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-black">
-                      <span className="flex items-center">
-                        <span className="mr-2">{getCategoryIcon(log.category)}</span>
-                        {log.category}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-black rounded-full ${getCategoryBadgeClass(derivedCategory)}`}>
+                        {derivedCategory}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 text-xs font-black rounded-full shadow-sm ${getSeverityBadgeClass(log.severity)}`}>
-                        {log.severity}
+                      <span className={`inline-flex px-3 py-1 text-xs font-black rounded-full shadow-sm ${
+                        derivedSeverity === 'WARN' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {derivedSeverity}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
                       {log.ipAddress}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

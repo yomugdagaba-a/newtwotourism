@@ -41,6 +41,7 @@ const HotelsManagementPage = () => {
   const [formError, setFormError] = useState('');
   const [formData, setFormData] = useState<HotelCreateDto>({
     name: '', description: '', tourismPlaceId: 0, starRating: 3, contactInfo: '', policies: '', images: [],
+    latitude: undefined, longitude: undefined,
     mainImageUrl: ''
   });
   const [newImageUrl, setNewImageUrl] = useState('');
@@ -279,6 +280,8 @@ const HotelsManagementPage = () => {
       contactInfo: hotel.contactInfo || '', 
       policies: hotel.policies || '', 
       images: galleryImages,
+      latitude: (hotel as any).latitude || undefined,
+      longitude: (hotel as any).longitude || undefined,
       mainImageUrl: mainImageUrl
     });
     setHotelActive(hotel.active !== false);
@@ -290,7 +293,7 @@ const HotelsManagementPage = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', tourismPlaceId: 0, starRating: 3, contactInfo: '', policies: '', images: [], mainImageUrl: '' });
+    setFormData({ name: '', description: '', tourismPlaceId: 0, starRating: 3, contactInfo: '', policies: '', images: [], latitude: undefined, longitude: undefined, mainImageUrl: '' });
     setEditingHotel(null);
     setHotelActive(true);
     setNewImageUrl('');
@@ -303,6 +306,8 @@ const HotelsManagementPage = () => {
     const { name, value } = e.target;
     if (name === 'tourismPlaceId' || name === 'starRating') {
       setFormData(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
+    } else if (name === 'latitude' || name === 'longitude') {
+      setFormData(prev => ({ ...prev, [name]: value ? parseFloat(value) : undefined }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -651,6 +656,38 @@ const HotelsManagementPage = () => {
               <FormInput label="Hotel Policies" name="policies" type="textarea" value={formData.policies || ''}
                 onChange={handleInputChange} placeholder="Check-in/out times, cancellation policy, etc." rows={2}
               />
+
+              {/* Map Coordinates */}
+              <div className="border-t-2 border-gray-200 pt-3 mt-1">
+                <p className="text-sm font-bold text-gray-800 mb-2">📍 Map Coordinates (optional)</p>
+                <p className="text-xs text-gray-500 mb-2">Add coordinates to show this hotel on the map. Find them on Google Maps.</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Latitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      name="latitude"
+                      value={(formData as any).latitude || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 12.0316"
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Longitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      name="longitude"
+                      value={(formData as any).longitude || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 39.0472"
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
 
               {/* Active Status Toggle */}
               <div className="border-t-2 border-gray-300 pt-4 mt-4">

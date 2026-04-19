@@ -184,13 +184,9 @@ export class AuditService {
       `${API_BASE_URL}/admin/audit/security?hours=${hours}`,
       { headers: getAuthHeaders(token) }
     );
-    const data = await handleResponse<{
-      content: AuditLogEntry[];
-      totalElements: number;
-    }>(response);
-    
-    // Return just the array for compatibility
-    return data.content || [];
+    // Backend returns a plain array directly
+    const data = await handleResponse<AuditLogEntry[] | { content: AuditLogEntry[] }>(response);
+    return Array.isArray(data) ? data : (data.content || []);
   }
 
   // Get high severity audit logs
@@ -200,13 +196,9 @@ export class AuditService {
       `${API_BASE_URL}/admin/audit/high-severity?hours=${hours}`,
       { headers: getAuthHeaders(token) }
     );
-    const data = await handleResponse<{
-      content: AuditLogEntry[];
-      totalElements: number;
-    }>(response);
-    
-    // Return just the array for compatibility with SecurityAlerts component
-    return data.content || [];
+    // Backend returns a plain array directly
+    const data = await handleResponse<AuditLogEntry[] | { content: AuditLogEntry[] }>(response);
+    return Array.isArray(data) ? data : (data.content || []);
   }
 
   // Get audit log statistics
@@ -314,13 +306,20 @@ export class AuditService {
     const data = await handleResponse<{
       logsWithoutChecksum: number;
       integrityStatus: string;
+      totalLogs?: number;
     }>(response);
-    
+
+    const totalLogs = data.totalLogs || 0;
+    const missing = data.logsWithoutChecksum || 0;
+    const integrityPercentage = totalLogs > 0
+      ? Math.round(((totalLogs - missing) / totalLogs) * 100)
+      : 100;
+
     return {
-      totalLogs: 0, // Will be calculated separately if needed
-      logsWithoutChecksum: data.logsWithoutChecksum,
+      totalLogs,
+      logsWithoutChecksum: missing,
       status: data.integrityStatus,
-      integrityPercentage: 100 // Will be calculated if totalLogs is known
+      integrityPercentage,
     };
   }
 

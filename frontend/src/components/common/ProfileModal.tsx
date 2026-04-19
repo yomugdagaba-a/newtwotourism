@@ -159,20 +159,25 @@ function UpdateProfile({
   token: string | null;
   onUpdated: (p: UserProfile) => void;
 }) {
-  const [form, setForm] = useState({ fullName: "", email: "" });
+  const [form, setForm] = useState({ username: "", fullName: "", email: "" });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
   // Pre-fill when profile loads
   useEffect(() => {
     if (profile) {
-      setForm({ fullName: profile.fullName || "", email: profile.email || "" });
+      setForm({ username: profile.username || "", fullName: profile.fullName || "", email: profile.email || "" });
     }
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
+    if (!form.username.trim()) {
+      setStatus("error");
+      setMessage("Username cannot be empty.");
+      return;
+    }
     setStatus("loading");
     setMessage("");
     try {
@@ -199,11 +204,9 @@ function UpdateProfile({
         <FormField
           label="Username"
           type="text"
-          value={profile?.username || ""}
-          onChange={() => {}}
-          placeholder="Username"
-          disabled
-          hint="Username cannot be changed"
+          value={form.username}
+          onChange={(v) => setForm({ ...form, username: v })}
+          placeholder="Enter your username"
         />
         <FormField
           label="Full Name"

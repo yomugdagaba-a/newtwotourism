@@ -200,15 +200,12 @@ export default function TourismListingPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Back Button */}
-        <button
-          onClick={() => router.push('/')}
-          className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 mb-4 transition-colors font-bold"
+        <a
+          href="/"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#374151', fontWeight: 700, marginBottom: '16px', textDecoration: 'none', cursor: 'pointer', zIndex: 50, position: 'relative' }}
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span>Back to Home</span>
-        </button>
+          ← Back to Home
+        </a>
 
         {error && (
           <div className="mb-4 px-4 py-3 bg-red-50 border border-red-300 rounded-xl flex items-center justify-between shadow-md">

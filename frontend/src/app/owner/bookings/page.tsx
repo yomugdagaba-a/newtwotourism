@@ -155,17 +155,17 @@ export default function OwnerBookingsPage() {
 
   const filterCounts: Record<string, number> = {
     ALL: bookings.length,
-    PENDING: pendingCount,
-    ACTIVE: bookings.filter(b => [BOOKING_STATUS.OWNER_ACCEPTED, BOOKING_STATUS.COST_PROPOSED, BOOKING_STATUS.PAID].includes(b.bookingStatus)).length,
-    COMPLETED: bookings.filter(b => [BOOKING_STATUS.APPROVED, BOOKING_STATUS.REJECTED].includes(b.bookingStatus)).length,
+    REQUESTED: bookings.filter(b => b.bookingStatus === BOOKING_STATUS.REQUESTED).length,
+    OWNER_ACCEPTED: bookings.filter(b => b.bookingStatus === BOOKING_STATUS.OWNER_ACCEPTED).length,
+    COST_PROPOSED: bookings.filter(b => b.bookingStatus === BOOKING_STATUS.COST_PROPOSED).length,
+    PAID: bookings.filter(b => b.bookingStatus === BOOKING_STATUS.PAID).length,
+    APPROVED: bookings.filter(b => b.bookingStatus === BOOKING_STATUS.APPROVED).length,
+    REJECTED: bookings.filter(b => b.bookingStatus === BOOKING_STATUS.REJECTED).length,
   };
 
   const applyFilter = (f: string, data: Booking[]) => data.filter(b => {
     if (f === "ALL") return true;
-    if (f === "PENDING") return b.bookingStatus === BOOKING_STATUS.REQUESTED;
-    if (f === "ACTIVE") return [BOOKING_STATUS.OWNER_ACCEPTED, BOOKING_STATUS.COST_PROPOSED, BOOKING_STATUS.PAID].includes(b.bookingStatus);
-    if (f === "COMPLETED") return [BOOKING_STATUS.APPROVED, BOOKING_STATUS.REJECTED].includes(b.bookingStatus);
-    return true;
+    return b.bookingStatus === f;
   });
 
   const filteredBookings = applyFilter(filter, bookings).filter(b =>
@@ -235,12 +235,27 @@ export default function OwnerBookingsPage() {
 
               <div className="border-t border-gray-100 pt-2 mt-1">
                 <p className="text-xs text-gray-400 px-3 pb-1 font-semibold">Filter Bookings</p>
-                {["ALL", "PENDING", "ACTIVE", "COMPLETED"].map(f => (
-                  <button key={f} onClick={() => handleFilterChange(f)}
+                {[
+                  { key: "ALL", label: "All Bookings", color: "#1d4ed8" },
+                  { key: "REQUESTED", label: "Requested", color: "#d97706" },
+                  { key: "OWNER_ACCEPTED", label: "Accepted", color: "#0891b2" },
+                  { key: "COST_PROPOSED", label: "Cost Sent", color: "#7c3aed" },
+                  { key: "PAID", label: "Paid", color: "#059669" },
+                  { key: "APPROVED", label: "Approved", color: "#16a34a" },
+                  { key: "REJECTED", label: "Rejected", color: "#dc2626" },
+                ].map(({ key, label, color }) => (
+                  <button key={key} onClick={() => handleFilterChange(key)}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-                    style={filter === f ? { backgroundColor: "#eff6ff", color: "#1d4ed8" } : { color: "#374151" }}>
-                    <span>{f}</span>
-                    <span className="text-xs bg-gray-100 rounded-full px-2 py-0.5">{filterCounts[f]}</span>
+                    style={filter === key
+                      ? { backgroundColor: `${color}18`, color, borderLeft: `3px solid ${color}` }
+                      : { color: "#374151", borderLeft: "3px solid transparent" }}>
+                    <span>{label}</span>
+                    <span style={{
+                      fontSize: '11px', fontWeight: 700, minWidth: '20px', textAlign: 'center',
+                      background: filter === key ? color : '#e5e7eb',
+                      color: filter === key ? '#fff' : '#374151',
+                      borderRadius: '999px', padding: '1px 7px',
+                    }}>{filterCounts[key]}</span>
                   </button>
                 ))}
               </div>
@@ -262,23 +277,34 @@ export default function OwnerBookingsPage() {
       </button>
 
       <div className="min-h-screen ml-16">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-
-          {/* Header */}
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-base font-bold text-gray-900">Booking Management</h1>
-              <p className="text-gray-400 text-xs">Manage all booking requests</p>
-            </div>
-            {role === "HOTEL_OWNER" && <ModeSwitcherCompact />}
+        {/* Top bar */}
+        <div style={{
+          background: '#ffffff',
+          borderBottom: '2px solid #e2e8f0',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+          padding: '14px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          zIndex: 20,
+        }}>
+          <div>
+            <h1 style={{ fontWeight: 900, fontSize: '18px', color: '#111827', margin: 0 }}>Booking Management</h1>
+            <p style={{ fontWeight: 600, fontSize: '13px', color: '#6b7280', margin: '2px 0 0 0' }}>Manage all booking requests</p>
           </div>
+          {role === "HOTEL_OWNER" && <ModeSwitcherCompact />}
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 py-3">
 
           {/* Stats */}
           <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mb-3">
             {[
               { label: "Hotels", value: myHotels.length },
               { label: "Active", value: activeHotels },
-              { label: "Pending", value: pendingCount },
+              { label: "Requested", value: pendingCount },
               { label: "Awaiting", value: paidCount },
               { label: "Approved", value: approvedCount },
             ].map(s => (
@@ -343,138 +369,142 @@ export default function OwnerBookingsPage() {
               {/* Booking detail */}
               <div className="lg:col-span-2">
                 {selectedBooking ? (
-                  <div className="bg-white rounded-lg shadow border border-gray-200">
-                    <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-start">
+                  <div className="bg-white rounded-xl shadow-md border border-gray-200">
+                    {/* Header */}
+                    <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-start">
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900">Booking {selectedBooking.bookingId}</h2>
-                        <p className="text-gray-400 text-xs">{selectedBooking.hotel.name}</p>
+                        <h2 className="text-base font-bold text-gray-900">Booking {selectedBooking.bookingId}</h2>
+                        <p className="text-gray-500 text-sm font-semibold">{selectedBooking.hotel.name}</p>
                       </div>
-                      <span className={"px-2 py-0.5 rounded text-xs font-bold " + BookingService.getStatusColor(selectedBooking.bookingStatus)}>
+                      <span className={"px-3 py-1 rounded-full text-sm font-bold " + BookingService.getStatusColor(selectedBooking.bookingStatus)}>
                         {BookingService.getStatusLabel(selectedBooking.bookingStatus)}
                       </span>
                     </div>
 
-                    <div className="p-3 border-b border-gray-100 grid grid-cols-2 gap-3">
+                    {/* Client + Stay */}
+                    <div className="p-5 border-b border-gray-200 grid grid-cols-2 gap-5">
                       <div>
-                        <p className="text-xs font-extrabold text-gray-700 mb-1">Client</p>
-                        <div className="space-y-0.5 text-xs">
-                          <div><span className="text-gray-400">Name: </span><span className="font-semibold">{selectedBooking.client.fullName}</span></div>
-                          <div><span className="text-gray-400">Email: </span><span className="font-semibold">{selectedBooking.client.email || "N/A"}</span></div>
-                          <div><span className="text-gray-400">Phone: </span><span className="font-semibold">{selectedBooking.client.phone || "N/A"}</span></div>
+                        <p style={{ fontWeight: 900, fontSize: '15px', color: '#111827', marginBottom: '10px' }}>Client</p>
+                        <div className="space-y-1.5">
+                          <div style={{ fontSize: '14px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Name: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.client.fullName}</span></div>
+                          <div style={{ fontSize: '14px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Email: </span><span style={{ fontWeight: 700, color: '#374151' }}>{selectedBooking.client.email || "N/A"}</span></div>
+                          <div style={{ fontSize: '14px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Phone: </span><span style={{ fontWeight: 700, color: '#374151' }}>{selectedBooking.client.phone || "N/A"}</span></div>
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs font-extrabold text-gray-700 mb-1">Stay</p>
-                        <div className="grid grid-cols-2 gap-1 text-xs">
-                          <div className="bg-gray-50 p-1.5 rounded border border-gray-100">
-                            <div className="text-gray-400">Check-in</div>
-                            <div className="font-bold text-gray-900">{selectedBooking.checkIn}</div>
-                          </div>
-                          <div className="bg-gray-50 p-1.5 rounded border border-gray-100">
-                            <div className="text-gray-400">Check-out</div>
-                            <div className="font-bold text-gray-900">{selectedBooking.checkOut}</div>
-                          </div>
-                          <div className="bg-gray-50 p-1.5 rounded border border-gray-100">
-                            <div className="text-gray-400">Guests</div>
-                            <div className="font-bold text-gray-900">{selectedBooking.numberOfGuests}</div>
-                          </div>
-                          <div className="bg-gray-50 p-1.5 rounded border border-gray-100">
-                            <div className="text-gray-400">Rooms</div>
-                            <div className="font-bold text-gray-900">{selectedBooking.numberOfRooms || 1}</div>
-                          </div>
+                        <p style={{ fontWeight: 900, fontSize: '15px', color: '#111827', marginBottom: '10px' }}>Stay</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            ['Check-in', selectedBooking.checkIn],
+                            ['Check-out', selectedBooking.checkOut],
+                            ['Guests', selectedBooking.numberOfGuests],
+                            ['Rooms', selectedBooking.numberOfRooms || 1],
+                          ].map(([label, value]) => (
+                            <div key={String(label)} style={{ background: '#f9fafb', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '10px 12px' }}>
+                              <div style={{ color: '#6b7280', fontWeight: 700, fontSize: '12px', marginBottom: '3px' }}>{label}</div>
+                              <div style={{ fontWeight: 800, fontSize: '14px', color: '#111827' }}>{value}</div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
 
+                    {/* Cost + Requests */}
                     {(selectedBooking.totalCost || selectedBooking.specialRequests) && (
-                      <div className="px-3 py-2 border-b border-gray-100 flex flex-wrap gap-2 text-xs">
+                      <div className="px-5 py-4 border-b border-gray-200 flex flex-wrap gap-3">
                         {selectedBooking.totalCost && (
-                          <div className="bg-gray-50 px-3 py-1.5 rounded border border-gray-100">
-                            <span className="text-gray-400">Cost: </span>
-                            <span className="font-bold text-gray-900">{selectedBooking.totalCost} ETB</span>
+                          <div style={{ background: '#f9fafb', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '8px 16px' }}>
+                            <span style={{ color: '#6b7280', fontWeight: 700, fontSize: '14px' }}>Cost: </span>
+                            <span style={{ fontWeight: 800, fontSize: '14px', color: '#111827' }}>{selectedBooking.totalCost} ETB</span>
                           </div>
                         )}
                         {selectedBooking.specialRequests && (
-                          <div className="bg-gray-50 px-3 py-1.5 rounded border border-gray-100 flex-1">
-                            <span className="text-gray-400">Requests: </span>
-                            <span className="text-gray-700">{selectedBooking.specialRequests}</span>
+                          <div style={{ background: '#f9fafb', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '8px 16px', flex: 1 }}>
+                            <span style={{ color: '#6b7280', fontWeight: 700, fontSize: '14px' }}>Requests: </span>
+                            <span style={{ fontWeight: 700, fontSize: '14px', color: '#374151' }}>{selectedBooking.specialRequests}</span>
                           </div>
                         )}
                       </div>
                     )}
 
+                    {/* Receipt */}
                     {selectedBooking.receiptImageUrl && (
-                      <div className="px-3 py-2 border-b border-gray-100">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-xs font-bold text-gray-700">Payment Receipt</p>
-                          <div className="flex gap-1.5">
-                            <button onClick={() => setShowReceiptModal(true)} className="bg-gray-800 text-white px-2 py-0.5 rounded text-xs font-bold hover:bg-gray-900">View</button>
-                            <button onClick={handleDownloadReceipt} className="bg-gray-600 text-white px-2 py-0.5 rounded text-xs font-bold hover:bg-gray-700">Download</button>
+                      <div className="px-5 py-4 border-b border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <p style={{ fontWeight: 900, fontSize: '15px', color: '#111827' }}>Payment Receipt</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => setShowReceiptModal(true)} className="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-900">View</button>
+                            <button onClick={handleDownloadReceipt} className="bg-gray-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-700">Download</button>
                           </div>
                         </div>
                         <img src={getReceiptUrl(selectedBooking.receiptImageUrl)} alt="Receipt"
-                          className="max-h-20 rounded border border-gray-200"
+                          className="max-h-24 rounded-lg border border-gray-200"
                           onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
                       </div>
                     )}
 
+                    {/* Rejection reason */}
                     {selectedBooking.bookingStatus === BOOKING_STATUS.REJECTED && selectedBooking.rejectionReason && (
-                      <div className="px-3 py-2 border-b border-red-100 bg-red-50">
-                        <p className="text-xs font-bold text-red-700 mb-0.5">Rejection Reason</p>
-                        <p className="text-xs text-red-800">{selectedBooking.rejectionReason}</p>
+                      <div className="px-5 py-3 border-b border-red-200 bg-red-50">
+                        <p style={{ fontWeight: 900, fontSize: '14px', color: '#b91c1c', marginBottom: '4px' }}>Rejection Reason</p>
+                        <p style={{ fontWeight: 700, fontSize: '14px', color: '#991b1b' }}>{selectedBooking.rejectionReason}</p>
                       </div>
                     )}
 
-                    <div className="px-3 py-2 border-b border-gray-100">
-                      <div className="flex flex-wrap gap-1.5">
+                    {/* Action buttons */}
+                    <div className="px-5 py-4 border-b border-gray-200">
+                      <div className="flex flex-wrap gap-2">
                         {selectedBooking.bookingStatus === BOOKING_STATUS.REQUESTED && (
                           <>
                             <button onClick={() => handleAccept(selectedBooking.bookingId)} disabled={actionLoading}
-                              className="bg-gray-800 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-900 disabled:opacity-50">Accept</button>
+                              className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-900 disabled:opacity-50">Accept</button>
                             <button onClick={() => setShowCostModal(true)} disabled={actionLoading}
-                              className="bg-gray-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-700 disabled:opacity-50">Propose Cost</button>
+                              className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-700 disabled:opacity-50">Propose Cost</button>
                             <button onClick={() => setShowRejectModal(true)} disabled={actionLoading}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-700 disabled:opacity-50">Reject</button>
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 disabled:opacity-50">Reject</button>
                           </>
                         )}
                         {selectedBooking.bookingStatus === BOOKING_STATUS.OWNER_ACCEPTED && (
                           <>
                             <button onClick={() => setShowCostModal(true)} disabled={actionLoading}
-                              className="bg-gray-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-700 disabled:opacity-50">Propose Cost</button>
+                              className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-700 disabled:opacity-50">Propose Cost</button>
                             <button onClick={() => setShowRejectModal(true)} disabled={actionLoading}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-700 disabled:opacity-50">Reject</button>
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 disabled:opacity-50">Reject</button>
                           </>
                         )}
                         {selectedBooking.bookingStatus === BOOKING_STATUS.PAID && (
                           <>
                             <button onClick={() => handleApprove(selectedBooking.bookingId)} disabled={actionLoading}
-                              className="bg-gray-800 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-900 disabled:opacity-50">Approve</button>
+                              className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-900 disabled:opacity-50">Approve</button>
                             <button onClick={() => setShowRejectModal(true)} disabled={actionLoading}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-700 disabled:opacity-50">Reject</button>
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 disabled:opacity-50">Reject</button>
                           </>
                         )}
                         {selectedBooking.bookingStatus === BOOKING_STATUS.APPROVED && (
-                          <p className="text-xs text-gray-500 font-semibold">Booking approved and active</p>
+                          <p style={{ fontWeight: 800, fontSize: '14px', color: '#15803d' }}>✓ Booking approved and active</p>
                         )}
                         {selectedBooking.bookingStatus === BOOKING_STATUS.REJECTED && (
-                          <p className="text-xs text-red-500 font-semibold">This booking was rejected</p>
+                          <p style={{ fontWeight: 800, fontSize: '14px', color: '#dc2626' }}>✗ This booking was rejected</p>
                         )}
                       </div>
                     </div>
 
                     {/* Messages */}
                     <div style={{
-                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(245,243,255,0.90) 100%)',
-                      boxShadow: '0 0 0 2px #7c3aed, 0 8px 32px rgba(109,40,217,0.10), inset 0 1px 0 rgba(255,255,255,1)',
+                      background: '#f3f0ff',
+                      border: '2px solid #7c3aed',
                       borderRadius: '16px',
                       margin: '12px',
                       padding: '16px',
                     }}>
-                      <h4 className="text-purple-700 font-bold text-sm mb-3 flex items-center gap-2">
+                      <h4 className="text-purple-700 font-bold text-sm mb-3 flex items-center gap-2"
+                        style={{ borderBottom: '2px solid #ede9fe', paddingBottom: '10px' }}>
                         <span className="w-6 h-6 bg-purple-600 rounded-md flex items-center justify-center text-white text-xs font-bold">M</span>
                         Messages ({selectedBooking.messages?.length || 0})
                       </h4>
-                      <div className="space-y-2 max-h-52 overflow-y-auto mb-3 p-3 rounded-xl bg-white/60 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-purple-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                      {/* Scroll area — slate gray border, white background */}
+                      <div className="space-y-2 max-h-52 overflow-y-auto mb-3 p-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-purple-300 [&::-webkit-scrollbar-thumb]:rounded-full"
+                        style={{ border: '2px solid #94a3b8', borderRadius: '10px', background: '#ffffff' }}>
                         {!selectedBooking.messages?.length ? (
                           <p className="text-gray-400 text-center py-5 text-sm">No messages yet</p>
                         ) : selectedBooking.messages.map(m => {
@@ -483,37 +513,39 @@ export default function OwnerBookingsPage() {
                             <div
                               key={m.id}
                               style={isOwn ? {
-                                background: 'linear-gradient(145deg, rgba(237,233,254,0.95) 0%, rgba(221,214,254,0.85) 100%)',
-                                boxShadow: '0 4px 14px rgba(109,40,217,0.13), inset 0 1px 0 rgba(255,255,255,0.9)',
-                                border: '1px solid rgba(167,139,250,0.4)',
-                                marginLeft: '2.5rem',
-                                marginRight: '0',
+                                background: '#ffffff',
+                                border: '1.5px solid #a78bfa',
+                                borderRadius: '10px',
+                                marginLeft: '2rem',
+                                padding: '10px 12px',
+                                boxShadow: '0 2px 8px rgba(124,58,237,0.15)',
                               } : {
-                                background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.90) 100%)',
-                                boxShadow: '0 4px 14px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1)',
-                                border: '1px solid rgba(226,232,240,0.8)',
-                                marginRight: '2.5rem',
-                                marginLeft: '0',
+                                background: '#ffffff',
+                                border: '1.5px solid #cbd5e1',
+                                borderRadius: '10px',
+                                marginRight: '2rem',
+                                padding: '10px 12px',
                               }}
-                              className="p-3 rounded-xl"
                             >
-                              <div className={`flex justify-between text-xs mb-1.5 ${isOwn ? 'text-purple-600' : 'text-gray-400'}`}>
-                                <span className="font-semibold">{m.senderName}</span>
-                                <span>{new Date(m.createdAt).toLocaleString()}</span>
+                              <div className={`flex justify-between text-xs mb-1.5 ${isOwn ? 'text-purple-700' : 'text-gray-500'}`}>
+                                <span className="font-bold">{m.senderName}</span>
+                                <span className="font-semibold">{new Date(m.createdAt).toLocaleString()}</span>
                               </div>
-                              <p className={`text-sm font-medium ${isOwn ? 'text-purple-900' : 'text-gray-700'}`}>{m.message}</p>
-                              {m.messageType !== "GENERAL" && <p className="text-xs mt-1 text-gray-400">[{m.messageType}]</p>}
+                              <p className={`text-sm font-semibold ${isOwn ? 'text-purple-900' : 'text-gray-800'}`}>{m.message}</p>
+                              {m.messageType !== "GENERAL" && <p className="text-xs mt-1 font-bold text-purple-400">[{m.messageType}]</p>}
                             </div>
                           );
                         })}
                       </div>
-                      <div className="flex gap-2">
+                      {/* Input area — gray border, separated by top divider */}
+                      <div className="flex gap-2 pt-3" style={{ borderTop: '1.5px solid #ddd6fe' }}>
                         <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)}
                           placeholder="Type a message..."
-                          className="flex-1 bg-white rounded-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-purple-400 border border-purple-200 transition-all"
+                          className="flex-1 rounded-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none transition-all"
+                          style={{ border: '1.5px solid #9ca3af', background: '#fff' }}
                           onKeyPress={e => e.key === "Enter" && handleSendMessage()} />
                         <button onClick={handleSendMessage} disabled={!newMessage.trim()}
-                          className="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-sm">
+                          className="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-sm">
                           Send
                         </button>
                       </div>

@@ -233,7 +233,10 @@ const AuditDashboardPage = () => {
           {statistics && statistics.mostActiveUsers && (() => {
             const raw = statistics.mostActiveUsers as any;
             const entries: [string, number][] = Array.isArray(raw)
-              ? raw.map((item: any) => [String(item.userId ?? item.username ?? 'Unknown'), Number(item.activityCount ?? item.count ?? 0)])
+              ? raw.map((item: any) => [
+                  String(item.username || item.userId || 'Unknown'),
+                  Number(item.activityCount ?? item.count ?? 0)
+                ])
               : Object.entries(raw).map(([k, v]) => [k, Number(v)]);
             return entries.length > 0 ? (
               <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
@@ -245,7 +248,7 @@ const AuditDashboardPage = () => {
                     .map(([username, count]) => (
                       <div key={username} className="flex justify-between items-center px-2 py-1.5 bg-gray-50 rounded border border-gray-200">
                         <span className="text-xs font-black">{username}</span>
-                        <span className="text-xs text-gray-600 font-bold">{count}</span>
+                        <span className="text-xs text-gray-600 font-bold">{count} actions</span>
                       </div>
                     ))}
                 </div>
@@ -256,7 +259,15 @@ const AuditDashboardPage = () => {
           {/* Suspicious Activities */}
           {suspiciousActivities.length > 0 && (
             <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-              <h3 className="text-sm font-black text-gray-900 mb-2">Suspicious Activities</h3>
+              <h3 className="text-sm font-black text-gray-900 mb-2">
+                Suspicious IP Activity
+                <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-black rounded-full bg-orange-100 text-orange-800 border border-orange-300">
+                  {suspiciousActivities.length} flagged
+                </span>
+              </h3>
+              <p className="text-xs text-gray-500 font-semibold mb-3">
+                IPs with unusually high request counts in the selected time range. Review and take action if needed.
+              </p>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -265,24 +276,48 @@ const AuditDashboardPage = () => {
                       <th className="px-4 py-2 text-left text-xs font-black text-gray-600 uppercase">Users</th>
                       <th className="px-4 py-2 text-left text-xs font-black text-gray-600 uppercase">Actions</th>
                       <th className="px-4 py-2 text-left text-xs font-black text-gray-600 uppercase">Risk</th>
+                      <th className="px-4 py-2 text-left text-xs font-black text-gray-600 uppercase">Investigate</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
                     {suspiciousActivities.map((activity, index) => (
-                      <tr key={index}>
-                        <td className="px-4 py-2 text-xs font-black text-gray-900">{activity.ipAddress}</td>
-                        <td className="px-4 py-2 text-xs text-gray-700 font-bold">{activity.userCount}</td>
-                        <td className="px-4 py-2 text-xs text-gray-700 font-bold">{activity.actionCount}</td>
+                      <tr key={index} className="hover:bg-orange-50">
+                        <td className="px-4 py-2 text-xs font-black text-gray-900 font-mono">{activity.ipAddress}</td>
+                        <td className="px-4 py-2 text-xs text-gray-700 font-bold">
+                          {activity.userCount} user{activity.userCount !== 1 ? 's' : ''}
+                          {(activity as any).usernames && (
+                            <div className="text-gray-500 font-normal">{(activity as any).usernames}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-xs font-black text-gray-900">{activity.actionCount}</td>
                         <td className="px-4 py-2">
-                          <span className={`inline-flex px-2 py-0.5 text-xs font-black rounded-full border ${getRiskLevelColor(activity.riskLevel)}`}>
+                          <span className={`inline-flex px-2 py-0.5 text-xs font-black rounded-full border ${
+                            activity.riskLevel === 'HIGH'
+                              ? 'bg-red-100 text-red-800 border-red-300'
+                              : 'bg-orange-100 text-orange-800 border-orange-300'
+                          }`}>
                             {activity.riskLevel}
                           </span>
+                        </td>
+                        <td className="px-4 py-2">
+                          <a
+                            href={`/admin/audit?ipAddress=${activity.ipAddress}`}
+                            className="text-xs font-black text-blue-600 hover:text-blue-800 underline"
+                          >
+                            View logs →
+                          </a>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+          {suspiciousActivities.length === 0 && !loading && (
+            <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+              <h3 className="text-sm font-black text-gray-900 mb-1">Suspicious IP Activity</h3>
+              <p className="text-xs text-green-700 font-semibold">✅ No suspicious IP activity detected in the selected time range.</p>
             </div>
           )}
         </div>

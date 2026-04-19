@@ -19,6 +19,16 @@ async function findByEmail(email) {
 async function updateProfile(id, data) {
   // Prevent privilege escalation
   const { password, passwordHash, role, roles, ...safeData } = data;
+
+  // If username is being changed, check it's not already taken
+  if (safeData.username) {
+    safeData.username = safeData.username.trim();
+    const existing = await prisma.user.findUnique({ where: { username: safeData.username } });
+    if (existing && existing.id !== id) {
+      throw Object.assign(new Error('Username is already taken'), { status: 400 });
+    }
+  }
+
   return prisma.user.update({ where: { id }, data: safeData, select: USER_SELECT });
 }
 
