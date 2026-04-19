@@ -4,4 +4,3 @@ dist/
 uploads/
 certificates/
 *.pem
-prisma/migrations/
