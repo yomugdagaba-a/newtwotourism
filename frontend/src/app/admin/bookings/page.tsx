@@ -72,7 +72,7 @@ export default function AdminBookingsPage() {
     try {
       setLoading(true);
       const data = await BookingService.getAllBookings(token, page, 50);
-      setBookings(data.content || []);
+      setBookings(Array.isArray(data) ? data : (data as any).content || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load bookings");
     } finally {
