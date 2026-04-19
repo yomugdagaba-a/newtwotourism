@@ -238,7 +238,7 @@ const SecurityEventsPage = () => {
                           <h3 className="text-lg font-black text-gray-900">
                             {log.action.replace(/_/g, ' ')}
                           </h3>
-                          <span className={`inline-flex px-2 py-1 text-xs font-black rounded-full border ${getSeverityBadgeClass(log.severity)}`}>
+                          <span className={`inline-flex px-2 py-1 text-xs font-black rounded-full border ${getSeverityBadgeClass(log.severity ?? '')}`}>
                             {log.severity}
                           </span>
                         </div>
