@@ -8,13 +8,10 @@ import Link from "next/link";
 import FormInput, { FormButton, Alert } from "@/components/common/FormInput";
 import { validateForm, hasErrors, schemas, ValidationErrors } from "@/utils/validation";
 
-interface Props {
-  onSuccess?: () => void;
-  onRegisterClick?: () => void;
-  onCancel?: () => void;
-}
-
-export default function LoginForm({ onSuccess, onRegisterClick, onCancel }: Props) {
+export default function LoginForm() {
+  const onSuccess: (() => void) | undefined = undefined;
+  const onRegisterClick: (() => void) | undefined = undefined;
+  const onCancel: (() => void) | undefined = undefined;
   const [formData, setFormData] = useState({
     usernameOrEmail: "",
     password: ""

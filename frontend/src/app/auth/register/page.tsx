@@ -6,11 +6,6 @@ import { register } from "@/services/auth.service";
 import Link from "next/link";
 import FormInput, { FormButton, Alert } from "@/components/common/FormInput";
 
-interface Props {
-  onSuccess?: () => void;
-  onLoginClick?: () => void;
-  onCancel?: () => void;
-}
 
 // Validation helpers
 const validateFullName = (name: string): string | null => {
@@ -47,7 +42,10 @@ const validateConfirmPassword = (password: string, confirmPassword: string): str
   return null;
 };
 
-export default function RegisterForm({ onSuccess, onLoginClick, onCancel }: Props) {
+export default function RegisterForm() {
+  const onSuccess: (() => void) | undefined = undefined;
+  const onLoginClick: (() => void) | undefined = undefined;
+  const onCancel: (() => void) | undefined = undefined;
   const router = useRouter();
   const [formData, setFormData] = useState({
     username: "", fullName: "", email: "", password: "", confirmPassword: ""
