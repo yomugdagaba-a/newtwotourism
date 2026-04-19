@@ -65,3 +65,26 @@ export default {
   getHorseServicesByRoad,
   getHorseServiceById,
 };
+
+// Get horse services by tourism place ID
+export async function getHorseServicesByTourism(
+  tourismId: number,
+  token?: string
+): Promise<HorseServiceSummaryDto[]> {
+  const url = `${API_BASE_URL}/tourism/${tourismId}/horse-services`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) return [];
+    const data: HorseServiceSummaryDto[] = await res.json();
+    return data ?? [];
+  } catch (err) {
+    console.error(`Horse services by tourism fetch failed (tourismId=${tourismId}):`, err);
+    return [];
+  }
+}

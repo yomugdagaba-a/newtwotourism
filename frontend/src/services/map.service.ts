@@ -169,3 +169,27 @@ export const calculateDistance = (
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
 };
+
+// Get road info by tourism place ID
+export async function getRoadInfoByTourism(
+  tourismId: number,
+  token?: string
+): Promise<import("@/types/road").RoadInfoDto[]> {
+  const { API_BASE_URL } = await import("./api");
+  const url = `${API_BASE_URL}/tourism/${tourismId}/roads`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data ?? [];
+  } catch (err) {
+    console.error(`Road info by tourism fetch failed (tourismId=${tourismId}):`, err);
+    return [];
+  }
+}
