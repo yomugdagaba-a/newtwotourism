@@ -71,7 +71,7 @@ export default function AdminHotelDetailPage() {
   };
 
   const handleAssignOwner = async () => {
-    if (!token || !selectedOwnerId || selectedOwnerId === '') return;
+    if (!token || !selectedOwnerId || selectedOwnerId === 0) return;
     try {
       setActionLoading(true);
       await AdminHotelService.assignOwner(token, hotelId, Number(selectedOwnerId));
