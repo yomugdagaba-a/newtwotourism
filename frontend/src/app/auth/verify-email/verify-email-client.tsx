@@ -100,7 +100,11 @@ function VerifyEmailContent() {
     
     if (emailParam && step === 'verify') {
       console.log('🔄 Auto-sending OTP for email:', emailParam);
-      handleSendOtp();
+      // Skip auto-send if coming from registration - backend already sent OTP
+      const fromRegister = new URLSearchParams(window.location.search).get('from') === 'register';
+      if (!fromRegister) {
+        handleSendOtp();
+      }
     }
   }, [emailParam, step, handleSendOtp]);
 

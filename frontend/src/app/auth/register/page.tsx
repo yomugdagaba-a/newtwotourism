@@ -92,7 +92,7 @@ export default function RegisterForm() {
       
       // Then redirect to verify-email page
       setTimeout(() => {
-        router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+        router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}&from=register`);
       }, 100);
     } catch (err: any) {
       console.error('❌ Registration error:', err);

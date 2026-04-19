@@ -39,7 +39,7 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
         onSuccess();
       }
       // Always redirect to verify-email regardless of modal or page
-      router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+      router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}&from=register`);
     } catch (err: any) {
       setServerError(err.message || "Registration failed.");
     } finally {
