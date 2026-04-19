@@ -1,20 +1,21 @@
 import type { NextConfig } from "next";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://tourismsystem.onrender.com';
+
 const nextConfig: NextConfig = {
-  // Increase chunk timeout for slow dev servers
   onDemandEntries: {
-    maxInactiveAge: 60 * 1000, // 60 seconds
+    maxInactiveAge: 60 * 1000,
     pagesBufferLength: 5,
   },
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://localhost:9001/api/:path*',
+        destination: `${BACKEND_URL}/api/:path*`,
       },
       {
         source: '/uploads/:path*',
-        destination: 'https://localhost:9001/uploads/:path*',
+        destination: `${BACKEND_URL}/uploads/:path*`,
       },
     ];
   },
