@@ -24,3 +24,15 @@ export interface MapState {
   loading: boolean;
   error: string | null;
 }
+
+export interface MapPointDto {
+  id: number;
+  name: string;
+  type: string;
+  latitude: number;
+  longitude: number;
+  description?: string;
+  tourismPlaceId?: number;
+  hotelId?: number;
+  roadInfoId?: number;
+}

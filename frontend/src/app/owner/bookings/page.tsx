@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { BookingService, Booking, BOOKING_STATUS } from "@/services/booking.service";
@@ -17,7 +17,7 @@ interface OwnerHotel {
   images: string[];
 }
 
-export default function OwnerBookingsPage() {
+function OwnerBookingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hotelFilter = searchParams.get("hotel") ? Number(searchParams.get("hotel")) : null;
@@ -623,5 +623,13 @@ export default function OwnerBookingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OwnerBookingsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+      <OwnerBookingsContent />
+    </Suspense>
   );
 }

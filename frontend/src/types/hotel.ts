@@ -22,6 +22,7 @@ export interface HotelDetailInfoDto {
   viewersCount: number;
   starRating?: number;
   stars?: number;
+  averageRating?: number;
   contactInfo?: string;
   policies?: string;
   active?: boolean;

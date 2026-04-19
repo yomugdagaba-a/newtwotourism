@@ -22,7 +22,7 @@ export default function RoadInfoTab({ tourismId }: Props) {
       try {
         setLoading(true);
         const { token } = (await import("@/store/useAuthStore")).useAuthStore.getState();
-        const data = await getRoadInfoByTourism(tourismId, token);
+        const data = await getRoadInfoByTourism(tourismId, token ?? undefined);
         setRoads(data);
       } catch (err: any) {
         setError(err.message || "Failed to load road information");

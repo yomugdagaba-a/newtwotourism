@@ -46,6 +46,8 @@ interface FetchParams {
   kebele?: string;
   page?: number;
   size?: number;
+  sortBy?: string;
+  sortDir?: string;
 }
 
 // ========================

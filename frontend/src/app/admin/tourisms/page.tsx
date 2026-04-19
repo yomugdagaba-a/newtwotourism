@@ -93,11 +93,11 @@ const TourismsManagementPage = () => {
     
     // Validate wereda
     const weredaResult = validatePlaceName(formData.wereda);
-    if (!weredaResult.valid) errors.wereda = weredaResult.error?.replace('Place name', 'Wereda');
+    if (!weredaResult.valid) errors.wereda = weredaResult.error?.replace('Place name', 'Wereda') ?? null;
     
     // Validate kebele
     const kebeleResult = validatePlaceName(formData.kebele);
-    if (!kebeleResult.valid) errors.kebele = kebeleResult.error?.replace('Place name', 'Kebele');
+    if (!kebeleResult.valid) errors.kebele = kebeleResult.error?.replace('Place name', 'Kebele') ?? null;
     
     // Validate category
     if (!formData.categories || formData.categories.length === 0) {
@@ -200,16 +200,16 @@ const TourismsManagementPage = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
     if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
+      setFormErrors((prev: any) => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleLanguageChange = (lang: string) => {
     const langs = formData.languages || [];
     if (langs.includes(lang)) {
-      setFormData({ ...formData, languages: langs.filter(l => l !== lang) });
+      setFormData({ ...formData, languages: langs.filter((l: any) => l !== lang) });
     } else {
       setFormData({ ...formData, languages: [...langs, lang] });
     }
@@ -218,7 +218,7 @@ const TourismsManagementPage = () => {
   const handleCategoryChange = (category: string) => {
     const cats = formData.categories || [];
     if (cats.includes(category)) {
-      setFormData({ ...formData, categories: cats.filter(c => c !== category) });
+      setFormData({ ...formData, categories: cats.filter((c: any) => c !== category) });
     } else {
       setFormData({ ...formData, categories: [...cats, category] });
     }

@@ -32,7 +32,7 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({
     userId,
     username,
     resourceType,
-    resourceId,
+    resourceId: resourceId ? Number(resourceId) : undefined,
     size: maxEntries
   });
 
@@ -195,14 +195,14 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({
             <div key={log.id} className={`${compact ? 'py-2' : 'py-3'} border-b border-gray-100 last:border-b-0`}>
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
-                  <span className="text-lg">{getCategoryIcon(log.category)}</span>
+                  <span className="text-lg">{getCategoryIcon(log.category ?? '')}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
                     <p className={`${compact ? 'text-sm' : 'text-base'} font-medium text-gray-900`}>
                       {log.action.replace(/_/g, ' ')}
                     </p>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityBadgeClass(log.severity)}`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityBadgeClass(log.severity ?? '')}`}>
                       {log.severity}
                     </span>
                   </div>
@@ -217,7 +217,7 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({
                     {log.resourceType && (
                       <span>📋 {log.resourceType}{log.resourceId ? `:${log.resourceId}` : ''}</span>
                     )}
-                    <span>🕒 {formatTimestamp(log.timestamp)}</span>
+                    <span>🕒 {formatTimestamp(log.timestamp ?? log.createdAt)}</span>
                   </div>
                 </div>
               </div>

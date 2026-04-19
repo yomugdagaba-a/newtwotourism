@@ -43,9 +43,6 @@ const validateConfirmPassword = (password: string, confirmPassword: string): str
 };
 
 export default function RegisterForm() {
-  const onSuccess: (() => void) | undefined = undefined;
-  const onLoginClick: (() => void) | undefined = undefined;
-  const onCancel: (() => void) | undefined = undefined;
   const router = useRouter();
   const [formData, setFormData] = useState({
     username: "", fullName: "", email: "", password: "", confirmPassword: ""
@@ -91,11 +88,7 @@ export default function RegisterForm() {
       // Always redirect to email verification page
       console.log('🔄 Redirecting to verify-email page with email:', formData.email);
       
-      // If onSuccess callback is provided (modal usage), close modal first
-      if (onSuccess) {
-        console.log('📞 Calling onSuccess callback');
-        onSuccess();
-      }
+      // Registration successful - redirect to verify email
       
       // Then redirect to verify-email page
       setTimeout(() => {
@@ -110,11 +103,7 @@ export default function RegisterForm() {
   };
 
   const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      router.push('/');
-    }
+    router.push('/');
   };
 
   const getPasswordStrength = (password: string) => {
@@ -257,15 +246,9 @@ export default function RegisterForm() {
           {/* Sign In Link */}
           <div className="mt-4 text-center text-sm">
             <span className="text-gray-600 font-semibold">Already have an account? </span>
-            {onLoginClick ? (
-              <button type="button" onClick={onLoginClick} className="text-blue-600 hover:text-blue-700 font-black">
-                Sign In
-              </button>
-            ) : (
-              <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-black">
-                Sign In
-              </Link>
-            )}
+            <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-black">
+              Sign In
+            </Link>
           </div>
         </div>
       </div>

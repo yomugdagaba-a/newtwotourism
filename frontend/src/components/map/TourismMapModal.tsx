@@ -16,6 +16,8 @@ interface TourismMapModalProps {
   tourismName: string;
   tourismWereda?: string;
   tourismKebele?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export default function TourismMapModal({

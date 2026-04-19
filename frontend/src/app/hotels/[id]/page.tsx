@@ -13,8 +13,8 @@ import { HotelDetailInfoDto } from "@/types/hotel";
 import HotelRatingModal from "@/components/hotel/HotelRatingModal";
 import RatingsViewModal from "@/components/common/RatingsViewModal";
 import Modal from "@/components/common/Modal";
-import LoginForm from "@/app/auth/login/page";
-import RegisterForm from "@/app/auth/register/page";
+import LoginForm from "@/components/auth/LoginFormModal";
+import RegisterForm from "@/components/auth/RegisterFormModal";
 import { API_BASE_URL } from "@/services/api";
 import { ModeSwitcherCompact } from "@/components/common/ModeSwitcher";
 

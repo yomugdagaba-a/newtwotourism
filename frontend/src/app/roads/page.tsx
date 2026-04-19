@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
@@ -8,7 +9,7 @@ import { RoadInfoDto } from "@/types/road";
 import RoadInfo from "@/components/road/RoadInfo";
 import { useAuthStore } from "@/store/useAuthStore";
 
-export default function RoadsPage() {
+function RoadsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -115,5 +116,13 @@ export default function RoadsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RoadsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div></div>}>
+      <RoadsContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { sendVerificationEmail, verifyEmailWithOtp } from "@/services/auth.service";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -9,7 +9,7 @@ import { FormButton, Alert } from "@/components/common/FormInput";
 
 type Step = 'request' | 'verify' | 'success';
 
-export default function VerifyEmailClient() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email");
@@ -408,5 +408,13 @@ export default function VerifyEmailClient() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailClient() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

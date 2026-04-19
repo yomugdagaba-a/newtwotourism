@@ -7,6 +7,7 @@ export interface TourismPublicCard {
   name: string;
   imageUrl?: string;
   viewersCount: number;
+  category?: string;
   categories?: string[];
   wereda?: string;
   kebele?: string;

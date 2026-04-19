@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { login } from "@/services/auth.service";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -8,10 +8,7 @@ import Link from "next/link";
 import FormInput, { FormButton, Alert } from "@/components/common/FormInput";
 import { validateForm, hasErrors, schemas, ValidationErrors } from "@/utils/validation";
 
-export default function LoginForm() {
-  const onSuccess: (() => void) | undefined = undefined;
-  const onRegisterClick: (() => void) | undefined = undefined;
-  const onCancel: (() => void) | undefined = undefined;
+function LoginFormContent() {
   const [formData, setFormData] = useState({
     usernameOrEmail: "",
     password: ""
@@ -79,17 +76,12 @@ export default function LoginForm() {
       if (res?.token) {
         auth.login(res.token, res.refreshToken, res.userId);
         
-        // If onSuccess callback is provided (modal usage), let the parent handle navigation
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          // Standalone login page - redirect based on role or redirect param
+        // Standalone login page - redirect based on role or redirect param
           setTimeout(() => {
             const currentAuth = useAuthStore.getState();
             const redirectTo = searchParams.get('redirect') || getDefaultRedirect(currentAuth.role);
             router.push(redirectTo);
           }, 100);
-        }
       } else {
         throw new Error("Invalid login response - no token received");
       }
@@ -202,7 +194,7 @@ export default function LoginForm() {
             {/* Cancel Button */}
             <button
               type="button"
-              onClick={() => onCancel ? onCancel() : router.push('/')}
+              onClick={() => router.push('/')}
               className="w-full py-3 px-4 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
@@ -223,22 +215,12 @@ export default function LoginForm() {
 
           {/* Register Link */}
           <div className="mt-6 text-center">
-            {onRegisterClick ? (
-              <button
-                type="button"
-                onClick={onRegisterClick}
-                className="w-full py-3 px-4 border border-blue-500 text-blue-600 font-black rounded-lg hover:bg-blue-50 transition-colors"
-              >
-                Create an Account
-              </button>
-            ) : (
               <Link
                 href="/auth/register"
                 className="block w-full py-3 px-4 border border-blue-500 text-blue-600 font-black rounded-lg hover:bg-blue-50 transition-colors text-center"
               >
                 Create an Account
               </Link>
-            )}
           </div>
         </div>
 
@@ -251,5 +233,13 @@ export default function LoginForm() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginForm() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+      <LoginFormContent />
+    </Suspense>
   );
 }

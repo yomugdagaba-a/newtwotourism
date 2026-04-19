@@ -9,8 +9,8 @@ interface TourismImage {
   id: number;
   imageUrl: string;
   displayOrder: number;
-  title?: string;
-  description?: string;
+  title?: string | null;
+  description?: string | null;
 }
 
 interface TourismImageCreateDto {

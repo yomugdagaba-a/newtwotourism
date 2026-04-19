@@ -29,7 +29,7 @@ const SecurityAlerts: React.FC<SecurityAlertsProps> = ({
       setLoading(true);
       setError(null);
 
-      const promises = [
+      const promises: Promise<any[]>[] = [
         AuditService.getHighSeverityLogs(timeRange)
       ];
 
@@ -162,7 +162,7 @@ const SecurityAlerts: React.FC<SecurityAlertsProps> = ({
                 {highSeverityLogs.map((log) => (
                   <div
                     key={log.id}
-                    className={`border rounded-md p-3 ${getSeverityColor(log.severity)}`}
+                    className={`border rounded-md p-3 ${getSeverityColor(log.severity ?? '')}`}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">

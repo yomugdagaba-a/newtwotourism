@@ -43,6 +43,7 @@ interface TokenPairResponse {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
+  expiresAt?: string;
 }
 
 interface PasswordResetResponse {

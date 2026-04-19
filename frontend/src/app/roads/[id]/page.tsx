@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { RoadInfoDto } from "@/types/road";
@@ -17,7 +17,7 @@ const RoadMapModal = dynamic(() => import("@/components/map/RoadMapModal"), {
   ssr: false,
 });
 
-export default function RoadsPage() {
+function RoadDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -481,6 +481,14 @@ export default function RoadsPage() {
 }
 
 // Interactive Distance Card Component
+export default function RoadDetailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+      <RoadDetailContent />
+    </Suspense>
+  );
+}
+
 function DistanceCard({ icon, label, distance, color }: { 
   icon: string; 
   label: string; 

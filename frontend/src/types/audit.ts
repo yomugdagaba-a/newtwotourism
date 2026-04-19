@@ -8,6 +8,8 @@ export interface AuditLogEntry {
   action: string;
   entityType: string;
   entityId?: number;
+  resourceType?: string;
+  resourceId?: number;
   changes?: string;
   ipAddress?: string;
   userAgent?: string;
@@ -27,6 +29,7 @@ export interface AuditLogSearchParams {
   username?: string;
   action?: string;
   resourceType?: string;
+  resourceId?: number;
   category?: string;
   severity?: string;
   ipAddress?: string;

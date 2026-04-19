@@ -1,11 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
-import LoginForm from "@/app/auth/login/page";
-import RegisterForm from "@/app/auth/register/page";
+import LoginForm from "@/components/auth/LoginFormModal";
+import RegisterForm from "@/components/auth/RegisterFormModal";
 import Modal from "@/components/common/Modal";
 import Pagination from "@/components/common/Pagination";
 import { fetchTourismPlaces } from "@/services/tourism.service";
@@ -30,7 +31,7 @@ const CATEGORIES = [
   { id: "MODERN", icon: "", label: "Modern" },
 ];
 
-export default function TourismListingPage() {
+function TourismListingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -309,6 +310,14 @@ export default function TourismListingPage() {
         .animation-delay-4000 { animation-delay: 4s; }
       `}</style>
     </div>
+  );
+}
+
+export default function TourismListingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div></div>}>
+      <TourismListingContent />
+    </Suspense>
   );
 }
 

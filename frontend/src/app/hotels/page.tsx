@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -8,13 +8,13 @@ import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { getHotelsByTourism, getAllHotels } from "@/services/hotel.service";
 import { submitHotelRating } from "@/services/rating.service";
 import { HotelSummaryDto } from "@/types/hotel";
-import LoginForm from "@/app/auth/login/page";
+import LoginForm from "@/components/auth/LoginFormModal";
 import Modal from "@/components/common/Modal";
 import HotelRatingModal from "@/components/hotel/HotelRatingModal";
 import RatingsViewModal from "@/components/common/RatingsViewModal";
 import { API_BASE_URL } from "@/services/api";
 
-export default function HotelsPage() {
+function HotelsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthenticated, token } = useAuthStore();
@@ -277,5 +277,13 @@ export default function HotelsPage() {
         )}
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function HotelsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+      <HotelsContent />
+    </Suspense>
   );
 }

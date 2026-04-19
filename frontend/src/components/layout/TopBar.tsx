@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
-import LoginForm from "@/app/auth/login/page";
-import RegisterForm from "@/app/auth/register/page";
+import LoginForm from "@/components/auth/LoginFormModal";
+import RegisterForm from "@/components/auth/RegisterFormModal";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";

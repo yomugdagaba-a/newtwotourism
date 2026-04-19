@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import TopBar from "@/components/layout/TopBar";
@@ -8,7 +9,7 @@ import { getHorseServicesByTourism, getHorseServicesByRoad } from "@/services/ho
 import { useAuthStore } from "@/store/useAuthStore";
 import HorseBookingModal from "@/components/horse/HorseBookingModal";
 
-export default function HorsersPage() {
+function HorsersContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { token } = useAuthStore.getState();
@@ -220,5 +221,13 @@ export default function HorsersPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function HorsersPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div></div>}>
+      <HorsersContent />
+    </Suspense>
   );
 }

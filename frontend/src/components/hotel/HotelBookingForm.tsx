@@ -38,16 +38,11 @@ export default function HotelBookingForm({ hotelId, hotelName }: Props) {
   const token = useAuthStore(state => state.token);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const userId = useAuthStore(state => state.userId);
-  const userFullName = useAuthStore(state => state.fullName);
-  const userEmail = useAuthStore(state => state.email);
 
   // Pre-fill user data if authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      if (userFullName) setFullName(userFullName);
-      if (userEmail) setEmail(userEmail);
-    }
-  }, [isAuthenticated, userFullName, userEmail]);
+    // fullName and email not stored in auth state - user fills them in
+  }, [isAuthenticated]);
 
   // Get minimum date (today)
   const getMinDate = () => {
@@ -207,10 +202,10 @@ export default function HotelBookingForm({ hotelId, hotelName }: Props) {
         token
       );
 
-      if (response && response.bookingId) {
+      if (response && response.id) {
         setBookingStatus({
           type: 'success',
-          message: `🎉 Booking successful! Your booking ID is: ${response.bookingId}. We'll contact you at ${phone} for confirmation.`
+          message: `🎉 Booking successful! Your booking ID is: ${response.id}. We'll contact you at ${phone} for confirmation.`
         });
         // Reset form
         setCheckInDate("");

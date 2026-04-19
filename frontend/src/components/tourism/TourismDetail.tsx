@@ -5,14 +5,12 @@ import React from "react";
 import { TourismFullDetailDto } from "../../types/tourism";
 import TourismTabs from "./TourismTabs";
 import TourismImages from "./TourismImages";
-import TourismRatings from "./TourismRatings";
 
 interface Props {
-  tourismId: number; // ✅ Changed to match parent prop
+  tourismId: number;
 }
 
 const TourismDetail: React.FC<Props> = ({ tourismId }) => {
-  // TODO: Fetch tourism data using tourismId
   const [tourism, setTourism] = React.useState<TourismFullDetailDto | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -29,7 +27,6 @@ const TourismDetail: React.FC<Props> = ({ tourismId }) => {
         setLoading(false);
       }
     };
-
     fetchTourism();
   }, [tourismId]);
 
@@ -45,16 +42,8 @@ const TourismDetail: React.FC<Props> = ({ tourismId }) => {
         <span>Kebele: {tourism.kebele}</span>
         <span>Best Time: {tourism.bestTime || "-"}</span>
       </div>
-
-      <TourismImages images={tourism.images} />
-      // frontend/src/components/tourism/TourismDetail.tsx
-<TourismTabs tourismId={tourismId} />  // ✅ Change this line
-<TourismRatings
-  ratings={tourism.ratings}
-  summary={tourism.ratingSummary}
-
-
-      />
+      <TourismImages images={(tourism.images || []).map((img: any) => typeof img === 'string' ? img : img.imageUrl)} />
+      <TourismTabs tourismId={tourismId} />
     </div>
   );
 };
