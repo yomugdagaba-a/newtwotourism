@@ -343,7 +343,6 @@ CREATE UNIQUE INDEX "hotel_ratings_hotelId_userId_key" ON "hotel_ratings"("hotel
 CREATE UNIQUE INDEX "booking_statuses_name_key" ON "booking_statuses"("name");
 
 -- AddForeignKey
-ALTER TABLE "users" ADD CONSTRAINT "users_id_fkey" FOREIGN KEY ("id") REFERENCES "roles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "email_verification_tokens" ADD CONSTRAINT "email_verification_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
