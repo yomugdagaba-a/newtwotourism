@@ -231,7 +231,7 @@ const SecurityEventsPage = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4">
                       <div className="flex-shrink-0">
-                        <span className="text-2xl">{getActionIcon(log.action)}</span>
+                        <span className="text-2xl">{getActionIcon(log.action ?? '')}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
@@ -247,7 +247,7 @@ const SecurityEventsPage = () => {
                         </p>
                         <div className="flex flex-wrap items-center space-x-4 text-sm text-gray-600 font-semibold">
                           <span className="flex items-center">
-                            <span className="mr-1">{getCategoryIcon(log.category)}</span>
+                            <span className="mr-1">{getCategoryIcon(log.category ?? '')}</span>
                             {log.category}
                           </span>
                           {(log.username || log.user?.username) && (
@@ -273,8 +273,8 @@ const SecurityEventsPage = () => {
                       </div>
                     </div>
                     <div className="flex-shrink-0 text-right">
-                      <p className="text-sm text-gray-600 font-bold">{formatTimestamp(log.createdAt)}</p>
-                      <p className="text-xs text-gray-500 font-semibold">{new Date(log.createdAt).toLocaleString()}</p>
+                      <p className="text-sm text-gray-600 font-bold">{formatTimestamp(log.createdAt ?? '')}</p>
+                      <p className="text-xs text-gray-500 font-semibold">{log.createdAt ? new Date(log.createdAt).toLocaleString() : ''}</p>
                     </div>
                   </div>
                 </div>
