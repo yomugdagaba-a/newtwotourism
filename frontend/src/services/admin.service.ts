@@ -75,6 +75,8 @@ export interface HotelCreateDto {
   images?: string[];
   mainImageUrl?: string;
   active?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface HotelUpdateDto {
@@ -86,6 +88,8 @@ export interface HotelUpdateDto {
   images?: string[];
   mainImageUrl?: string;
   active?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Hotel {
