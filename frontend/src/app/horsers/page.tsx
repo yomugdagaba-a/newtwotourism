@@ -65,7 +65,7 @@ function HorsersContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-emerald-50">
       <TopBar />
-      <div className="px-6 py-12 max-w-6xl mx-auto">
+      <div className="px-4 md:px-6 py-8 md:py-12 max-w-6xl mx-auto">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
@@ -75,11 +75,11 @@ function HorsersContent() {
         </button>
 
         {/* Hero Section */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-8 md:mb-16">
           <div className="inline-flex items-center gap-4 mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center shadow-2xl">
             </div>
-            <h1 className="text-6xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-emerald-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-emerald-600 bg-clip-text text-transparent">
               Horse Services
             </h1>
           </div>
@@ -141,7 +141,7 @@ function HorsersContent() {
               </p>
             </div>
             
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {horseServices.map((service) => (
                 <div
                   key={service.id}

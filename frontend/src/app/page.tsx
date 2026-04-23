@@ -52,8 +52,8 @@ export default function HomePage() {
       <TopBar showCategories={false} />
 
       {/* ── Hero ── */}
-      <section className="px-6 py-4" style={{ background: pageBg }}>
-        <div className="relative w-full h-[360px] overflow-hidden rounded-2xl"
+      <section className="px-4 sm:px-6 py-4" style={{ background: pageBg }}>
+        <div className="relative w-full h-[220px] sm:h-[300px] md:h-[360px] overflow-hidden rounded-2xl"
           style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.22)" }}>
 
           {/* Dark overlay */}
@@ -71,7 +71,7 @@ export default function HomePage() {
               {/* Duplicate for seamless loop */}
               {[...heroImages, ...heroImages].map((img, i) => (
                 <img key={i} src={img.imageUrl} alt={img.title || 'Hero'}
-                  style={{ height: '360px', width: 'auto', flexShrink: 0, display: 'block' }} />
+                  style={{ height: '100%', width: 'auto', flexShrink: 0, display: 'block' }} />
               ))}
             </div>
           ) : (
@@ -81,7 +81,7 @@ export default function HomePage() {
           {/* Text overlay */}
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-white px-4">
             <h1 style={{ fontFamily: TNR, textShadow: "0 3px 18px rgba(0,0,0,0.65)", letterSpacing: "0.03em", fontWeight: 700 }}
-              className="text-4xl md:text-5xl mb-3 leading-tight text-center">
+              className="text-2xl sm:text-4xl md:text-5xl mb-3 leading-tight text-center">
               Explore North Wollo
             </h1>
             <p style={{ fontFamily: TNR, textShadow: "0 2px 8px rgba(0,0,0,0.55)", fontStyle: "italic", fontSize: "1.05rem" }}
@@ -95,7 +95,7 @@ export default function HomePage() {
         background: "#dde4ed",
         boxShadow: "0 8px 40px rgba(0,0,0,0.28), inset 0 2px 12px rgba(0,0,0,0.10)",
         borderBottom: "1px solid #c5cfd9",
-      }} className="px-6 py-5">
+      }} className="px-4 sm:px-6 py-5">
         <div className="max-w-6xl mx-auto">
 
           {/* Row 1: View All Places | Select All | ✦ Filter text | → Select Categories Below */}
@@ -217,7 +217,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Newsletter ── */}
-      <section className="px-6 py-7" style={{
+      <section className="px-4 sm:px-6 py-7" style={{
         background: pageBg,
         borderTop: "1px solid #b8c4d0",
         borderBottom: "1px solid #b8c4d0",

@@ -141,7 +141,7 @@ export default function HotelOwnerDashboard() {
   return (
     <div className="min-h-screen bg-gray-200">
       <TopBar />
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Header */}
         <div className="mb-6 bg-gradient-to-r from-slate-900 via-emerald-900 to-slate-900 p-6 rounded-xl shadow-xl">
           <div className="flex items-center justify-between">

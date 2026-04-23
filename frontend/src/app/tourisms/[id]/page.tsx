@@ -436,7 +436,7 @@ export default function TourismDetailPage() {
                       View All Images
                     </button>
                   </div>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {detail.images.map((img, idx) => (
                       <button key={idx} onClick={() => setZoomedImage(img.imageUrl)} className="relative h-20 md:h-24 rounded-lg overflow-hidden transition-all shadow-md hover:shadow-lg border border-gray-200 hover:border-purple-400 hover:scale-105">
                         {/* eslint-disable-next-line @next/next/no-img-element */}

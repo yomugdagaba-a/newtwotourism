@@ -55,7 +55,7 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-2 sm:mx-4 max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -73,8 +73,8 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
-          <nav className="w-52 shrink-0 border-r border-gray-100 py-3 bg-gray-50">
+          {/* Sidebar — hidden on mobile, shown on sm+ */}
+          <nav className="hidden sm:block w-52 shrink-0 border-r border-gray-100 py-3 bg-gray-50">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -91,7 +91,19 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
           </nav>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            {/* Mobile tab selector */}
+            <div className="sm:hidden mb-4">
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value as Tab)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-blue-500"
+              >
+                {TABS.map((tab) => (
+                  <option key={tab.id} value={tab.id}>{tab.label}</option>
+                ))}
+              </select>
+            </div>
             {loadingProfile && activeTab === "profile" ? (
               <div className="flex items-center justify-center h-32 text-gray-400 text-sm">Loading...</div>
             ) : (

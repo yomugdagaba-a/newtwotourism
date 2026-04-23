@@ -137,7 +137,7 @@ function HotelsContent() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-100">
-        <div className="px-6 py-8">
+        <div className="px-4 sm:px-6 py-8">
           <div className="max-w-6xl mx-auto">
             <Link
               href="/"
@@ -188,7 +188,7 @@ function HotelsContent() {
           </div>
         </div>
 
-        <div className="px-6 pb-20">
+        <div className="px-4 sm:px-6 pb-20">
           <div className="max-w-6xl mx-auto">
             {loading ? (
               <div className="flex justify-center items-center min-h-[40vh]">

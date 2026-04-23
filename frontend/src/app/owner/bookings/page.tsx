@@ -300,7 +300,7 @@ function OwnerBookingsContent() {
         <div className="max-w-7xl mx-auto px-4 py-3">
 
           {/* Stats */}
-          <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mb-3">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
             {[
               { label: "Hotels", value: myHotels.length },
               { label: "Active", value: activeHotels },
@@ -382,7 +382,7 @@ function OwnerBookingsContent() {
                     </div>
 
                     {/* Client + Stay */}
-                    <div className="p-5 border-b border-gray-200 grid grid-cols-2 gap-5">
+                    <div className="p-5 border-b border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div>
                         <p style={{ fontWeight: 900, fontSize: '15px', color: '#111827', marginBottom: '10px' }}>Client</p>
                         <div className="space-y-1.5">

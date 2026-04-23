@@ -156,7 +156,7 @@ export default function AdminBookingsPage() {
         {success && <div className="mb-4"><Alert type="success" message={success} onClose={() => setSuccess(null)} /></div>}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
           {[
             { label: 'Total', filter: 'ALL', count: stats.ALL || 0 },
             { label: 'Requested', filter: 'REQUESTED', count: stats.REQUESTED || 0 },

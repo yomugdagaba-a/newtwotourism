@@ -349,7 +349,7 @@ function VerifyEmailContent() {
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-12 h-14 text-center text-2xl font-bold bg-gray-50 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-gray-900"
+                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold bg-gray-50 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-gray-900"
                       disabled={loading}
                     />
                   ))}
@@ -395,7 +395,7 @@ function VerifyEmailContent() {
 
         {/* Features Preview */}
         {step !== 'success' && (
-          <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+          <div className="mt-8 grid grid-cols-3 gap-3 text-center">
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
               <div className="text-2xl mb-2">🏨</div>
               <p className="text-xs text-gray-600">Book Hotels</p>

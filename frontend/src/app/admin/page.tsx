@@ -83,7 +83,7 @@ const AdminDashboard = () => {
 
       {/* System Status Cards */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="bg-white rounded-lg shadow-[0_8px_25px_rgba(0,0,0,0.12)] p-4 animate-pulse border border-gray-200">
               <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -116,7 +116,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       ) : auditStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0">

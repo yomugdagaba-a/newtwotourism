@@ -199,7 +199,7 @@ export default function ClientBookingsPage() {
           {error && <div className="bg-red-50 border border-red-200 text-red-600 p-2 rounded mb-3 text-xs">{error}</div>}
 
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
             {[
               { label: "Total", value: bookings.length },
               { label: "In Progress", value: activeCount },
@@ -321,7 +321,7 @@ export default function ClientBookingsPage() {
                     {/* Booking Details */}
                     <div className="px-5 py-4 border-b border-gray-200">
                       <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '10px' }}>Booking Details</p>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {[
                           { label: "Check-in", value: selectedBooking.checkIn },
                           { label: "Check-out", value: selectedBooking.checkOut },

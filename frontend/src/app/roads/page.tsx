@@ -47,7 +47,7 @@ function RoadsContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
       <TopBar />
-      <div className="px-6 py-12 max-w-6xl mx-auto">
+      <div className="px-4 md:px-6 py-8 md:py-12 max-w-6xl mx-auto">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium mb-6 text-lg transition-all"
@@ -55,7 +55,7 @@ function RoadsContent() {
           ← Back to Destination
         </button>
 
-        <h1 className="text-5xl font-black bg-gradient-to-r from-gray-900 to-emerald-700 bg-clip-text text-transparent mb-8">
+        <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-gray-900 to-emerald-700 bg-clip-text text-transparent mb-8">
           Roads & Travel Routes
         </h1>
 
@@ -81,7 +81,7 @@ function RoadsContent() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 md:mt-12">
           {roads.map((road) => (
             <div key={road.id} className="group bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all duration-500 border border-white/50 h-full">
               <RoadInfo road={road} />

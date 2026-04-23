@@ -144,7 +144,7 @@ export default function RegisterForm() {
             {serverError && <Alert type="error" message={serverError} onClose={() => setServerError("")} />}
 
             {/* Two columns for name fields */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormInput 
                 label="Full Name" 
                 name="fullName" 
@@ -182,7 +182,7 @@ export default function RegisterForm() {
             />
 
             {/* Two columns for password fields */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <FormInput 
                   label="Password" 

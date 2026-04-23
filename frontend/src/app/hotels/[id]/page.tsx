@@ -539,7 +539,7 @@ export default function HotelDetailPage() {
               {hotel.images && hotel.images.length > 1 && (
                 <div className="bg-white rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] border-2 border-gray-200">
                   <h3 className="text-gray-900 font-black text-base mb-4">Gallery</h3>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {hotel.images.map((img, idx) => {
                       const raw = typeof img === 'string' ? img : (img as any)?.imageUrl || '';
                       const imageUrl = raw.startsWith('http') ? raw : raw ? `${API_BASE_URL.replace('/api', '')}/${raw.replace(/^\//, '')}` : '';
@@ -799,7 +799,7 @@ export default function HotelDetailPage() {
                       );
                     }
                     return (
-                <div className="grid lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Bookings List */}
                   <div className="space-y-3 bg-gradient-to-b from-gray-50 to-gray-100 p-4 rounded-2xl shadow-md border border-gray-200">
                     <h3 className="text-gray-700 text-sm font-semibold uppercase tracking-wide mb-4 flex items-center gap-2">
