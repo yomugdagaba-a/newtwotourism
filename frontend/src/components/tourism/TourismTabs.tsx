@@ -26,12 +26,12 @@ export default function TourismTabs({ tourismId, forceActiveTab }: Props) {
   return (
     <div>
       {/* Tab Menu */}
-      <div className="flex space-x-4 border-b mb-4">
+      <div className="flex overflow-x-auto space-x-1 border-b mb-4 scrollbar-hide">
         {tabs.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-medium ${
+            className={`px-3 py-2 font-medium whitespace-nowrap flex-shrink-0 text-sm ${
               activeTab === tab ? "border-b-2 border-green-700 text-green-700" : "text-gray-600"
             }`}
           >
