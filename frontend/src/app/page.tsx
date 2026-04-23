@@ -99,7 +99,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
 
           {/* Row 1: View All Places | Select All | ✦ Filter text | → Select Categories Below */}
-          <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             <Link href="/tourisms"
               style={{ fontFamily: TNR, background: "linear-gradient(135deg,#2563eb,#1d4ed8)", boxShadow: "0 6px 20px rgba(37,99,235,0.45)", fontWeight: 700, fontSize: "0.88rem" }}
               className="px-5 py-2 text-white rounded-full hover:scale-105 transition-all flex-shrink-0">
@@ -110,15 +110,13 @@ export default function HomePage() {
               className="px-3 py-1.5 text-blue-600 hover:text-blue-800 rounded-full transition-all flex-shrink-0">
               {selectedCategories.length === categories.length ? "Clear All" : "Select All"}
             </button>
-            {/* Filter label inline */}
-            <span style={{ fontFamily: TNR, fontSize: "0.85rem", color: "#1e293b", fontWeight: 800 }} className="flex-shrink-0">
+            <span style={{ fontFamily: TNR, fontSize: "0.85rem", color: "#1e293b", fontWeight: 800 }} className="flex-shrink-0 hidden sm:inline">
               ✦ Filter by category of interest:
             </span>
             {selectedCategories.length > 0 &&
               <span style={{ fontFamily: TNR, fontSize: "0.78rem", fontStyle: "italic", color: "#059669", fontWeight: 600 }} className="flex-shrink-0">
                 {selectedCategories.length} selected
               </span>}
-            {/* Push "Select Categories" to far right */}
             <div className="flex-1" />
             <button onClick={handleViewSelected} disabled={!selectedCategories.length}
               style={{
@@ -127,13 +125,13 @@ export default function HomePage() {
                   ? { background: "linear-gradient(135deg,#059669,#047857)", boxShadow: "0 6px 20px rgba(5,150,105,0.4)" }
                   : { background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #e2e8f0" }),
               }}
-              className={`px-4 py-2 rounded-full transition-all ${selectedCategories.length ? "text-white hover:scale-105" : "text-gray-700 cursor-not-allowed"}`}>
+              className={`px-4 py-2 rounded-full transition-all text-sm ${selectedCategories.length ? "text-white hover:scale-105" : "text-gray-700 cursor-not-allowed"}`}>
               {!selectedCategories.length ? "Select Categories Below" : `View ${selectedCategories.length} Selected`}
             </button>
           </div>
 
-          {/* Row 2: All 6 category buttons in ONE row */}
-          <div className="grid grid-cols-6 gap-3" style={{ marginBottom: "48px" }}>
+          {/* Row 2: Category cards — 2 cols on mobile, 3 on tablet, 6 on desktop */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" style={{ marginBottom: "24px" }}>
             {categories.map((cat) => {
               const sel = selectedCategories.includes(cat.id);
               return (
@@ -195,12 +193,12 @@ export default function HomePage() {
             background: "#e8edf3",
             border: "1px solid #d0d8e4",
             borderRadius: "0.75rem",
-          }} className="p-3">
-            <div className="flex flex-wrap items-center gap-8">
+          }} className="p-3 mt-6">
+            <div className="flex flex-wrap items-center gap-4">
               <div style={{ fontFamily: TNR, color: "#1e293b", fontWeight: 700, fontSize: "0.9rem" }}>
                 North Wollo Tourism — Est. 2026
               </div>
-              <div className="flex gap-6">
+              <div className="flex flex-wrap gap-4">
                 {[["2026","Established"],["100%","Local Team"],["50+","Destinations"],["21","Woredas Covered"]].map(([val, lbl]) => (
                   <div key={lbl} className="text-center">
                     <div style={{ fontFamily: TNR, color: "#2563eb", fontWeight: 700, fontSize: "1.1rem" }}>{val}</div>
@@ -208,8 +206,8 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <div className="flex-1" />
-              <div style={{ fontFamily: TNR, color: "#475569", fontSize: "12px", fontWeight: 600, fontStyle: "italic" }}>
+              <div className="flex-1 hidden md:block" />
+              <div style={{ fontFamily: TNR, color: "#475569", fontSize: "12px", fontWeight: 600, fontStyle: "italic" }} className="hidden md:block">
                 Full details in the footer below ↓
               </div>
             </div>
