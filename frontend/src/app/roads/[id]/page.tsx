@@ -176,7 +176,7 @@ function RoadDetailContent() {
           
           <div className="space-y-6">
             <div className="inline-block">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black bg-gradient-to-r from-gray-900 via-emerald-800 to-blue-900 bg-clip-text text-transparent mb-6 leading-none">
+              <h1 className="text-3xl md:text-5xl lg:text-7xl font-black bg-gradient-to-r from-gray-900 via-emerald-800 to-blue-900 bg-clip-text text-transparent mb-6 leading-none">
                 🛤️ Routes
               </h1>
             </div>
