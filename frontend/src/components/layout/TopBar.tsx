@@ -253,7 +253,7 @@ export default function TopBar({
                     </button>
 
                     {openMenu && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+                      <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 max-h-[80vh] overflow-y-auto">
                         {/* User info */}
                         <div className="px-4 py-2 border-b border-gray-200">
                           <p className="text-sm font-medium text-gray-900">{username}</p>

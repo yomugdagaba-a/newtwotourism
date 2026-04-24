@@ -11,7 +11,7 @@ import {
   IntegrityStatus
 } from "../types/audit";
 
-const API_BASE_URL = "/api";
+import { API_BASE_URL } from "./api";
 
 // Helper to get auth headers
 const getAuthHeaders = (token: string) => ({
