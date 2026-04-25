@@ -49,7 +49,7 @@ export default function TopBar({
   liveSearch = false,
 }: Props) {
   const [openMenu, setOpenMenu] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [catMenuOpen, setCatMenuOpen] = useState(false);
   const [modalContent, setModalContent] = useState<"login" | "register" | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [searchValue, setSearchValue] = useState(keyword);
@@ -76,11 +76,8 @@ export default function TopBar({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSearch) {
-      onSearch(searchValue);
-    } else {
-      router.push(`/tourisms?keyword=${encodeURIComponent(searchValue)}`);
-    }
+    if (onSearch) onSearch(searchValue);
+    else router.push(`/tourisms?keyword=${encodeURIComponent(searchValue)}`);
   };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,50 +94,30 @@ export default function TopBar({
     <>
       <header
         className={`sticky top-0 z-50 ${transparent ? "bg-white/95 backdrop-blur-lg" : "bg-white"} border-b border-gray-200`}
-        style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.13), 0 1px 6px rgba(0,0,0,0.07), inset 0 -1px 0 rgba(255,255,255,0.8)" }}
+        style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.13), 0 1px 6px rgba(0,0,0,0.07)" }}
       >
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center h-16 gap-3">
+        <div className="max-w-7xl mx-auto px-3">
+          {/* Single row — all elements visible on all screen sizes */}
+          <div className="flex items-center h-14 gap-2">
+
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group shrink-0">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-105 transition-transform">
+            <Link href="/" className="flex items-center gap-1.5 group shrink-0">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg group-hover:scale-105 transition-transform">
                 NW
               </div>
-              <span className="hidden sm:block font-bold text-gray-900 text-lg">North Wollo</span>
+              <span className="hidden lg:block font-bold text-gray-900 text-base">North Wollo</span>
             </Link>
 
-            {/* Hamburger for mobile — shows category menu */}
-            <button
-              className="md:hidden ml-1 p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {mobileMenuOpen
-                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                }
-              </svg>
-            </button>
-
-            {/* Category Pills */}
-            <div className="hidden md:flex items-center gap-1 flex-1 overflow-x-auto scrollbar-hide">
+            {/* Category pills — desktop only */}
+            <div className="hidden lg:flex items-center gap-1 flex-1 overflow-x-auto scrollbar-hide">
               {CATEGORIES.map((cat) => {
                 const isSelected = selectedCategories?.includes(cat.id);
                 return (
                   <button
                     key={cat.id}
                     onClick={() => (onCategoryToggle ? onCategoryToggle(cat.id) : handleCategoryClick(cat.id))}
-                    style={{
-                      boxShadow: isSelected
-                        ? "0 4px 14px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.3)"
-                        : "0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9)",
-                      backdropFilter: "blur(8px)",
-                    }}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-semibold rounded-full transition-all whitespace-nowrap ${
-                      isSelected
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-50 hover:-translate-y-0.5"
+                    className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap ${
+                      isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
                     <span>{cat.label}</span>
@@ -148,152 +125,123 @@ export default function TopBar({
                 );
               })}
               {selectedCategories && selectedCategories.length > 0 && onClearCategories && (
-                <button
-                  onClick={onClearCategories}
-                  className="ml-1 px-2 py-1 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full border border-red-200 transition-all whitespace-nowrap"
-                >
+                <button onClick={onClearCategories} className="ml-1 px-2 py-1 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full border border-red-200 transition-all whitespace-nowrap">
                   ✕ Clear
                 </button>
               )}
             </div>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="hidden md:flex shrink-0 w-36">
-              <div className="relative w-full">
+            {/* Spacer on mobile/tablet */}
+            <div className="flex-1 lg:hidden" />
+
+            {/* Search — visible on all sizes, compact on mobile */}
+            <form onSubmit={handleSearch} className="shrink-0">
+              <div className="relative">
                 <input
                   type="text"
                   value={searchValue}
                   onChange={handleSearchInputChange}
                   placeholder="Search..."
-                  className="w-full pl-8 pr-3 py-1.5 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all text-xs text-gray-900 placeholder-gray-500"
+                  className="w-24 sm:w-32 md:w-40 pl-7 pr-2 py-1.5 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all text-xs text-gray-900 placeholder-gray-500"
                 />
-                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                {searchValue && (
-                  <button
-                    type="button"
-                    onClick={() => { setSearchValue(""); if (onSearch) onSearch(""); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
               </div>
             </form>
 
-            {/* Auth Buttons / User Menu */}
+            {/* Auth area */}
             <div className="flex items-center gap-1 shrink-0">
               {showAuthenticatedUI ? (
                 <>
-                  {/* Hotel Owner mode buttons */}
+                  {/* Mode switcher — visible on all sizes */}
                   {role === "HOTEL_OWNER" && (
-                    <div className="hidden sm:flex items-center gap-1">
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => setBrowsingMode("OWNER")}
-                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
-                          browsingMode === "OWNER"
-                            ? "bg-orange-500 text-white"
-                            : "text-gray-600 hover:bg-gray-100 border border-gray-300"
+                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
+                          browsingMode === "OWNER" ? "bg-orange-500 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-300"
                         }`}
                       >
-                        As Owner
+                        Owner
                       </button>
                       <button
                         onClick={() => setBrowsingMode("CLIENT")}
-                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
-                          browsingMode === "CLIENT"
-                            ? "bg-emerald-500 text-white"
-                            : "text-gray-600 hover:bg-gray-100 border border-gray-300"
+                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
+                          browsingMode === "CLIENT" ? "bg-emerald-500 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-300"
                         }`}
                       >
-                        As Client
+                        Client
                       </button>
-                      {browsingMode === "CLIENT" ? (
-                        <Link href="/bookings" className="px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300 transition-all whitespace-nowrap">
-                          My Bookings
-                        </Link>
-                      ) : (
-                        <Link href="/owner/dashboard" className="px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300 transition-all whitespace-nowrap">
-                          Manage
-                        </Link>
-                      )}
                     </div>
                   )}
 
-                  {/* Admin link */}
-                  {role === "ADMIN" && (
-                    <Link href="/admin" className="hidden sm:flex items-center px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-                      Admin
-                    </Link>
-                  )}
-
-                  {/* My Bookings for plain CLIENT */}
-                  {role === "CLIENT" && (
-                    <Link href="/bookings" className="hidden sm:flex items-center px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors whitespace-nowrap">
+                  {/* My Bookings — visible on all sizes */}
+                  {(role === "CLIENT" || (role === "HOTEL_OWNER" && browsingMode === "CLIENT")) && (
+                    <Link href="/bookings" className="px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300 transition-all whitespace-nowrap hidden sm:flex">
                       My Bookings
                     </Link>
                   )}
 
-                  {/* User dropdown */}
+                  {/* Owner manage — visible on all sizes */}
+                  {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
+                    <Link href="/owner/bookings" className="px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-50 rounded-md border border-orange-300 transition-all whitespace-nowrap hidden sm:flex">
+                      Manage
+                    </Link>
+                  )}
+
+                  {/* Admin link */}
+                  {role === "ADMIN" && (
+                    <Link href="/admin" className="px-2 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-50 rounded-md border border-purple-300 transition-all whitespace-nowrap hidden sm:flex">
+                      Admin
+                    </Link>
+                  )}
+
+                  {/* User avatar + dropdown */}
                   <div className="relative">
                     <button
                       onClick={() => setOpenMenu(!openMenu)}
-                      className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors border border-gray-300"
+                      className="flex items-center gap-1 px-1.5 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors border border-gray-300"
                     >
                       <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                         {username?.charAt(0).toUpperCase() || "U"}
                       </div>
-                      <span className="hidden sm:block text-xs font-medium text-gray-900 max-w-[80px] truncate">{username}</span>
+                      <span className="hidden sm:block text-xs font-medium text-gray-900 max-w-[60px] truncate">{username}</span>
                       <svg className={`w-3 h-3 text-gray-500 transition-transform ${openMenu ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
 
                     {openMenu && (
-                      <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 max-h-[80vh] overflow-y-auto">
-                        {/* User info */}
+                      <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 max-h-[80vh] overflow-y-auto">
                         <div className="px-4 py-2 border-b border-gray-200">
-                          <p className="text-sm font-medium text-gray-900">{username}</p>
+                          <p className="text-sm font-bold text-gray-900">{username}</p>
                           <p className="text-xs text-gray-500">{role}</p>
                         </div>
-
-                        {/* Profile button */}
-                        <button
-                          onClick={() => { setShowProfileModal(true); setOpenMenu(false); }}
-                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
-                        >
+                        <button onClick={() => { setShowProfileModal(true); setOpenMenu(false); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">
                           My Profile
                         </button>
-
-                        <Link href="/" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>
-                          Home
-                        </Link>
-                        <Link href="/tourisms" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>
-                          Explore
-                        </Link>
-                        <Link href="/hotels" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>
-                          Hotels
-                        </Link>
+                        <Link href="/" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Home</Link>
+                        <Link href="/tourisms" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Explore</Link>
+                        <Link href="/hotels" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Hotels</Link>
+                        {/* Mobile-only links */}
+                        {role === "CLIENT" && (
+                          <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>My Bookings</Link>
+                        )}
+                        {role === "HOTEL_OWNER" && browsingMode === "CLIENT" && (
+                          <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>My Bookings</Link>
+                        )}
+                        {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
+                          <Link href="/owner/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>Manage Bookings</Link>
+                        )}
                         {role === "ADMIN" && (
-                          <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>
-                            Admin Panel
-                          </Link>
+                          <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>Admin Panel</Link>
                         )}
                         {role === "HOTEL_OWNER" && (
-                          <Link href="/owner/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>
-                            Owner Dashboard
-                          </Link>
+                          <Link href="/owner/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Owner Dashboard</Link>
                         )}
-                        <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>
-                          My Bookings
-                        </Link>
-                        <div className="border-t border-gray-200 mt-2 pt-2">
-                          <button onClick={handleLogout} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                            Logout
-                          </button>
+                        <div className="border-t border-gray-200 mt-1 pt-1">
+                          <button onClick={handleLogout} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</button>
                         </div>
                       </div>
                     )}
@@ -301,104 +249,46 @@ export default function TopBar({
                 </>
               ) : mounted ? (
                 <>
-                  <button
-                    onClick={() => setModalContent("login")}
-                    style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9)" }}
-                    className="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 rounded-full border border-gray-200 transition-all hover:-translate-y-0.5"
-                  >
+                  <button onClick={() => setModalContent("login")} className="px-2.5 py-1.5 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 rounded-full border border-gray-200 transition-all whitespace-nowrap">
                     Sign In
                   </button>
-                  <button
-                    onClick={() => setModalContent("register")}
-                    style={{ boxShadow: "0 4px 14px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.25)" }}
-                    className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-full transition-all hover:-translate-y-0.5"
-                  >
+                  <button onClick={() => setModalContent("register")} className="px-2.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-full transition-all whitespace-nowrap">
                     Get Started
                   </button>
                 </>
               ) : (
-                <div className="w-24 h-10 bg-white/10 rounded-lg animate-pulse"></div>
+                <div className="w-16 h-8 bg-gray-100 rounded-lg animate-pulse" />
               )}
             </div>
+
+            {/* Category hamburger — mobile/tablet only */}
+            <button
+              className="lg:hidden p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+              onClick={() => setCatMenuOpen(!catMenuOpen)}
+              aria-label="Categories"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {catMenuOpen
+                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                }
+              </svg>
+            </button>
+
           </div>
         </div>
       </header>
 
-      {/* Mobile category dropdown */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed top-16 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-lg px-4 py-3">
-          {/* Mobile search */}
-          <form onSubmit={handleSearch} className="mb-3">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchValue}
-                onChange={handleSearchInputChange}
-                placeholder="Search..."
-                className="w-full pl-9 pr-4 py-2 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all text-sm text-gray-900 placeholder-gray-500"
-              />
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </form>
-
-          {/* Mobile mode switcher for HOTEL_OWNER */}
-          {showAuthenticatedUI && role === "HOTEL_OWNER" && (
-            <div className="flex gap-2 mb-3">
-              <button
-                onClick={() => { setBrowsingMode("OWNER"); setMobileMenuOpen(false); }}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${browsingMode === "OWNER" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 border border-gray-300"}`}
-              >
-                As Owner
-              </button>
-              <button
-                onClick={() => { setBrowsingMode("CLIENT"); setMobileMenuOpen(false); }}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${browsingMode === "CLIENT" ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-700 border border-gray-300"}`}
-              >
-                As Client
-              </button>
-            </div>
-          )}
-
-          {/* Mobile nav links */}
-          {showAuthenticatedUI && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {role === "CLIENT" && (
-                <Link href="/bookings" onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 text-sm font-bold bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
-                  My Bookings
-                </Link>
-              )}
-              {role === "HOTEL_OWNER" && browsingMode === "CLIENT" && (
-                <Link href="/bookings" onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 text-sm font-bold bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
-                  My Bookings
-                </Link>
-              )}
-              {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
-                <Link href="/owner/bookings" onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 text-sm font-bold bg-orange-50 text-orange-700 rounded-lg border border-orange-200">
-                  Manage Bookings
-                </Link>
-              )}
-              {role === "ADMIN" && (
-                <Link href="/admin" onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 text-sm font-bold bg-purple-50 text-purple-700 rounded-lg border border-purple-200">
-                  Admin Panel
-                </Link>
-              )}
-            </div>
-          )}
-
-          {/* Category pills */}
+      {/* Category dropdown — mobile/tablet only */}
+      {catMenuOpen && (
+        <div className="lg:hidden fixed top-14 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-lg px-4 py-3">
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => {
               const isSelected = selectedCategories?.includes(cat.id);
               return (
                 <button
                   key={cat.id}
-                  onClick={() => { onCategoryToggle ? onCategoryToggle(cat.id) : handleCategoryClick(cat.id); setMobileMenuOpen(false); }}
+                  onClick={() => { onCategoryToggle ? onCategoryToggle(cat.id) : handleCategoryClick(cat.id); setCatMenuOpen(false); }}
                   className={`flex items-center gap-1 px-3 py-1.5 text-sm font-semibold rounded-full transition-all ${
                     isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
@@ -409,10 +299,7 @@ export default function TopBar({
               );
             })}
             {selectedCategories && selectedCategories.length > 0 && onClearCategories && (
-              <button
-                onClick={() => { onClearCategories(); setMobileMenuOpen(false); }}
-                className="px-3 py-1.5 text-sm font-semibold text-red-500 hover:text-red-700 bg-red-50 rounded-full border border-red-200 transition-all"
-              >
+              <button onClick={() => { onClearCategories(); setCatMenuOpen(false); }} className="px-3 py-1.5 text-sm font-semibold text-red-500 bg-red-50 rounded-full border border-red-200 transition-all">
                 ✕ Clear
               </button>
             )}
@@ -423,22 +310,13 @@ export default function TopBar({
       {/* Auth Modal */}
       <Modal isOpen={!!modalContent} onClose={() => setModalContent(null)}>
         {modalContent === "login" && (
-          <LoginForm
-            onSuccess={() => setModalContent(null)}
-            onRegisterClick={() => setModalContent("register")}
-            onCancel={() => setModalContent(null)}
-          />
+          <LoginForm onSuccess={() => setModalContent(null)} onRegisterClick={() => setModalContent("register")} onCancel={() => setModalContent(null)} />
         )}
         {modalContent === "register" && (
-          <RegisterForm
-            onSuccess={() => setModalContent(null)}
-            onLoginClick={() => setModalContent("login")}
-            onCancel={() => setModalContent(null)}
-          />
+          <RegisterForm onSuccess={() => setModalContent(null)} onLoginClick={() => setModalContent("login")} onCancel={() => setModalContent(null)} />
         )}
       </Modal>
 
-      {/* Profile Modal */}
       <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </>
   );
