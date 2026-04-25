@@ -342,6 +342,55 @@ export default function TopBar({
               </svg>
             </div>
           </form>
+
+          {/* Mobile mode switcher for HOTEL_OWNER */}
+          {showAuthenticatedUI && role === "HOTEL_OWNER" && (
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => { setBrowsingMode("OWNER"); setMobileMenuOpen(false); }}
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${browsingMode === "OWNER" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 border border-gray-300"}`}
+              >
+                As Owner
+              </button>
+              <button
+                onClick={() => { setBrowsingMode("CLIENT"); setMobileMenuOpen(false); }}
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${browsingMode === "CLIENT" ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-700 border border-gray-300"}`}
+              >
+                As Client
+              </button>
+            </div>
+          )}
+
+          {/* Mobile nav links */}
+          {showAuthenticatedUI && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {role === "CLIENT" && (
+                <Link href="/bookings" onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-sm font-bold bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
+                  My Bookings
+                </Link>
+              )}
+              {role === "HOTEL_OWNER" && browsingMode === "CLIENT" && (
+                <Link href="/bookings" onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-sm font-bold bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
+                  My Bookings
+                </Link>
+              )}
+              {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
+                <Link href="/owner/bookings" onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-sm font-bold bg-orange-50 text-orange-700 rounded-lg border border-orange-200">
+                  Manage Bookings
+                </Link>
+              )}
+              {role === "ADMIN" && (
+                <Link href="/admin" onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-sm font-bold bg-purple-50 text-purple-700 rounded-lg border border-purple-200">
+                  Admin Panel
+                </Link>
+              )}
+            </div>
+          )}
+
           {/* Category pills */}
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => {
