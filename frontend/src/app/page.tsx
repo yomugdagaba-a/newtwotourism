@@ -71,7 +71,9 @@ export default function HomePage() {
               {/* Duplicate for seamless loop */}
               {[...heroImages, ...heroImages].map((img, i) => (
                 <img key={i} src={img.imageUrl} alt={img.title || 'Hero'}
-                  style={{ height: '100%', width: 'auto', flexShrink: 0, display: 'block' }} />
+                  style={{ height: '100%', width: 'auto', flexShrink: 0, display: 'block' }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
               ))}
             </div>
           ) : (
