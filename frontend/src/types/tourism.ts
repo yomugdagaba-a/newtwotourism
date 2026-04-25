@@ -48,14 +48,15 @@ export interface TourismFullDetailDto {
   kebele: string;
   bestTime?: string;
   peaceInfo?: string;
-  visitTime?: string; // duration in ISO 8601 format
+  visitTime?: string;
   languages: string[];
   viewersCount: number;
   categories?: string[];
+  imageUrl?: string;
   createdAt?: string;
   latitude?: number;
   longitude?: number;
-  images: TourismImageDto[];  // Changed from string[] to include title/description
+  images: TourismImageDto[];
   nearbyPlaces: NearbyTourismDto[];
   ratingSummary: RatingSummaryResponseDto;
   ratings: TourismRatingResponseDto[];
