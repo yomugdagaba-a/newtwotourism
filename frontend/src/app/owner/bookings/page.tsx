@@ -41,7 +41,13 @@ function OwnerBookingsContent() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  const getReceiptUrl = (url: string) => url;
+  const getReceiptUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    // Relative path — prepend backend URL
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://tourismsystem.onrender.com';
+    return `${backendUrl}/${url.replace(/^\//, '')}`;
+  };
 
   const handleDownloadReceipt = async () => {
     if (!selectedBooking?.receiptImageUrl) return;
@@ -269,14 +275,14 @@ function OwnerBookingsContent() {
 
       {/* Hamburger */}
       <button onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-2 left-2 z-30 h-14 w-14 flex items-center justify-center text-white shadow-lg hover:opacity-90"
+        className="fixed top-2 left-2 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-lg hover:opacity-90"
         style={{ backgroundColor: "#1d4ed8", borderRadius: "8px" }}>
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
-      <div className="min-h-screen ml-16">
+      <div className="min-h-screen ml-12 sm:ml-16">
         {/* Top bar */}
         <div style={{
           background: '#ffffff',
@@ -633,3 +639,4 @@ export default function OwnerBookingsPage() {
     </Suspense>
   );
 }
+

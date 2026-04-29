@@ -431,7 +431,7 @@ export default function HotelDetailPage() {
       {/* Hamburger — flush left, full-width background strip */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-2 left-2 z-30 h-14 w-14 flex items-center justify-center text-white shadow-[2px_0_8px_rgba(0,0,0,0.2)] transition-all hover:opacity-90"
+        className="fixed top-2 left-2 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-[2px_0_8px_rgba(0,0,0,0.2)] transition-all hover:opacity-90"
         style={{ backgroundColor: '#16a34a', borderRadius: '8px' }}
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -440,7 +440,7 @@ export default function HotelDetailPage() {
       </button>
 
       {/* Main Content — full width */}
-      <main className="min-h-screen ml-16">
+      <main className="min-h-screen ml-12 sm:ml-16">
         {/* Hero Header */}
         <div className="relative h-48 md:h-56">
           {/* eslint-disable-next-line @next/next/no-img-element */}
