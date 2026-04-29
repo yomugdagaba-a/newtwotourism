@@ -181,14 +181,14 @@ export default function ClientBookingsPage() {
 
       {/* Hamburger */}
       <button onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-2 left-2 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-lg hover:opacity-90"
+        className="fixed top-2 left-1 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-lg hover:opacity-90"
         style={{ backgroundColor: "#1d4ed8", borderRadius: "8px" }}>
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
-      <div className="min-h-screen ml-12 sm:ml-16">
+      <div className="min-h-screen ml-10 sm:ml-14">
         {/* White top bar */}
         <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: '14px 24px', marginBottom: '16px' }}>
           <h1 style={{ fontWeight: 900, fontSize: '18px', color: '#111827', margin: 0 }}>My Bookings</h1>
@@ -236,7 +236,7 @@ export default function ClientBookingsPage() {
                       <span className={"px-1.5 py-0.5 rounded text-xs font-medium " + BookingService.getStatusColor(b.bookingStatus)}>{BookingService.getStatusLabel(b.bookingStatus)}</span>
                     </div>
                     <div className="text-xs text-gray-700 font-medium">{b.hotel.name}</div>
-                    <div className="text-xs text-gray-400">{b.checkIn} to {b.checkOut} · {b.numberOfGuests} guests</div>
+                    <div className="text-xs text-gray-400">{b.checkIn} to {b.checkOut} ï¿½ {b.numberOfGuests} guests</div>
                     {b.totalCost && <div className="text-xs text-green-600 font-semibold mt-0.5">{b.totalCost} ETB</div>}
                     {b.problemReported && <div className="text-xs text-red-500 font-bold mt-0.5">Problem Reported</div>}
                   </div>
@@ -256,7 +256,7 @@ export default function ClientBookingsPage() {
                       <span className={"px-3 py-1 rounded-full text-sm font-bold " + BookingService.getStatusColor(selectedBooking.bookingStatus)}>{BookingService.getStatusLabel(selectedBooking.bookingStatus)}</span>
                     </div>
 
-                    {/* Progress — dots only, no numbers */}
+                    {/* Progress ï¿½ dots only, no numbers */}
                     <div className="px-5 py-4 border-b border-gray-200">
                       <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '12px' }}>Booking Progress</p>
                       <div className="flex items-start justify-between">
@@ -377,7 +377,7 @@ export default function ClientBookingsPage() {
                     {selectedBooking.bookingStatus === BOOKING_STATUS.APPROVED && (
                       <div style={{ padding: '14px 20px', borderBottom: '1px solid #bbf7d0', background: '#f0fdf4', textAlign: 'center' }}>
                         <p style={{ fontWeight: 800, fontSize: '14px', color: '#15803d' }}>? Booking Approved</p>
-                        <p style={{ fontWeight: 600, fontSize: '13px', color: '#16a34a', marginTop: '3px' }}>{selectedBooking.checkIn} to {selectedBooking.checkOut} · Contact: {selectedBooking.hotel.contactInfo}</p>
+                        <p style={{ fontWeight: 600, fontSize: '13px', color: '#16a34a', marginTop: '3px' }}>{selectedBooking.checkIn} to {selectedBooking.checkOut} ï¿½ Contact: {selectedBooking.hotel.contactInfo}</p>
                       </div>
                     )}
 
@@ -413,7 +413,7 @@ export default function ClientBookingsPage() {
                       </div>
                     </div>
 
-                    {/* Messages — same style as owner page */}
+                    {/* Messages ï¿½ same style as owner page */}
                     <div style={{
                       background: '#f3f0ff',
                       border: '2px solid #7c3aed',

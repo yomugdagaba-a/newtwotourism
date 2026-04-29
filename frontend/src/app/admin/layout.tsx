@@ -156,7 +156,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       <button
         type="button"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-2 left-2 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-[2px_0_8px_rgba(0,0,0,0.2)] transition-all hover:opacity-90"
+        className="fixed top-2 left-1 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-[2px_0_8px_rgba(0,0,0,0.2)] transition-all hover:opacity-90"
         style={{ backgroundColor: '#6d28d9', borderRadius: '8px' }}
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -165,7 +165,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       </button>
 
       {/* Page content */}
-      <main className="flex-1 ml-12 sm:ml-16">
+      <main className="flex-1 ml-10 sm:ml-14">
         <div className="py-6">
           {children}
         </div>
