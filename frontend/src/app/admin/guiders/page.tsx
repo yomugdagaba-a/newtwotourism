@@ -506,6 +506,8 @@ const GuidersManagementPage = () => {
                   )}
                 </div>
               </div>
+
+              {editingGuider && (
                 <div className="flex items-center border-2 border-gray-300 rounded-lg p-3 bg-gray-50">
                   <input type="checkbox" id="active" checked={formData.active}
                     onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
