@@ -190,7 +190,7 @@ export default function ClientBookingsPage() {
 
       <div className="min-h-screen">
         {/* White top bar */}
-        <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: '14px 24px', marginBottom: '16px' }}>
+        <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: '14px 24px', paddingLeft: '52px', marginBottom: '16px' }}>
           <h1 style={{ fontWeight: 900, fontSize: '18px', color: '#111827', margin: 0 }}>My Bookings</h1>
           <p style={{ fontWeight: 600, fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Track and manage your hotel reservations</p>
         </div>

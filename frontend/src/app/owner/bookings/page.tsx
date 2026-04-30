@@ -293,6 +293,7 @@ function OwnerBookingsContent() {
           borderBottom: '2px solid #e2e8f0',
           boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
           padding: '14px 24px',
+          paddingLeft: '52px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

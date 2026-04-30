@@ -332,7 +332,7 @@ export default function TourismDetailPage() {
             </div>
           )}
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
+          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 pl-12 md:pl-6">
             <h1 className="text-2xl md:text-3xl font-black text-white mb-2">{detail.name}</h1>
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white font-medium">{detail.wereda}, {detail.kebele}</span>
