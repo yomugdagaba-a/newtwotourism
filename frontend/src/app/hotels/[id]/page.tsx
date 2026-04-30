@@ -440,7 +440,7 @@ export default function HotelDetailPage() {
       </button>
 
       {/* Main Content — full width */}
-      <main className="min-h-screen ml-10 sm:ml-14">
+      <main className="min-h-screen">
         {/* Hero Header */}
         <div className="relative h-48 md:h-56">
           {/* eslint-disable-next-line @next/next/no-img-element */}

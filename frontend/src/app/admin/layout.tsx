@@ -165,7 +165,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       </button>
 
       {/* Page content */}
-      <main className="flex-1 ml-10 sm:ml-14">
+      <main className="flex-1">
         <div className="py-6">
           {children}
         </div>

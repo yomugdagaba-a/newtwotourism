@@ -319,8 +319,8 @@ export default function TourismDetailPage() {
       )}
 
       {/* Main Content — full width */}
-      <main className="min-h-screen ml-10 sm:ml-14">
-        <div className="relative h-48 md:h-56">
+      <main className="min-h-screen">
+        <div className="relative h-48 md:h-56" style={{ marginLeft: 0 }}>
           <Image src={detail.images?.[currentImageIndex]?.imageUrl || detail.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"} alt={detail.name} fill className="object-cover" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent" />
           

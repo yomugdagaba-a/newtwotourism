@@ -286,7 +286,7 @@ function OwnerBookingsContent() {
         </svg>
       </button>
 
-      <div className="min-h-screen ml-10 sm:ml-14">
+      <div className="min-h-screen">
         {/* Top bar */}
         <div style={{
           background: '#ffffff',
