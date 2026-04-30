@@ -146,7 +146,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-64 z-50 shadow-2xl">
+          <div className="relative w-[60vw] sm:w-64 z-50 shadow-2xl">
             <SidebarContent />
           </div>
         </div>
