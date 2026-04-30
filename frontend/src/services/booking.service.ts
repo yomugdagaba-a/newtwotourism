@@ -181,17 +181,31 @@ export class BookingService {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(
-      `${API_BASE_URL}/bookings/${bookingId}/receipt/upload?userId=${userId}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+    // Use AbortController for 60s timeout (Render free tier can be slow to wake)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/bookings/${bookingId}/receipt/upload?userId=${userId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+          signal: controller.signal,
+        }
+      );
+      return handleResponse<Booking>(response);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        throw new Error('Upload timed out. The server may be waking up — please try again.');
       }
-    );
-    return handleResponse<Booking>(response);
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   static async reportProblem(token: string, bookingId: number, problem: string, userId: number): Promise<Booking> {
@@ -237,19 +251,33 @@ export class BookingService {
   }
 
   static async acceptBookingRequest(token: string, bookingId: number, ownerId: number): Promise<Booking> {
-    const response = await fetch(
-      `${API_BASE_URL}/bookings/${bookingId}/accept?ownerId=${ownerId}`,
-      { method: "POST", headers: getAuthHeaders(token) }
-    );
-    return handleResponse<Booking>(response);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/bookings/${bookingId}/accept?ownerId=${ownerId}`,
+        { method: "POST", headers: getAuthHeaders(token), signal: controller.signal }
+      );
+      return handleResponse<Booking>(response);
+    } catch (err: any) {
+      if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.');
+      throw err;
+    } finally { clearTimeout(timeoutId); }
   }
 
   static async proposeCost(token: string, bookingId: number, cost: number, ownerId: number): Promise<Booking> {
-    const response = await fetch(
-      `${API_BASE_URL}/bookings/${bookingId}/cost?cost=${cost}&ownerId=${ownerId}`,
-      { method: "POST", headers: getAuthHeaders(token) }
-    );
-    return handleResponse<Booking>(response);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/bookings/${bookingId}/cost?cost=${cost}&ownerId=${ownerId}`,
+        { method: "POST", headers: getAuthHeaders(token), signal: controller.signal }
+      );
+      return handleResponse<Booking>(response);
+    } catch (err: any) {
+      if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.');
+      throw err;
+    } finally { clearTimeout(timeoutId); }
   }
 
   static async approveBooking(token: string, bookingId: number, ownerId: number): Promise<Booking> {

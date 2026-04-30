@@ -106,7 +106,9 @@ function OwnerBookingsContent() {
     try {
       setActionLoading(true);
       const updated = await BookingService.acceptBookingRequest(token, bookingId, userId);
-      updateBookingInList(updated); setSelectedBooking(updated);
+      // Force reload to get fresh state from server
+      await loadBookings(false);
+      setSelectedBooking(updated);
     } catch (err) { alert(err instanceof Error ? err.message : "Failed to accept"); }
     finally { setActionLoading(false); }
   };
@@ -118,7 +120,9 @@ function OwnerBookingsContent() {
       const cost = parseFloat(proposedCost);
       if (isNaN(cost) || cost <= 0) { alert("Enter a valid cost"); return; }
       const updated = await BookingService.proposeCost(token, selectedBooking.bookingId, cost, userId);
-      updateBookingInList(updated); setSelectedBooking(updated);
+      // Force reload to get fresh state
+      await loadBookings(false);
+      setSelectedBooking(updated);
       setProposedCost(""); setShowCostModal(false);
     } catch (err) { alert(err instanceof Error ? err.message : "Failed to propose cost"); }
     finally { setActionLoading(false); }
