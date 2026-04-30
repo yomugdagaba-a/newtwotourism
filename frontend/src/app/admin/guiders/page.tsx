@@ -38,6 +38,7 @@ const GuidersManagementPage = () => {
   const router = useRouter();
 
   const LANGUAGES = ['Amharic', 'English', 'Oromo', 'Tigrinya', 'Somali', 'Arabic', 'French', 'German', 'Italian', 'Spanish'];
+  const [customLanguage, setCustomLanguage] = useState('');
 
   useEffect(() => {
     if (!isAuthenticated || role !== 'ADMIN') {
@@ -187,6 +188,7 @@ const GuidersManagementPage = () => {
     setFormErrors({});
     setFormError('');
     setFormSuccess('');
+    setCustomLanguage('');
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -456,9 +458,54 @@ const GuidersManagementPage = () => {
                     {formErrors.languages}
                   </p>
                 )}
-              </div>
 
-              {editingGuider && (
+                {/* Add custom language */}
+                <div className="mt-3">
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Add Other Language</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customLanguage}
+                      onChange={(e) => setCustomLanguage(e.target.value)}
+                      placeholder="e.g., Japanese, Portuguese, Swahili..."
+                      className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const lang = customLanguage.trim();
+                          if (lang && !formData.languages?.includes(lang)) {
+                            setFormData(prev => ({ ...prev, languages: [...(prev.languages || []), lang] }));
+                          }
+                          setCustomLanguage('');
+                        }
+                      }}
+                    />
+                    <button type="button"
+                      onClick={() => {
+                        const lang = customLanguage.trim();
+                        if (lang && !formData.languages?.includes(lang)) {
+                          setFormData(prev => ({ ...prev, languages: [...(prev.languages || []), lang] }));
+                        }
+                        setCustomLanguage('');
+                      }}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">
+                      Add
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Type any language and press Enter or click Add</p>
+                  {/* Show custom languages */}
+                  {formData.languages?.filter(l => !LANGUAGES.includes(l)).length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {formData.languages.filter(l => !LANGUAGES.includes(l)).map(lang => (
+                        <span key={lang} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 border border-green-400 text-green-800 rounded-full text-xs font-bold">
+                          {lang}
+                          <button type="button" onClick={() => setFormData(prev => ({ ...prev, languages: prev.languages?.filter(l2 => l2 !== lang) || [] }))} className="hover:text-red-600 font-black">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
                 <div className="flex items-center border-2 border-gray-300 rounded-lg p-3 bg-gray-50">
                   <input type="checkbox" id="active" checked={formData.active}
                     onChange={(e) => setFormData({ ...formData, active: e.target.checked })}

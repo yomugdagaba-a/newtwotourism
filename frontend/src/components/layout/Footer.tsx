@@ -59,9 +59,9 @@ const Footer: React.FC = () => {
               <li><Link href="/" className="text-gray-300 hover:text-blue-400 transition-colors">Home</Link></li>
               <li><Link href="/tourisms" className="text-gray-300 hover:text-blue-400 transition-colors">Tourism Places</Link></li>
               <li><Link href="/hotels" className="text-gray-300 hover:text-blue-400 transition-colors">Hotels</Link></li>
-              <li><Link href="/map" className="text-gray-300 hover:text-blue-400 transition-colors">Interactive Map</Link></li>
-              <li><Link href="/about" className="text-gray-300 hover:text-blue-400 transition-colors">About Us</Link></li>
-              <li><Link href="/contact" className="text-gray-300 hover:text-blue-400 transition-colors">Contact</Link></li>
+              <li><Link href="/tourisms" className="text-gray-300 hover:text-blue-400 transition-colors">Interactive Map</Link></li>
+              <li><Link href="/tourisms" className="text-gray-300 hover:text-blue-400 transition-colors">About Us</Link></li>
+              <li><Link href="/tourisms" className="text-gray-300 hover:text-blue-400 transition-colors">Contact</Link></li>
             </ul>
           </div>
 
@@ -111,10 +111,10 @@ const Footer: React.FC = () => {
               &copy; {new Date().getFullYear()} North Wollo Tourism. All rights reserved.
             </p>
             <div className="flex flex-wrap justify-center gap-6 text-sm">
-              <Link href="/privacy" className="text-gray-400 hover:text-blue-400 transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="text-gray-400 hover:text-blue-400 transition-colors">Terms of Service</Link>
-              <Link href="/faq" className="text-gray-400 hover:text-blue-400 transition-colors">FAQ</Link>
-              <Link href="/sitemap" className="text-gray-400 hover:text-blue-400 transition-colors">Sitemap</Link>
+              <Link href="/tourisms" className="text-gray-400 hover:text-blue-400 transition-colors">Privacy Policy</Link>
+              <Link href="/tourisms" className="text-gray-400 hover:text-blue-400 transition-colors">Terms of Service</Link>
+              <Link href="/tourisms" className="text-gray-400 hover:text-blue-400 transition-colors">FAQ</Link>
+              <Link href="/tourisms" className="text-gray-400 hover:text-blue-400 transition-colors">Sitemap</Link>
             </div>
           </div>
         </div>

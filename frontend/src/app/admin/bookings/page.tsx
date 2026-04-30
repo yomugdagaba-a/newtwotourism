@@ -26,9 +26,11 @@ export default function AdminBookingsPage() {
 
   // Helper function to get receipt URL
   const getReceiptUrl = (receiptImageUrl: string) => {
-    // If it starts with /uploads, use it directly (Next.js proxy will handle it)
-    // Otherwise, return as-is (external URL)
-    return receiptImageUrl;
+    if (!receiptImageUrl) return '';
+    if (receiptImageUrl.startsWith('http')) return receiptImageUrl;
+    // Relative path — prepend backend URL
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://tourismsystem.onrender.com';
+    return `${backendUrl}/${receiptImageUrl.replace(/^\//, '')}`;
   };
 
   // Download function that handles CORS
