@@ -233,10 +233,10 @@ export default function PhoneInput({
   return (
     <div className={`relative ${className}`}>
       {label && <label className="block text-sm font-medium text-gray-700 mb-1">{label} {required && <span className="text-red-500">*</span>}</label>}
-      <div className="flex">
-        <div className="relative" ref={dropdownRef}>
+      <div className="flex w-full overflow-hidden">
+        <div className="relative flex-shrink-0" ref={dropdownRef}>
           <button type="button" onClick={() => setIsOpen(!isOpen)}
-            className={`flex items-center gap-2 px-3 py-2 border rounded-l-lg bg-gray-50 hover:bg-gray-100 transition-colors min-w-[100px] ${error ? 'border-red-500' : 'border-gray-300'}`}>
+            className={`flex items-center gap-1 px-2 py-2 border rounded-l-lg bg-gray-50 hover:bg-gray-100 transition-colors w-[90px] sm:w-[110px] ${error ? 'border-red-500' : 'border-gray-300'}`}>
             <span className="text-xl">{selectedCountry.flag}</span>
             <span className="text-sm font-medium text-gray-700">{selectedCountry.dialCode}</span>
             <svg className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -244,7 +244,7 @@ export default function PhoneInput({
             </svg>
           </button>
           {isOpen && (
-            <div className="absolute z-50 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-hidden">
+            <div className="absolute z-50 mt-1 w-64 sm:w-72 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-hidden left-0">
               <div className="p-2 border-b border-gray-200">
                 <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Search country..." autoFocus
@@ -266,7 +266,7 @@ export default function PhoneInput({
         </div>
         <input type="tel" value={phoneNumber} onChange={handlePhoneChange}
           placeholder={placeholder || selectedCountry.format}
-          className={`flex-1 px-3 py-2 border rounded-r-lg focus:ring-2 focus:ring-emerald-500 ${error ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+          className={`flex-1 min-w-0 px-3 py-2 border rounded-r-lg focus:ring-2 focus:ring-emerald-500 ${error ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
       </div>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
       <p className="mt-1 text-xs text-gray-500">{selectedCountry.dialCode} {selectedCountry.format}</p>
