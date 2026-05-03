@@ -194,7 +194,17 @@ export default function HotelDetailPage() {
       setReceiptFile(null);
       setReceiptPreview(null);
       alert('Receipt uploaded successfully!');
-    } catch (err) { alert('Failed to upload receipt'); }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to upload receipt";
+      if (msg === 'TIMEOUT_RELOAD') {
+        // Upload likely succeeded — reload bookings silently
+        setReceiptFile(null);
+        setReceiptPreview(null);
+        await loadMyBookings();
+      } else {
+        alert(msg);
+      }
+    }
     finally { setSubmitting(false); }
   };
 

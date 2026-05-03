@@ -83,7 +83,16 @@ export default function ClientBookingsPage() {
       updateBookingInList(updated); setSelectedBooking(updated);
       setReceiptFile(null); setReceiptPreview(null); setShowReceiptModal(false);
       alert("Receipt uploaded! The hotel owner will review it.");
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to upload"); }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to upload";
+      if (msg === 'TIMEOUT_RELOAD') {
+        // Upload likely succeeded — reload silently
+        setReceiptFile(null); setReceiptPreview(null); setShowReceiptModal(false);
+        await loadBookings();
+      } else {
+        alert(msg);
+      }
+    }
     finally { setActionLoading(false); }
   };
 

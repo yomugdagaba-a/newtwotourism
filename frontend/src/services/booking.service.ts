@@ -200,7 +200,7 @@ export class BookingService {
       return handleResponse<Booking>(response);
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        throw new Error('Upload timed out. The server may be waking up — please try again.');
+        throw new Error('TIMEOUT_RELOAD');
       }
       throw err;
     } finally {
