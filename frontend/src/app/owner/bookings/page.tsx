@@ -285,7 +285,12 @@ function OwnerBookingsContent() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <div className="ml-2 flex-1 min-w-0">
+        <button onClick={() => router.back()} className="h-8 w-8 flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 transition-all ml-1">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div className="ml-1 flex-1 min-w-0">
           <p className="text-gray-900 font-bold text-sm leading-tight">Booking Management</p>
           <p className="text-gray-500 text-xs">Manage all booking requests</p>
         </div>
