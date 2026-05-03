@@ -252,7 +252,7 @@ export class BookingService {
 
   static async acceptBookingRequest(token: string, bookingId: number, ownerId: number): Promise<Booking> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const response = await fetch(
         `${API_BASE_URL}/bookings/${bookingId}/accept?ownerId=${ownerId}`,
@@ -260,14 +260,14 @@ export class BookingService {
       );
       return handleResponse<Booking>(response);
     } catch (err: any) {
-      if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.');
+      if (err.name === 'AbortError') throw new Error('TIMEOUT_RELOAD');
       throw err;
     } finally { clearTimeout(timeoutId); }
   }
 
   static async proposeCost(token: string, bookingId: number, cost: number, ownerId: number): Promise<Booking> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const response = await fetch(
         `${API_BASE_URL}/bookings/${bookingId}/cost?cost=${cost}&ownerId=${ownerId}`,
@@ -275,22 +275,39 @@ export class BookingService {
       );
       return handleResponse<Booking>(response);
     } catch (err: any) {
-      if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.');
+      if (err.name === 'AbortError') throw new Error('TIMEOUT_RELOAD');
       throw err;
     } finally { clearTimeout(timeoutId); }
   }
 
   static async approveBooking(token: string, bookingId: number, ownerId: number): Promise<Booking> {
-    const response = await fetch(
-      `${API_BASE_URL}/bookings/${bookingId}/approve?ownerId=${ownerId}`,
-      { method: "POST", headers: getAuthHeaders(token) }
-    );
-    return handleResponse<Booking>(response);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/bookings/${bookingId}/approve?ownerId=${ownerId}`,
+        { method: "POST", headers: getAuthHeaders(token), signal: controller.signal }
+      );
+      return handleResponse<Booking>(response);
+    } catch (err: any) {
+      if (err.name === 'AbortError') throw new Error('TIMEOUT_RELOAD');
+      throw err;
+    } finally { clearTimeout(timeoutId); }
   }
 
   static async rejectBooking(token: string, bookingId: number, reason: string, ownerId: number): Promise<Booking> {
-    const response = await fetch(
-      `${API_BASE_URL}/bookings/${bookingId}/reject?reason=${encodeURIComponent(reason)}&ownerId=${ownerId}`,
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/bookings/${bookingId}/reject?reason=${encodeURIComponent(reason)}&ownerId=${ownerId}`,
+        { method: "POST", headers: getAuthHeaders(token), signal: controller.signal }
+      );
+      return handleResponse<Booking>(response);
+    } catch (err: any) {
+      if (err.name === 'AbortError') throw new Error('TIMEOUT_RELOAD');
+      throw err;
+    } finally { clearTimeout(timeoutId); }
       { method: "POST", headers: getAuthHeaders(token) }
     );
     return handleResponse<Booking>(response);

@@ -106,10 +106,17 @@ function OwnerBookingsContent() {
     try {
       setActionLoading(true);
       const updated = await BookingService.acceptBookingRequest(token, bookingId, userId);
-      // Force reload to get fresh state from server
       await loadBookings(false);
       setSelectedBooking(updated);
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to accept"); }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to accept";
+      if (msg === 'TIMEOUT_RELOAD') {
+        // Action likely succeeded — reload silently
+        await loadBookings(true);
+      } else {
+        alert(msg);
+      }
+    }
     finally { setActionLoading(false); }
   };
 
@@ -120,11 +127,19 @@ function OwnerBookingsContent() {
       const cost = parseFloat(proposedCost);
       if (isNaN(cost) || cost <= 0) { alert("Enter a valid cost"); return; }
       const updated = await BookingService.proposeCost(token, selectedBooking.bookingId, cost, userId);
-      // Force reload to get fresh state
       await loadBookings(false);
       setSelectedBooking(updated);
       setProposedCost(""); setShowCostModal(false);
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to propose cost"); }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to propose cost";
+      if (msg === 'TIMEOUT_RELOAD') {
+        // Action likely succeeded — reload silently
+        setProposedCost(""); setShowCostModal(false);
+        await loadBookings(true);
+      } else {
+        alert(msg);
+      }
+    }
     finally { setActionLoading(false); }
   };
 
@@ -135,7 +150,11 @@ function OwnerBookingsContent() {
       setActionLoading(true);
       const updated = await BookingService.approveBooking(token, bookingId, userId);
       updateBookingInList(updated); setSelectedBooking(updated);
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to approve"); }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to approve";
+      if (msg === 'TIMEOUT_RELOAD') { await loadBookings(true); }
+      else { alert(msg); }
+    }
     finally { setActionLoading(false); }
   };
 
@@ -146,7 +165,11 @@ function OwnerBookingsContent() {
       const updated = await BookingService.rejectBooking(token, selectedBooking.bookingId, rejectReason, userId);
       updateBookingInList(updated); setSelectedBooking(updated);
       setRejectReason(""); setShowRejectModal(false);
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to reject"); }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to reject";
+      if (msg === 'TIMEOUT_RELOAD') { setRejectReason(""); setShowRejectModal(false); await loadBookings(true); }
+      else { alert(msg); }
+    }
     finally { setActionLoading(false); }
   };
 
