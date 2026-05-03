@@ -186,24 +186,21 @@ export default function HotelDetailPage() {
 
   const handleUploadReceipt = async () => {
     if (!token || !userId || !selectedBooking || !receiptFile) return;
+    // OPTIMISTIC UPDATE: immediately show PAID state
+    const optimisticBooking = { ...selectedBooking, bookingStatus: 'PAID' as any };
+    setSelectedBooking(optimisticBooking);
+    setMyBookings(prev => prev.map(b => b.bookingId === optimisticBooking.bookingId ? optimisticBooking : b));
+    setReceiptFile(null);
+    setReceiptPreview(null);
     try {
       setSubmitting(true);
       const updated = await BookingService.uploadReceiptFile(token, selectedBooking.bookingId, receiptFile, userId);
       setSelectedBooking(updated);
       setMyBookings(prev => prev.map(b => b.bookingId === updated.bookingId ? updated : b));
-      setReceiptFile(null);
-      setReceiptPreview(null);
-      alert('Receipt uploaded successfully!');
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to upload receipt";
-      if (msg === 'TIMEOUT_RELOAD') {
-        // Upload likely succeeded — reload bookings silently
-        setReceiptFile(null);
-        setReceiptPreview(null);
-        await loadMyBookings();
-      } else {
-        alert(msg);
-      }
+      await loadMyBookings();
+      if (msg !== 'TIMEOUT_RELOAD') alert(msg);
     }
     finally { setSubmitting(false); }
   };

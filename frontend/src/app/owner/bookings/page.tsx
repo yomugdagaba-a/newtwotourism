@@ -103,17 +103,22 @@ function OwnerBookingsContent() {
 
   const handleAccept = async (bookingId: number) => {
     if (!token || !userId) return;
+    // OPTIMISTIC UPDATE: immediately show accepted state
+    const optimisticBooking = { ...bookings.find(b => b.bookingId === bookingId)!, bookingStatus: 'OWNER_ACCEPTED' as any };
+    updateBookingInList(optimisticBooking);
+    setSelectedBooking(optimisticBooking);
     try {
       setActionLoading(true);
       const updated = await BookingService.acceptBookingRequest(token, bookingId, userId);
-      await loadBookings(false);
+      updateBookingInList(updated);
       setSelectedBooking(updated);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to accept";
       if (msg === 'TIMEOUT_RELOAD') {
-        // Action likely succeeded — reload silently
-        await loadBookings(true);
+        await loadBookings(false);
       } else {
+        // Revert optimistic update on real error
+        await loadBookings(false);
         alert(msg);
       }
     }
@@ -122,22 +127,26 @@ function OwnerBookingsContent() {
 
   const handleProposeCost = async () => {
     if (!token || !userId || !selectedBooking || !proposedCost) return;
+    const cost = parseFloat(proposedCost);
+    if (isNaN(cost) || cost <= 0) { alert("Enter a valid cost"); return; }
+    // OPTIMISTIC UPDATE: immediately show cost proposed state
+    const optimisticBooking = { ...selectedBooking, bookingStatus: 'COST_PROPOSED' as any, totalCost: cost };
+    updateBookingInList(optimisticBooking);
+    setSelectedBooking(optimisticBooking);
+    setProposedCost(""); setShowCostModal(false);
     try {
       setActionLoading(true);
-      const cost = parseFloat(proposedCost);
-      if (isNaN(cost) || cost <= 0) { alert("Enter a valid cost"); return; }
       const updated = await BookingService.proposeCost(token, selectedBooking.bookingId, cost, userId);
-      await loadBookings(false);
+      updateBookingInList(updated);
       setSelectedBooking(updated);
-      setProposedCost(""); setShowCostModal(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to propose cost";
-      if (msg === 'TIMEOUT_RELOAD') {
-        // Action likely succeeded — reload silently
-        setProposedCost(""); setShowCostModal(false);
-        await loadBookings(true);
-      } else {
+      if (msg !== 'TIMEOUT_RELOAD') {
+        // Revert on real error
+        await loadBookings(false);
         alert(msg);
+      } else {
+        await loadBookings(false);
       }
     }
     finally { setActionLoading(false); }
@@ -146,29 +155,37 @@ function OwnerBookingsContent() {
   const handleApprove = async (bookingId: number) => {
     if (!token || !userId) return;
     if (!confirm("Approve this booking?")) return;
+    // OPTIMISTIC UPDATE
+    const optimisticBooking = { ...bookings.find(b => b.bookingId === bookingId)!, bookingStatus: 'APPROVED' as any };
+    updateBookingInList(optimisticBooking);
+    setSelectedBooking(optimisticBooking);
     try {
       setActionLoading(true);
       const updated = await BookingService.approveBooking(token, bookingId, userId);
       updateBookingInList(updated); setSelectedBooking(updated);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to approve";
-      if (msg === 'TIMEOUT_RELOAD') { await loadBookings(true); }
-      else { alert(msg); }
+      await loadBookings(false);
+      if (msg !== 'TIMEOUT_RELOAD') alert(msg);
     }
     finally { setActionLoading(false); }
   };
 
   const handleReject = async () => {
     if (!token || !userId || !selectedBooking || !rejectReason) return;
+    // OPTIMISTIC UPDATE
+    const optimisticBooking = { ...selectedBooking, bookingStatus: 'REJECTED' as any, rejectionReason: rejectReason };
+    updateBookingInList(optimisticBooking);
+    setSelectedBooking(optimisticBooking);
+    setRejectReason(""); setShowRejectModal(false);
     try {
       setActionLoading(true);
       const updated = await BookingService.rejectBooking(token, selectedBooking.bookingId, rejectReason, userId);
       updateBookingInList(updated); setSelectedBooking(updated);
-      setRejectReason(""); setShowRejectModal(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to reject";
-      if (msg === 'TIMEOUT_RELOAD') { setRejectReason(""); setShowRejectModal(false); await loadBookings(true); }
-      else { alert(msg); }
+      await loadBookings(false);
+      if (msg !== 'TIMEOUT_RELOAD') alert(msg);
     }
     finally { setActionLoading(false); }
   };
