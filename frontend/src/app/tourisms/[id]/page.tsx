@@ -406,10 +406,10 @@ export default function TourismDetailPage() {
                   <h3 className="text-gray-900 font-black text-base mb-2">Languages</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {detail.languages?.length > 0 ? detail.languages.slice(0, 2).map((lang, i) => (
-                      <span key={i} className="px-3 py-1 bg-gray-200 text-gray-800 font-bold rounded-lg text-xs shadow-md">{lang}</span>
+                      <span key={i} className="px-3 py-1 text-gray-700 font-semibold rounded-full text-xs border border-gray-200">{lang}</span>
                     )) : <span className="text-gray-700 text-sm font-semibold">Local languages spoken</span>}
                     {detail.languages && detail.languages.length > 2 && (
-                      <span className="px-3 py-1 bg-gray-200 text-gray-800 font-bold rounded-lg text-xs shadow-md">+{detail.languages.length - 2} more</span>
+                      <span className="px-3 py-1 text-gray-700 font-semibold rounded-full text-xs border border-gray-200">+{detail.languages.length - 2} more</span>
                     )}
                   </div>
                   <button
@@ -815,8 +815,8 @@ export default function TourismDetailPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-3 mb-4">
-                    <span className="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-sm font-bold">{guiders.length} Guider{guiders.length !== 1 ? 's' : ''}</span>
-                    <span className="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-sm font-bold">{[...new Set(guiders.flatMap(g => g.languages))].length} Languages</span>
+                    <span className="px-3 py-1 text-gray-700 rounded-full text-sm font-semibold border border-gray-200">{guiders.length} Guider{guiders.length !== 1 ? 's' : ''}</span>
+                    <span className="px-3 py-1 text-gray-700 rounded-full text-sm font-semibold border border-gray-200">{[...new Set(guiders.flatMap(g => g.languages))].length} Languages</span>
                   </div>
 
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -843,7 +843,7 @@ export default function TourismDetailPage() {
                             <p className="text-gray-600 text-xs uppercase font-bold mb-2">Languages Spoken</p>
                             <div className="flex flex-wrap gap-2">
                               {guider.languages.map((lang, idx) => (
-                                <span key={idx} className="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-sm font-bold">{lang}</span>
+                                <span key={idx} className="px-3 py-1 text-gray-700 rounded-full text-sm font-semibold border border-gray-200">{lang}</span>
                               ))}
                             </div>
                           </div>
