@@ -5,17 +5,24 @@ interface ApiResponse<T> {
   data: T;
 }
 
-// Global 401 handler - will redirect to login
-const handle401Error = () => {
-  // Clear stored tokens
+// Global 401 handler - tries refresh first, then redirects to login
+const handle401Error = async () => {
+  // Try to refresh the token first
+  const { refreshAccessToken, logout, refreshToken } = (await import('@/store/useAuthStore')).useAuthStore.getState();
+  
+  if (refreshToken) {
+    console.log('🔄 401 received, attempting token refresh...');
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      console.log('✅ Token refreshed after 401, retrying...');
+      return; // Don't redirect — caller should retry
+    }
+  }
+  
+  // Refresh failed or no refresh token — logout and redirect
+  await logout();
   if (typeof window !== 'undefined') {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    
-    // Only redirect if not already on login page
     if (!window.location.pathname.includes('/auth/login')) {
-      console.log('🔒 Session expired, redirecting to login...');
-      // Include current path as redirect parameter
       const currentPath = window.location.pathname;
       const redirectUrl = currentPath !== '/' ? `/auth/login?redirect=${encodeURIComponent(currentPath)}` : '/auth/login';
       window.location.href = redirectUrl;
@@ -23,7 +30,6 @@ const handle401Error = () => {
   }
 };
 
-// ✅ Regular API responses: { data: { ... } }
 async function handleRegularResponse<T>(res: Response): Promise<ApiResponse<T>> {
   if (!res.ok) {
     const errorText = await res.text();
@@ -31,7 +37,7 @@ async function handleRegularResponse<T>(res: Response): Promise<ApiResponse<T>> 
     // Handle 401 - redirect to login
     if (res.status === 401) {
       console.debug('🔒 API Auth Error: 401 - Session expired or invalid token');
-      handle401Error();
+      await handle401Error();
       const err: any = new Error('Session expired. Please login again.');
       err.status = res.status;
       err.body = errorText;
