@@ -277,36 +277,22 @@ function OwnerBookingsContent() {
         </div>
       )}
 
-      {/* Hamburger */}
-      <button onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-2 left-1 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-lg hover:opacity-90"
-        style={{ backgroundColor: "#1d4ed8", borderRadius: "8px" }}>
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-30 flex items-center h-12 px-2 bg-[#1d4ed8] shadow-md">
+        <button onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="h-9 w-9 flex items-center justify-center text-white rounded-lg hover:bg-white/20 transition-all">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="ml-2 flex-1 min-w-0">
+          <p className="text-white font-bold text-sm leading-tight">Booking Management</p>
+          <p className="text-blue-200 text-xs">Manage all booking requests</p>
+        </div>
+        {role === "HOTEL_OWNER" && <ModeSwitcherCompact />}
+      </div>
 
       <div className="min-h-screen">
-        {/* Top bar */}
-        <div style={{
-          background: '#ffffff',
-          borderBottom: '2px solid #e2e8f0',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
-          padding: '14px 24px',
-          paddingLeft: '52px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          position: 'sticky',
-          top: 0,
-          zIndex: 20,
-        }}>
-          <div>
-            <h1 style={{ fontWeight: 900, fontSize: '18px', color: '#111827', margin: 0 }}>Booking Management</h1>
-            <p style={{ fontWeight: 600, fontSize: '13px', color: '#6b7280', margin: '2px 0 0 0' }}>Manage all booking requests</p>
-          </div>
-          {role === "HOTEL_OWNER" && <ModeSwitcherCompact />}
-        </div>
 
         <div className="max-w-7xl mx-auto px-4 py-3">
 

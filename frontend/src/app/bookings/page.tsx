@@ -179,22 +179,22 @@ export default function ClientBookingsPage() {
         </div>
       )}
 
-      {/* Hamburger */}
-      <button onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-2 left-1 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-lg hover:opacity-90"
-        style={{ backgroundColor: "#1d4ed8", borderRadius: "8px" }}>
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-30 flex items-center h-12 px-2 bg-[#1d4ed8] shadow-md">
+        <button onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="h-9 w-9 flex items-center justify-center text-white rounded-lg hover:bg-white/20 transition-all">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="ml-2">
+          <p className="text-white font-bold text-sm leading-tight">My Bookings</p>
+          <p className="text-blue-200 text-xs">Track your reservations</p>
+        </div>
+      </div>
 
       <div className="min-h-screen">
-        {/* White top bar */}
-        <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: '14px 24px', paddingLeft: '52px', marginBottom: '16px' }}>
-          <h1 style={{ fontWeight: 900, fontSize: '18px', color: '#111827', margin: 0 }}>My Bookings</h1>
-          <p style={{ fontWeight: 600, fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Track and manage your hotel reservations</p>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 pb-4">
+        <div className="max-w-7xl mx-auto px-4 pb-4 pt-3">
 
           {error && <div className="bg-red-50 border border-red-200 text-red-600 p-2 rounded mb-3 text-xs">{error}</div>}
 

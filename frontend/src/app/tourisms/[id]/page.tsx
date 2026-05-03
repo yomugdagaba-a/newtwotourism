@@ -220,16 +220,18 @@ export default function TourismDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Hamburger — flush left, full-width background strip */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-2 left-1 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-[2px_0_8px_rgba(0,0,0,0.2)] transition-all hover:opacity-90"
-        style={{ backgroundColor: '#6d28d9', borderRadius: '8px' }}
-      >
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+      {/* Sticky top bar with hamburger */}
+      <div className="sticky top-0 z-30 flex items-center h-12 px-2 bg-[#6d28d9] shadow-md">
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="h-9 w-9 flex items-center justify-center text-white rounded-lg hover:bg-white/20 transition-all"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <span className="ml-2 text-white font-bold text-sm truncate">{detail.name}</span>
+      </div>
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)} />
@@ -320,7 +322,7 @@ export default function TourismDetailPage() {
 
       {/* Main Content — full width */}
       <main className="min-h-screen">
-        <div className="relative h-48 md:h-56" style={{ marginLeft: 0 }}>
+        <div className="relative h-48 md:h-56">
           <Image src={detail.images?.[currentImageIndex]?.imageUrl || detail.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"} alt={detail.name} fill className="object-cover" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent" />
           
@@ -332,7 +334,7 @@ export default function TourismDetailPage() {
             </div>
           )}
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 pl-12 md:pl-6">
+          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
             <h1 className="text-2xl md:text-3xl font-black text-white mb-2">{detail.name}</h1>
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white font-medium">{detail.wereda}, {detail.kebele}</span>
