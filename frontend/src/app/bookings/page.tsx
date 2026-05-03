@@ -180,16 +180,16 @@ export default function ClientBookingsPage() {
       )}
 
       {/* Sticky top bar */}
-      <div className="sticky top-0 z-30 flex items-center h-12 px-2 bg-[#1d4ed8] shadow-md">
+      <div className="sticky top-0 z-30 flex items-center h-12 px-2 bg-white border-b border-gray-200 shadow-sm">
         <button onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="h-9 w-9 flex items-center justify-center text-white rounded-lg hover:bg-white/20 transition-all">
+          className="h-9 w-9 flex items-center justify-center text-gray-700 rounded-lg hover:bg-gray-100 transition-all">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
         <div className="ml-2">
-          <p className="text-white font-bold text-sm leading-tight">My Bookings</p>
-          <p className="text-blue-200 text-xs">Track your reservations</p>
+          <p className="text-gray-900 font-bold text-sm leading-tight">My Bookings</p>
+          <p className="text-gray-500 text-xs">Track your reservations</p>
         </div>
       </div>
 
