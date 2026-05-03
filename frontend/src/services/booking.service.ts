@@ -308,9 +308,6 @@ export class BookingService {
       if (err.name === 'AbortError') throw new Error('TIMEOUT_RELOAD');
       throw err;
     } finally { clearTimeout(timeoutId); }
-      { method: "POST", headers: getAuthHeaders(token) }
-    );
-    return handleResponse<Booking>(response);
   }
 
   static async ownerSendMessage(token: string, bookingId: number, message: string, ownerId: number): Promise<Booking> {
