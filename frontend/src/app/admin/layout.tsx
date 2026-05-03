@@ -152,21 +152,23 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       )}
 
-      {/* Hamburger — flush left, full-width background strip */}
-      <button
-        type="button"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-2 left-1 z-30 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center text-white shadow-[2px_0_8px_rgba(0,0,0,0.2)] transition-all hover:opacity-90"
-        style={{ backgroundColor: '#6d28d9', borderRadius: '8px' }}
-      >
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+      {/* Sticky top bar with hamburger */}
+      <div className="sticky top-0 z-30 flex items-center h-12 px-2 bg-white border-b border-gray-200 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="h-9 w-9 flex items-center justify-center text-gray-700 rounded-lg hover:bg-gray-100 transition-all"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <span className="ml-2 text-gray-900 font-bold text-sm">Admin Panel</span>
+      </div>
 
       {/* Page content */}
-      <main className="flex-1 ml-14">
-        <div className="py-6">
+      <main className="flex-1">
+        <div className="py-4">
           {children}
         </div>
       </main>
