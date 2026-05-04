@@ -87,10 +87,14 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
       // Handle specific error cases
       if (response.status === 423) {
         throw new Error("Account is locked due to too many failed attempts. Please try again later or reset your password.");
+      } else if (response.status === 429) {
+        throw new Error(errorMessage || "Too many requests from this IP address. Please try again later.");
       } else if (response.status === 401) {
-        // Check if user is inactive/blocked
         if (errorMessage.toLowerCase().includes('inactive') || errorMessage.toLowerCase().includes('blocked')) {
           throw new Error("Your account has been deactivated or blocked. Please contact the administrator for more information.");
+        }
+        if (errorMessage.toLowerCase().includes('locked')) {
+          throw new Error(errorMessage);
         }
         throw new Error("Invalid username/email or password.");
       } else if (response.status === 403) {

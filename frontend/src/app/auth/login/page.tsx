@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
 import FormInput, { FormButton, Alert } from "@/components/common/FormInput";
 import { validateForm, hasErrors, schemas, ValidationErrors } from "@/utils/validation";
+import BlockedBanner from "@/components/common/BlockedBanner";
 
 function LoginFormContent() {
   const [formData, setFormData] = useState({
@@ -131,7 +132,7 @@ function LoginFormContent() {
               <Alert type="success" message={successMessage} onClose={() => setSuccessMessage("")} />
             )}
             {serverError && (
-              <Alert type="error" title="Login Failed" message={serverError} onClose={() => setServerError("")} />
+              <BlockedBanner message={serverError} onClose={() => setServerError("")} />
             )}
 
             <FormInput

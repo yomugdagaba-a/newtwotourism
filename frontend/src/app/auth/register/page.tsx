@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { register } from "@/services/auth.service";
 import Link from "next/link";
 import FormInput, { FormButton, Alert } from "@/components/common/FormInput";
+import BlockedBanner from "@/components/common/BlockedBanner";
 
 
 // Validation helpers
@@ -141,7 +142,7 @@ export default function RegisterForm() {
         {/* Form Card - Compact */}
         <div className="bg-white rounded-xl shadow-lg p-5 border border-gray-200">
           <form onSubmit={handleSubmit} className="space-y-3">
-            {serverError && <Alert type="error" message={serverError} onClose={() => setServerError("")} />}
+            {serverError && <BlockedBanner message={serverError} onClose={() => setServerError("")} />}
 
             {/* Two columns for name fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

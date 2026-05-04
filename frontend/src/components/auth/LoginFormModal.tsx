@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
 import FormInput, { FormButton, Alert } from "@/components/common/FormInput";
 import { validateForm, hasErrors, schemas, ValidationErrors } from "@/utils/validation";
+import BlockedBanner from "@/components/common/BlockedBanner";
 
 interface Props {
   onSuccess?: () => void;
@@ -71,7 +72,7 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
         <p className="mt-1 text-gray-600 font-semibold">Sign in to North Wollo Tourism</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
-        {serverError && <Alert type="error" title="Login Failed" message={serverError} onClose={() => setServerError("")} />}
+        {serverError && <BlockedBanner message={serverError} onClose={() => setServerError("")} />}
         <FormInput label="Username or Email" name="usernameOrEmail" type="text"
           value={formData.usernameOrEmail} onChange={handleChange} error={errors.usernameOrEmail}
           placeholder="Enter your username or email" required autoComplete="username email" disabled={loading} />
