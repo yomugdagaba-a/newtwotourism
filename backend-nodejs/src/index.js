@@ -141,6 +141,32 @@ const keyPath = path.resolve(__dirname, '../certificates/localhost-key.pem');
 async function start() {
   await initBookingStatuses();
 
+  // Verify SMTP connection on startup
+  try {
+    const emailService = require('./services/email.service');
+    const nodemailer = require('nodemailer');
+    const host = process.env.SMTP_HOST;
+    const port = parseInt(process.env.SMTP_PORT || '587');
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASSWORD;
+    if (host && user && pass) {
+      const testTransporter = nodemailer.createTransport({
+        host, port,
+        secure: port === 465,
+        auth: { user, pass },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 8000,
+      });
+      await testTransporter.verify();
+      console.log(`✅ SMTP connection verified (${host}:${port} as ${user})`);
+    } else {
+      console.warn('⚠️  SMTP not configured — emails will not be sent');
+    }
+  } catch (smtpErr) {
+    console.error(`❌ SMTP connection failed: ${smtpErr.message}`);
+    console.error('   Check SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD in .env');
+  }
+
   if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
     const httpsOptions = { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) };
     https.createServer(httpsOptions, app).listen(PORT, '0.0.0.0', () => {

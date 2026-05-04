@@ -157,17 +157,23 @@ async function register({ username, email, password, fullName }) {
     include: { roles: true },
   });
 
-  // Send verification email — fire-and-forget, never blocks register response
-  Promise.resolve().then(async () => {
-    try {
-      const otp = generateOtp();
-      await prisma.emailVerificationToken.create({
-        data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
-      });
-      await emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES);
-      await emailService.sendWelcomeEmail(email, fullName || username);
-    } catch (e) { console.error('Verification email failed (non-fatal):', e.message); }
-  });
+  // Save OTP to DB synchronously (must exist before user reaches verify page)
+  // then send emails fire-and-forget so they don't block the response
+  try {
+    const otp = generateOtp();
+    await prisma.emailVerificationToken.create({
+      data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
+    });
+    // Fire-and-forget the actual email sends — DB token is already saved
+    emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES).catch(e =>
+      console.error('Verification email send failed:', e.message)
+    );
+    emailService.sendWelcomeEmail(email, fullName || username).catch(e =>
+      console.error('Welcome email send failed:', e.message)
+    );
+  } catch (e) {
+    console.error('Verification token creation failed (non-fatal):', e.message);
+  }
 
   return generateTokens(user);
 }
