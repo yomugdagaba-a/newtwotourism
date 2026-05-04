@@ -58,21 +58,40 @@ async function sendSecurityAlert(userId, alertType, ipAddress) {
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user?.email) return;
-    let message;
+    let subject, html;
     switch (alertType) {
       case 'ACCOUNT_LOCKED':
-        message = `Your account has been temporarily locked due to multiple failed login attempts from IP: ${ipAddress}. It will be automatically unlocked in ${LOCKOUT_DURATION_MINUTES} minutes. If this wasn't you, please contact support immediately.`;
+        subject = 'Account Temporarily Locked — North Wollo Tourism';
+        html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
+          <h2 style="color:#dc2626;">🔒 Account Temporarily Locked</h2>
+          <p>Your account has been temporarily locked due to multiple failed login attempts from IP: <strong>${ipAddress}</strong>.</p>
+          <p>It will automatically unlock in <strong>${LOCKOUT_DURATION_MINUTES} minutes</strong>.</p>
+          <p style="color:#6b7280;font-size:13px;">If this wasn't you, please reset your password immediately.</p>
+        </div>`;
         break;
       case 'ACCOUNT_UNLOCKED':
-        message = 'Your account has been unlocked by an administrator.';
+        subject = 'Account Unlocked — North Wollo Tourism';
+        html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
+          <h2 style="color:#15803d;">✓ Account Unlocked</h2>
+          <p>Your account has been unlocked by an administrator. You can now log in.</p>
+        </div>`;
         break;
       case 'SUSPICIOUS_ACTIVITY':
-        message = `Suspicious login activity detected on your account from IP: ${ipAddress}. If this wasn't you, please change your password immediately.`;
+        subject = 'Suspicious Login Activity — North Wollo Tourism';
+        html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
+          <h2 style="color:#d97706;">⚠️ Suspicious Activity Detected</h2>
+          <p>Suspicious login activity was detected on your account from IP: <strong>${ipAddress}</strong>.</p>
+          <p style="color:#6b7280;font-size:13px;">If this wasn't you, please change your password immediately.</p>
+        </div>`;
         break;
       default:
-        message = `Security alert: ${alertType} from IP: ${ipAddress}`;
+        subject = 'Security Alert — North Wollo Tourism';
+        html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
+          <h2 style="color:#dc2626;">Security Alert</h2>
+          <p>${alertType} from IP: ${ipAddress}</p>
+        </div>`;
     }
-    await emailService.sendEmail(user.email, 'Security Alert - Account Activity', message);
+    await emailService.sendEmail(user.email, subject, html);
   } catch (e) { console.error('Failed to send security alert:', e.message); }
 }
 

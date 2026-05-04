@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
+const emailService = require('./email.service');
 
 const USER_SELECT = { id: true, username: true, email: true, fullName: true, active: true, emailVerified: true, createdAt: true, updatedAt: true, roles: true };
 
@@ -46,13 +47,36 @@ async function resetUserPassword(id, newPassword) {
 async function activateUser(id) {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
-  return prisma.user.update({ where: { id }, data: { active: true }, include: { roles: true } });
+  const updated = await prisma.user.update({ where: { id }, data: { active: true }, include: { roles: true } });
+  // Notify user their account was reactivated
+  if (user.email) {
+    emailService.sendEmail(user.email, 'Account Reactivated — North Wollo Tourism', `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
+        <h2 style="color:#15803d;">✓ Account Reactivated</h2>
+        <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
+        <p>Your North Wollo Tourism account has been reactivated by an administrator. You can now log in.</p>
+      </div>
+    `).catch(() => {});
+  }
+  return updated;
 }
 
 async function deactivateUser(id) {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
-  return prisma.user.update({ where: { id }, data: { active: false }, include: { roles: true } });
+  const updated = await prisma.user.update({ where: { id }, data: { active: false }, include: { roles: true } });
+  // Notify user their account was deactivated
+  if (user.email) {
+    emailService.sendEmail(user.email, 'Account Deactivated — North Wollo Tourism', `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
+        <h2 style="color:#dc2626;">⛔ Account Deactivated</h2>
+        <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
+        <p>Your North Wollo Tourism account has been deactivated by an administrator.</p>
+        <p style="color:#6b7280;font-size:13px;">If you believe this is a mistake, please contact support.</p>
+      </div>
+    `).catch(() => {});
+  }
+  return updated;
 }
 
 async function deleteUser(id) {
