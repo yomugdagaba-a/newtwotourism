@@ -6,6 +6,7 @@ import { sendVerificationEmail, verifyEmailWithOtp } from "@/services/auth.servi
 import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
 import { FormButton, Alert } from "@/components/common/FormInput";
+import BlockedBanner from "@/components/common/BlockedBanner";
 
 type Step = 'request' | 'verify' | 'success';
 
@@ -22,11 +23,15 @@ function VerifyEmailContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const [expiresIn, setExpiresIn] = useState<number | null>(null);
-  const [countdown, setCountdown] = useState(0);
+  // When coming from register, OTP was already sent by backend — start 15min countdown immediately
+  const fromRegister = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('from') === 'register'
+    : false;
+  const [expiresIn, setExpiresIn] = useState<number | null>(fromRegister ? 15 : null);
+  const [countdown, setCountdown] = useState(fromRegister ? 15 * 60 : 0);
   const [canResend, setCanResend] = useState(false);
   
-  const [resendCooldown, setResendCooldown] = useState(0); // seconds remaining before resend allowed
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -110,20 +115,22 @@ function VerifyEmailContent() {
 
   // Countdown timer for OTP expiry
   useEffect(() => {
-    if (expiresIn && step === 'verify') {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []); // run once on mount — countdown already initialized
+
+  // Also restart countdown when expiresIn changes (after resend)
+  useEffect(() => {
+    if (expiresIn && !fromRegister) {
       setCountdown(expiresIn * 60);
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
     }
-  }, [expiresIn, step]);
+  }, [expiresIn]);
 
   // Resend cooldown — start at 60s when entering verify step
   useEffect(() => {
@@ -172,11 +179,12 @@ function VerifyEmailContent() {
       const response = await sendVerificationEmail({ email });
       if (response.success) {
         setExpiresIn(response.expiresInMinutes || 15);
+        setCountdown((response.expiresInMinutes || 15) * 60);
         setOtp(['', '', '', '', '', '']);
         startResendCooldown(60);
         otpRefs.current[0]?.focus();
-        setSuccess("New verification code sent!");
-        setTimeout(() => setSuccess(""), 3000);
+        setSuccess("New verification code sent! Check your inbox.");
+        setTimeout(() => setSuccess(""), 5000);
       } else {
         setError(response.message || "Failed to resend OTP");
       }
@@ -261,8 +269,17 @@ function VerifyEmailContent() {
 
         {/* Form Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-          {error && <Alert type="error" message={error} onClose={() => setError("")} />}
+          {error && <BlockedBanner message={error} onClose={() => setError("")} />}
           {success && <Alert type="success" message={success} onClose={() => setSuccess("")} />}
+          {/* Info banner when coming from registration */}
+          {fromRegister && step === 'verify' && !error && (
+            <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3 flex gap-2 items-start">
+              <span className="text-blue-500 mt-0.5">📧</span>
+              <p className="text-sm text-blue-700 font-semibold">
+                A verification code was sent to <strong>{email}</strong> when you registered. Check your inbox (and spam folder).
+              </p>
+            </div>
+          )}
 
           {/* Loading state when auto-sending OTP */}
           {loading && step === 'verify' && !otp.some(digit => digit !== '') ? (
