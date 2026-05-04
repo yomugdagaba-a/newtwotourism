@@ -6,6 +6,7 @@ function createTransporter() {
   const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587');
   const user = process.env.SMTP_USER || process.env.MAIL_USER;
   const pass = process.env.SMTP_PASSWORD || process.env.MAIL_PASSWORD;
+  // secure=true for port 465 (SSL), false for 587 (STARTTLS)
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
   if (!host || !user || !pass) {
@@ -13,16 +14,23 @@ function createTransporter() {
     return null;
   }
 
-  return nodemailer.createTransport({
+  const config = {
     host,
     port,
     secure,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+  };
+
+  // For port 587 STARTTLS, explicitly require STARTTLS upgrade
+  if (port === 587 && !secure) {
+    config.requireTLS = true;
+  }
+
+  return nodemailer.createTransport(config);
 }
 
 // Gmail requires the FROM address to match the authenticated account.

@@ -156,6 +156,7 @@ async function start() {
         auth: { user, pass },
         tls: { rejectUnauthorized: false },
         connectionTimeout: 8000,
+        requireTLS: port === 587,
       });
       await testTransporter.verify();
       console.log(`✅ SMTP connection verified (${host}:${port} as ${user})`);
