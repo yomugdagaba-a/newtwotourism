@@ -12,10 +12,14 @@ function getResendClient() {
 }
 
 function getFromAddress() {
-  // Use SMTP_FROM if set, otherwise fall back to a sensible default
-  return process.env.SMTP_FROM ||
-    process.env.MAIL_FROM ||
-    `North Wollo Tourism <${process.env.SMTP_USER || 'noreply@northwollotourism.com'}>`;
+  const smtpFrom = process.env.SMTP_FROM || process.env.MAIL_FROM;
+  // If SMTP_FROM is set to a verified custom domain address, use it
+  // Otherwise fall back to Resend's built-in verified sender (works on free plan)
+  if (smtpFrom && !smtpFrom.includes('northwollotourism.com') && !smtpFrom.includes('gmail.com')) {
+    return smtpFrom;
+  }
+  // onboarding@resend.dev is Resend's verified sender — works for any recipient on free plan
+  return 'North Wollo Tourism <onboarding@resend.dev>';
 }
 
 async function sendEmail(to, subject, html) {
