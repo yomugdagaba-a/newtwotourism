@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { AdminHotelService, AdminUserService, User } from '@/services/admin.service';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 interface HotelDetail {
   id: number;
@@ -24,6 +28,10 @@ export default function AdminHotelDetailPage() {
   const router = useRouter();
   const hotelId = Number(params.id);
   const { token, role, isAuthenticated } = useAuthStore();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   const [hotel, setHotel] = useState<HotelDetail | null>(null);
   const [hotelOwners, setHotelOwners] = useState<User[]>([]);
@@ -77,24 +85,26 @@ export default function AdminHotelDetailPage() {
       await AdminHotelService.assignOwner(token, hotelId, Number(selectedOwnerId));
       await loadHotel();
       setShowOwnerModal(false);
-      alert('Owner assigned successfully');
+      toast.success('Owner assigned successfully');
     } catch (err) {
-      alert('Failed to assign owner: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to assign owner: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleRemoveOwner = async () => {
-    if (!token || !confirm('Remove owner from this hotel?')) return;
+    if (!token) return;
+    const ok = await confirm({ message: 'Remove owner from this hotel?', variant: 'warning', title: 'Remove Owner', confirmLabel: 'Remove' });
+    if (!ok) return;
     try {
       setActionLoading(true);
       await AdminHotelService.removeOwner(token, hotelId);
       await loadHotel();
       setSelectedOwnerId('');
-      alert('Owner removed successfully');
+      toast.success('Owner removed successfully');
     } catch (err) {
-      alert('Failed to remove owner: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to remove owner: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(false);
     }
@@ -106,8 +116,9 @@ export default function AdminHotelDetailPage() {
       setActionLoading(true);
       await AdminHotelService.toggleActive(token, hotelId, !hotel.active);
       await loadHotel();
+      toast.success('Hotel status updated');
     } catch (err) {
-      alert('Failed to toggle status: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to toggle status: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(false);
     }

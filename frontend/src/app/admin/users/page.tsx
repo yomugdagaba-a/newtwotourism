@@ -6,11 +6,17 @@ import { useAuthStore } from '../../../store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import { FormButton, Alert } from '@/components/common/FormInput';
 import Pagination from '@/components/common/Pagination';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const AVAILABLE_ROLES = ['CLIENT', 'HOTEL_OWNER', 'ADMIN'];
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 30, 50];
 
 const UsersManagementPage = () => {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +102,9 @@ const UsersManagementPage = () => {
   };
 
   const handleDeactivateUser = async (userId: number) => {
-    if (!token || !confirm('Are you sure you want to deactivate this user?')) return;
+    if (!token) return;
+    const ok = await confirm({ message: 'Are you sure you want to deactivate this user?', variant: 'warning', title: 'Deactivate User', confirmLabel: 'Deactivate' });
+    if (!ok) return;
     try { 
       setActionLoading(userId); 
       await AdminUserService.deactivateUser(token, userId); 
@@ -108,7 +116,9 @@ const UsersManagementPage = () => {
   };
 
   const handleDeleteUser = async (userId: number) => {
-    if (!token || !confirm('Are you sure you want to delete this user permanently? This action cannot be undone.')) return;
+    if (!token) return;
+    const ok = await confirm({ message: 'Are you sure you want to delete this user permanently? This action cannot be undone.', variant: 'danger', title: 'Delete User', confirmLabel: 'Delete' });
+    if (!ok) return;
     try { 
       setActionLoading(userId); 
       await AdminUserService.deleteUser(token, userId); 
@@ -215,7 +225,9 @@ const UsersManagementPage = () => {
   };
 
   const handleRevokeRole = async (userId: number, r: string) => {
-    if (!token || !confirm(`Are you sure you want to revoke the ${r} role from this user?`)) return;
+    if (!token) return;
+    const ok = await confirm({ message: `Are you sure you want to revoke the ${r} role from this user?`, variant: 'warning', title: 'Revoke Role', confirmLabel: 'Revoke' });
+    if (!ok) return;
     try { 
       setActionLoading(userId); 
       await AdminUserService.revokeRole(token, userId, r); 

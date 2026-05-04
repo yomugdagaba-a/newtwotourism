@@ -13,11 +13,13 @@ import Modal from "@/components/common/Modal";
 import HotelRatingModal from "@/components/hotel/HotelRatingModal";
 import RatingsViewModal from "@/components/common/RatingsViewModal";
 import { API_BASE_URL } from "@/services/api";
+import { useToast } from "@/components/common/Toast";
 
 function HotelsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthenticated, token } = useAuthStore();
+  const toast = useToast();
 
   const tourismIdParam = searchParams.get("tourismId");
   const tourismId = tourismIdParam ? Number(tourismIdParam) : null;
@@ -127,10 +129,10 @@ function HotelsContent() {
       }
       
       await loadHotels();
-      alert("Thank you for your review!");
+      toast.success("Thank you for your review!");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to submit rating";
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

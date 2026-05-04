@@ -5,6 +5,8 @@ import { AdminRoadService, AdminTourismService, Road, RoadCreateDto, RoadUpdateD
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import FormInput, { FormButton, Alert } from '@/components/common/FormInput';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 import { ValidationErrors } from '@/utils/validation';
 import {
   validatePlaceName,
@@ -14,6 +16,8 @@ import {
   hasValidationErrors,
   ValidationResult
 } from '../../../utils/ethiopianValidation';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const ROAD_TYPES = [
   { value: 'CAR', label: '🚗 Car Route', icon: '🚗' },
@@ -22,6 +26,8 @@ const ROAD_TYPES = [
 ];
 
 const RoadsManagementPage = () => {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [roads, setRoads] = useState<Road[]>([]);
   const [tourisms, setTourisms] = useState<Tourism[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,13 +192,15 @@ const RoadsManagementPage = () => {
 
   const handleDelete = async (roadId: number) => {
     if (!token || !selectedTourismId) return;
-    if (!confirm('Are you sure you want to delete this road?')) return;
+    const ok = await confirm({ message: 'Are you sure you want to delete this road?', variant: 'danger', title: 'Delete Road', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       setActionLoading(roadId);
       await AdminRoadService.deleteRoad(token, roadId);
+      toast.success('Road deleted successfully');
       await loadRoads(selectedTourismId);
     } catch (err) {
-      alert('Failed to delete: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to delete: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(null);
     }

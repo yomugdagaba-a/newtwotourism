@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { AdminTourismService } from "@/services/admin.service";
-
+import { useToast } from "@/components/common/Toast";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 interface TourismImage {
   id: number;
   imageUrl: string;
@@ -24,6 +25,8 @@ export default function TourismImagesPage() {
   const router = useRouter();
   const tourismId = Number(params.id);
   const { token, role, isAuthenticated } = useAuthStore();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   const [images, setImages] = useState<TourismImage[]>([]);
   const [mainImageUrl, setMainImageUrl] = useState<string | null>(null);
@@ -91,13 +94,16 @@ export default function TourismImagesPage() {
   };
 
   const handleDelete = async (imageId: number) => {
-    if (!token || !confirm("Delete this image?")) return;
+    if (!token) return;
+    const ok = await confirm({ title: "Delete Image", message: "Delete this image?", variant: "danger", confirmLabel: "Delete" });
+    if (!ok) return;
     try {
       setActionLoading(imageId);
       await AdminTourismService.deleteTourismImage(token, tourismId, imageId);
+      toast.success("Image deleted");
       await loadImages();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete");
+      toast.error(err instanceof Error ? err.message : "Failed to delete");
     } finally {
       setActionLoading(null);
     }
@@ -109,8 +115,9 @@ export default function TourismImagesPage() {
       setActionLoading(img.id);
       await AdminTourismService.setMainTourismImage(token, tourismId, img.imageUrl);
       setMainImageUrl(img.imageUrl);
+      toast.success("Main image updated");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to set main image");
+      toast.error(err instanceof Error ? err.message : "Failed to set main image");
     } finally {
       setActionLoading(null);
     }
@@ -135,7 +142,7 @@ export default function TourismImagesPage() {
       setEditingImage(null);
       await loadImages();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update");
+      toast.error(err instanceof Error ? err.message : "Failed to update");
     } finally {
       setEditLoading(false);
     }

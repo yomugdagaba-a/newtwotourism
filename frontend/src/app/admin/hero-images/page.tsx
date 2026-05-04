@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { API_BASE_URL } from '../../../services/api';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 interface HeroImage {
   id: number;
@@ -16,6 +17,7 @@ interface HeroImage {
 
 export default function HeroImagesPage() {
   const router = useRouter();
+  const confirm = useConfirm();
   const { token, role, isAuthenticated } = useAuthStore();
   const [images, setImages] = useState<HeroImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,8 @@ export default function HeroImagesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this hero image?')) return;
+    const ok = await confirm({ message: 'Delete this hero image?', variant: 'danger', title: 'Delete Hero Image', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       setActionLoading(id);
       const res = await fetch(`${API_BASE_URL}/admin/hero-images/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });

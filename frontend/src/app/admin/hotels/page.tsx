@@ -6,6 +6,8 @@ import { useAuthStore } from '../../../store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import FormInput, { FormButton, Alert } from '@/components/common/FormInput';
 import Pagination from '@/components/common/Pagination';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 import { ValidationErrors } from '@/utils/validation';
 import {
   validatePlaceName,
@@ -16,10 +18,14 @@ import {
   hasValidationErrors,
   ValidationResult
 } from '../../../utils/ethiopianValidation';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const PAGE_SIZE_OPTIONS = [9, 12, 15, 20, 30];
 
 const HotelsManagementPage = () => {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -241,13 +247,15 @@ const HotelsManagementPage = () => {
 
   const handleDelete = async (hotelId: number) => {
     if (!token) return;
-    if (!confirm('Are you sure you want to delete this hotel?')) return;
+    const ok = await confirm({ message: 'Are you sure you want to delete this hotel?', variant: 'danger', title: 'Delete Hotel', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       setActionLoading(hotelId);
       await AdminHotelService.deleteHotel(token, hotelId);
+      toast.success('Hotel deleted successfully');
       await loadHotels();
     } catch (err) {
-      alert('Failed to delete: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to delete: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(null);
     }

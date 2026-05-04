@@ -85,7 +85,7 @@ const HorseServiceList: React.FC<Props> = ({ tourismPlaceId, roadInfoId, token }
               </a>
             )}
 
-            <Button onClick={() => alert(`Booking horse service with ${service.ownerName}`)}>
+            <Button onClick={() => window.open(`tel:${service.contactInfo}`)}>
               Book Horse
             </Button>
           </div>

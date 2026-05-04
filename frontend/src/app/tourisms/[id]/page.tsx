@@ -18,6 +18,7 @@ import LoginForm from "@/components/auth/LoginFormModal";
 import RegisterForm from "@/components/auth/RegisterFormModal";
 import Modal from "@/components/common/Modal";
 import TourismRatingModal from "@/components/tourism/TourismRatingModal";
+import { useToast } from "@/components/common/Toast";
 import HotelRatingModal from "@/components/hotel/HotelRatingModal";
 import RatingsViewModal from "@/components/common/RatingsViewModal";
 import TourismImageGallery from "@/components/tourism/TourismImageGallery";
@@ -52,6 +53,7 @@ export default function TourismDetailPage() {
   const router = useRouter();
   const tourismId = Number(params.id);
   const { isAuthenticated, token, username } = useAuthStore();
+  const toast = useToast();
 
   const [detail, setDetail] = useState<TourismFullDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -153,8 +155,8 @@ export default function TourismDetailPage() {
       setRatingModalOpen(false);
       setRatingsRefreshKey(prev => prev + 1);
       await loadDetail();
-      alert("Thank you for your review!");
-    } catch (err: unknown) { alert(err instanceof Error ? err.message : "Failed to submit rating"); }
+      toast.success("Thank you for your review!");
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Failed to submit rating"); }
   };
 
   const handleSubmitHotelRating = async (rating: number, comment: string) => {
@@ -163,8 +165,8 @@ export default function TourismDetailPage() {
       await submitHotelRating(ratingHotelId, rating, comment || undefined, token);
       setHotelRatingModalOpen(false);
       await loadHotels();
-      alert("Thank you for your review!");
-    } catch (err: unknown) { alert(err instanceof Error ? err.message : "Failed to submit rating"); }
+      toast.success("Thank you for your review!");
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Failed to submit rating"); }
   };
 
   const toggleHorseServices = async (roadId: number) => {

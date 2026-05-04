@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import TopBar from "@/components/layout/TopBar";
 import { BookingService, Booking, BOOKING_STATUS } from "@/services/booking.service";
+import { useToast } from "@/components/common/Toast";
 
 export default function HotelOwnerDashboard() {
   const router = useRouter();
   const { isAuthenticated, token, userId, role } = useAuthStore();
+  const toast = useToast();
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export default function HotelOwnerDashboard() {
       updateBookingInList(updated);
       setSelectedBooking(updated);
     } catch (err) {
-      alert("Failed to accept booking");
+      toast.error("Failed to accept booking");
     } finally {
       setSubmitting(false);
     }
@@ -69,8 +71,9 @@ export default function HotelOwnerDashboard() {
       updateBookingInList(updated);
       setSelectedBooking(updated);
       setCostInput("");
+      toast.success("Cost proposed successfully");
     } catch (err) {
-      alert("Failed to propose cost");
+      toast.error("Failed to propose cost");
     } finally {
       setSubmitting(false);
     }
@@ -83,8 +86,9 @@ export default function HotelOwnerDashboard() {
       const updated = await BookingService.approveBooking(token, bookingId, userId);
       updateBookingInList(updated);
       setSelectedBooking(updated);
+      toast.success("Booking approved successfully");
     } catch (err) {
-      alert("Failed to approve booking");
+      toast.error("Failed to approve booking");
     } finally {
       setSubmitting(false);
     }
@@ -98,8 +102,9 @@ export default function HotelOwnerDashboard() {
       updateBookingInList(updated);
       setSelectedBooking(updated);
       setRejectReason("");
+      toast.success("Booking rejected");
     } catch (err) {
-      alert("Failed to reject booking");
+      toast.error("Failed to reject booking");
     } finally {
       setSubmitting(false);
     }
@@ -113,7 +118,7 @@ export default function HotelOwnerDashboard() {
       setSelectedBooking(updated);
       setNewMessage("");
     } catch (err) {
-      alert("Failed to send message");
+      toast.error("Failed to send message");
     }
   };
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { submitTourismRating, fetchTourismRatings, TourismRatingResponse } from "@/services/rating.service";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useToast } from "@/components/common/Toast";
 
 interface Props {
   tourismId: number;
@@ -10,6 +11,7 @@ interface Props {
 
 export default function TourismRatingTab({ tourismId }: Props) {
   const { token, isAuthenticated } = useAuthStore();
+  const toast = useToast();
   const [ratings, setRatings] = useState<TourismRatingResponse[]>([]);
   const [newRating, setNewRating] = useState<number>(5);
   const [comment, setComment] = useState("");
@@ -30,7 +32,7 @@ export default function TourismRatingTab({ tourismId }: Props) {
 
   const handleAddRating = async () => {
     if (!isAuthenticated || !token) {
-      alert("Login required to rate.");
+      toast.warning("Please log in to submit a rating.");
       return;
     }
     
@@ -40,10 +42,10 @@ export default function TourismRatingTab({ tourismId }: Props) {
       setComment("");
       setNewRating(5);
       await loadRatings();
-      alert("Rating submitted successfully!");
+      toast.success("Rating submitted successfully!");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to submit rating";
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

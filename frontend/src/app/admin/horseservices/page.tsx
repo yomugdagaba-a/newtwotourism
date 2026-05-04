@@ -17,8 +17,12 @@ import {
   hasValidationErrors,
   ValidationResult
 } from '../../../utils/ethiopianValidation';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const HorseServicesManagementPage = () => {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [horseServices, setHorseServices] = useState<HorseService[]>([]);
   const [roads, setRoads] = useState<Road[]>([]);
   const [tourisms, setTourisms] = useState<Tourism[]>([]);
@@ -124,11 +128,12 @@ const HorseServicesManagementPage = () => {
     try {
       setActionLoading(-1);
       await AdminHorseServiceService.createHorseService(token, { ...formData, roadInfoId: selectedRoadId });
+      toast.success('Horse service created');
       await loadHorseServices(selectedRoadId);
       setShowModal(false);
       resetForm();
     } catch (err) {
-      alert('Failed to create horse service: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to create horse service: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(null);
     }
@@ -145,12 +150,13 @@ const HorseServicesManagementPage = () => {
         initialPlace: formData.initialPlace, cost: formData.cost, roadInfoId: selectedRoadId
       };
       await AdminHorseServiceService.updateHorseService(token, editingService.id, updateData);
+      toast.success('Horse service updated');
       await loadHorseServices(selectedRoadId);
       setShowModal(false);
       setEditingService(null);
       resetForm();
     } catch (err) {
-      alert('Failed to update horse service: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to update horse service: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(null);
     }
@@ -158,13 +164,15 @@ const HorseServicesManagementPage = () => {
 
   const handleDelete = async (serviceId: number) => {
     if (!token || !selectedRoadId) return;
-    if (!confirm('Are you sure you want to delete this horse service?')) return;
+    const ok = await confirm({ message: 'Are you sure you want to delete this horse service?', variant: 'danger', title: 'Delete Horse Service', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       setActionLoading(serviceId);
       await AdminHorseServiceService.deleteHorseService(token, serviceId);
+      toast.success('Horse service deleted');
       await loadHorseServices(selectedRoadId);
     } catch (err) {
-      alert('Failed to delete horse service: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to delete horse service: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(null);
     }

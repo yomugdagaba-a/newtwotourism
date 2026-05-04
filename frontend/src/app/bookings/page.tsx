@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { BookingService, Booking, BOOKING_STATUS } from "@/services/booking.service";
+import { useToast } from "@/components/common/Toast";
 
 export default function ClientBookingsPage() {
   const router = useRouter();
   const { isAuthenticated, token, userId } = useAuthStore();
+  const toast = useToast();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -68,8 +70,8 @@ export default function ClientBookingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
-    if (!allowed.includes(file.type)) { alert("Please select an image or PDF"); return; }
-    if (file.size > 10 * 1024 * 1024) { alert("File must be under 10MB"); return; }
+    if (!allowed.includes(file.type)) { toast.warning("Please select an image or PDF file"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.warning("File must be under 10MB"); return; }
     setReceiptFile(file);
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
@@ -92,7 +94,7 @@ export default function ClientBookingsPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to upload";
       await loadBookings();
-      if (msg !== 'TIMEOUT_RELOAD') alert(msg);
+      if (msg !== 'TIMEOUT_RELOAD') toast.error(msg);
     }
     finally { setActionLoading(false); }
   };
@@ -102,7 +104,7 @@ export default function ClientBookingsPage() {
     try {
       const updated = await BookingService.sendMessage(token, selectedBooking.bookingId, newMessage, userId);
       updateBookingInList(updated); setSelectedBooking(updated); setNewMessage("");
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to send"); }
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to send"); }
   };
 
   const handleReportProblem = async () => {
@@ -112,8 +114,8 @@ export default function ClientBookingsPage() {
       const updated = await BookingService.reportProblem(token, selectedBooking.bookingId, problemReport, userId);
       updateBookingInList(updated); setSelectedBooking(updated);
       setProblemReport(""); setShowProblemModal(false);
-      alert("Problem reported. Admin will contact you soon.");
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to report"); }
+      toast.success("Problem reported. Admin will contact you soon.");
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to report"); }
     finally { setActionLoading(false); }
   };
 

@@ -5,8 +5,10 @@ import { AuditService } from '../../../../services/audit.service';
 import { AuditStatistics, SuspiciousActivity, IntegrityStatus } from '../../../../types/audit';
 import { useAuthStore } from '../../../../store/useAuthStore';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/common/Toast';
 
 const AuditDashboardPage = () => {
+  const toast = useToast();
   const [statistics, setStatistics] = useState<AuditStatistics | null>(null);
   const [suspiciousActivities, setSuspiciousActivities] = useState<SuspiciousActivity[]>([]);
   const [integrityStatus, setIntegrityStatus] = useState<IntegrityStatus | null>(null);
@@ -52,12 +54,12 @@ const AuditDashboardPage = () => {
     try {
       setRepairingIntegrity(true);
       const result = await AuditService.repairIntegrity();
-      alert(`Integrity repair completed. Repaired ${result.repairedCount} entries.`);
+      toast.success(`Integrity repair completed. Repaired ${result.repairedCount} entries.`);
       // Reload integrity status
       const integrityResponse = await AuditService.checkIntegrity();
       setIntegrityStatus(integrityResponse);
     } catch (err) {
-      alert('Failed to repair integrity: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to repair integrity: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setRepairingIntegrity(false);
     }

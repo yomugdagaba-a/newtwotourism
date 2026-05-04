@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 
 interface LogoutButtonProps {
   className?: string;
@@ -20,11 +21,18 @@ export default function LogoutButton({
   const [loading, setLoading] = useState(false);
   const { logout, username } = useAuthStore();
   const router = useRouter();
+  const confirm = useConfirm();
 
   const handleLogout = async () => {
     if (showConfirmation) {
-      const confirmed = window.confirm("Are you sure you want to log out?");
-      if (!confirmed) return;
+      const ok = await confirm({
+        title: "Log Out",
+        message: "Are you sure you want to log out?",
+        variant: "warning",
+        confirmLabel: "Log Out",
+        cancelLabel: "Stay",
+      });
+      if (!ok) return;
     }
 
     setLoading(true);

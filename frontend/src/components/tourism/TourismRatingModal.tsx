@@ -18,17 +18,19 @@ export default function TourismRatingModal({
 }: TourismRatingModalProps) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [ratingError, setRatingError] = useState("");
 
-  const handleStarClick = (value: number) => setRating(value);
+  const handleStarClick = (value: number) => { setRating(value); setRatingError(""); }
 
   const handleSubmit = () => {
     if (rating === 0) {
-      alert("Please select a star rating.");
+      setRatingError("Please select a star rating.");
       return;
     }
     onSubmit(rating, comment);
     setRating(0);
     setComment("");
+    setRatingError("");
   };
 
   const handleCancel = () => {
@@ -43,7 +45,7 @@ export default function TourismRatingModal({
         <h2 className="text-2xl font-bold mb-4 text-center">Rate {title}</h2>
         
         {/* Star Rating */}
-        <div className="flex justify-center mb-6 text-yellow-400 text-4xl">
+        <div className="flex justify-center mb-2 text-yellow-400 text-4xl">
           {[1,2,3,4,5].map((star) => (
             <span
               key={star}
@@ -54,6 +56,7 @@ export default function TourismRatingModal({
             </span>
           ))}
         </div>
+        {ratingError && <p className="text-red-600 text-sm font-semibold text-center mb-3">{ratingError}</p>}
 
         {/* Comment */}
         <textarea

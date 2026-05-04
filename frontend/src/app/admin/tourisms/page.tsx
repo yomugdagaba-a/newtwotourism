@@ -7,12 +7,16 @@ import { useRouter } from 'next/navigation';
 import FormInput, { FormButton, Alert } from '@/components/common/FormInput';
 import Pagination from '@/components/common/Pagination';
 import { ValidationErrors } from '@/utils/validation';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 import {
   validatePlaceName,
   validateDescription,
   hasValidationErrors,
   ValidationResult
 } from '../../../utils/ethiopianValidation';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -22,6 +26,8 @@ const STATUS_OPTIONS = [
 const PAGE_SIZE_OPTIONS = [9, 12, 15, 20, 30];
 
 const TourismsManagementPage = () => {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [tourisms, setTourisms] = useState<Tourism[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -159,13 +165,15 @@ const TourismsManagementPage = () => {
 
   const handleDelete = async (tourismId: number) => {
     if (!token) return;
-    if (!confirm('Are you sure you want to delete this tourism place?')) return;
+    const ok = await confirm({ message: 'Are you sure you want to delete this tourism place?', variant: 'danger', title: 'Delete Tourism Place', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       setActionLoading(tourismId);
       await AdminTourismService.deleteTourism(token, tourismId);
+      toast.success('Tourism place deleted');
       await loadTourisms();
     } catch (err) {
-      alert('Failed to delete: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to delete: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(null);
     }

@@ -17,6 +17,7 @@ import LoginForm from "@/components/auth/LoginFormModal";
 import RegisterForm from "@/components/auth/RegisterFormModal";
 import { API_BASE_URL } from "@/services/api";
 import { ModeSwitcherCompact } from "@/components/common/ModeSwitcher";
+import { useToast } from "@/components/common/Toast";
 
 type TabType = 'details' | 'booking' | 'my-bookings';
 
@@ -24,6 +25,7 @@ export default function HotelDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { token, isAuthenticated, userId, username, role, browsingMode } = useAuthStore();
+  const toast = useToast();
   const hotelId = Number(params.id);
 
   // Hotel state
@@ -179,7 +181,7 @@ export default function HotelDetailPage() {
       setActiveTab('my-bookings');
       setFormData({ ...formData, checkIn: '', checkOut: '', specialRequests: '', clientPhone: '', clientEmail: '' });
       setFormErrors({});
-      alert('Booking request submitted successfully!');
+      toast.success('Booking request submitted successfully!');
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Failed to submit booking');
     } finally {
@@ -203,7 +205,7 @@ export default function HotelDetailPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to upload receipt";
       await loadMyBookings();
-      if (msg !== 'TIMEOUT_RELOAD') alert(msg);
+      if (msg !== 'TIMEOUT_RELOAD') toast.error(msg);
     }
     finally { setSubmitting(false); }
   };
@@ -213,11 +215,11 @@ export default function HotelDetailPage() {
     if (file) {
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
-        alert('Please select an image file (JPG, PNG, GIF, WebP) or PDF');
+        toast.warning('Please select an image file (JPG, PNG, GIF, WebP) or PDF');
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
+        toast.warning('File size must be less than 10MB');
         return;
       }
       setReceiptFile(file);
@@ -238,7 +240,7 @@ export default function HotelDetailPage() {
       setSelectedBooking(updated);
       setMyBookings(prev => prev.map(b => b.bookingId === updated.bookingId ? updated : b));
       setNewMessage('');
-    } catch (err) { alert('Failed to send message'); }
+    } catch (err) { toast.error('Failed to send message'); }
   };
 
   const handleReportProblem = async () => {
@@ -248,8 +250,8 @@ export default function HotelDetailPage() {
       setSelectedBooking(updated);
       setMyBookings(prev => prev.map(b => b.bookingId === updated.bookingId ? updated : b));
       setProblemReport('');
-      alert('Problem reported to admin');
-    } catch (err) { alert('Failed to report problem'); }
+      toast.success('Problem reported to admin');
+    } catch (err) { toast.error('Failed to report problem'); }
   };
 
   const handleSubmitRating = async (rating: number, comment: string) => {
@@ -257,8 +259,8 @@ export default function HotelDetailPage() {
     try {
       await submitHotelRating(hotelId, rating, comment || undefined, token);
       setRatingModalOpen(false);
-      alert("Thank you for your review!");
-    } catch (err: unknown) { alert(err instanceof Error ? err.message : "Failed to submit rating"); }
+      toast.success("Thank you for your review!");
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Failed to submit rating"); }
   };
 
   const openDetailModal = (type: 'description' | 'policies') => {

@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useToast } from "@/components/common/Toast";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { BookingService, Booking, BOOKING_STATUS } from "@/services/booking.service";
 import { ModeSwitcherCompact } from "@/components/common/ModeSwitcher";
 import { API_BASE_URL } from "@/services/api";
@@ -22,6 +24,8 @@ function OwnerBookingsContent() {
   const searchParams = useSearchParams();
   const hotelFilter = searchParams.get("hotel") ? Number(searchParams.get("hotel")) : null;
   const { isAuthenticated, token, userId, role, browsingMode, setBrowsingMode } = useAuthStore();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [myHotels, setMyHotels] = useState<OwnerHotel[]>([]);
@@ -119,7 +123,7 @@ function OwnerBookingsContent() {
       } else {
         // Revert optimistic update on real error
         await loadBookings(false);
-        alert(msg);
+        toast.error(msg);
       }
     }
     finally { setActionLoading(false); }
@@ -128,7 +132,7 @@ function OwnerBookingsContent() {
   const handleProposeCost = async () => {
     if (!token || !userId || !selectedBooking || !proposedCost) return;
     const cost = parseFloat(proposedCost);
-    if (isNaN(cost) || cost <= 0) { alert("Enter a valid cost"); return; }
+    if (isNaN(cost) || cost <= 0) { toast.warning("Enter a valid cost greater than 0"); return; }
     // OPTIMISTIC UPDATE: immediately show cost proposed state
     const optimisticBooking = { ...selectedBooking, bookingStatus: 'COST_PROPOSED' as any, totalCost: cost };
     updateBookingInList(optimisticBooking);
@@ -144,7 +148,7 @@ function OwnerBookingsContent() {
       if (msg !== 'TIMEOUT_RELOAD') {
         // Revert on real error
         await loadBookings(false);
-        alert(msg);
+        toast.error(msg);
       } else {
         await loadBookings(false);
       }
@@ -154,7 +158,8 @@ function OwnerBookingsContent() {
 
   const handleApprove = async (bookingId: number) => {
     if (!token || !userId) return;
-    if (!confirm("Approve this booking?")) return;
+    const ok = await confirm({ title: "Approve Booking", message: "Approve this booking?", variant: "info", confirmLabel: "Approve" });
+    if (!ok) return;
     // OPTIMISTIC UPDATE
     const optimisticBooking = { ...bookings.find(b => b.bookingId === bookingId)!, bookingStatus: 'APPROVED' as any };
     updateBookingInList(optimisticBooking);
@@ -166,7 +171,7 @@ function OwnerBookingsContent() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to approve";
       await loadBookings(false);
-      if (msg !== 'TIMEOUT_RELOAD') alert(msg);
+      if (msg !== 'TIMEOUT_RELOAD') toast.error(msg);
     }
     finally { setActionLoading(false); }
   };
@@ -185,7 +190,7 @@ function OwnerBookingsContent() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to reject";
       await loadBookings(false);
-      if (msg !== 'TIMEOUT_RELOAD') alert(msg);
+      if (msg !== 'TIMEOUT_RELOAD') toast.error(msg);
     }
     finally { setActionLoading(false); }
   };
@@ -195,7 +200,7 @@ function OwnerBookingsContent() {
     try {
       const updated = await BookingService.ownerSendMessage(token, selectedBooking.bookingId, newMessage, userId);
       updateBookingInList(updated); setSelectedBooking(updated); setNewMessage("");
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to send"); }
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to send"); }
   };
 
   const pendingCount = bookings.filter(b => b.bookingStatus === BOOKING_STATUS.REQUESTED).length;

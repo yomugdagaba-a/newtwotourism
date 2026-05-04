@@ -5,6 +5,8 @@ import { AdminGuiderService, AdminTourismService, Guider, GuiderCreateDto, Guide
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import FormInput, { FormButton, Alert } from '@/components/common/FormInput';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 import { ValidationErrors } from '@/utils/validation';
 import {
   validateFullName,
@@ -16,8 +18,12 @@ import {
   hasValidationErrors,
   ValidationResult
 } from '../../../utils/ethiopianValidation';
+import { useToast } from '@/components/common/Toast';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const GuidersManagementPage = () => {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [guiders, setGuiders] = useState<Guider[]>([]);
   const [tourisms, setTourisms] = useState<Tourism[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,13 +163,15 @@ const GuidersManagementPage = () => {
 
   const handleDelete = async (guiderId: number) => {
     if (!token || !selectedTourismId) return;
-    if (!confirm('Are you sure you want to delete this guider?')) return;
+    const ok = await confirm({ message: 'Are you sure you want to delete this guider?', variant: 'danger', title: 'Delete Guider', confirmLabel: 'Delete' });
+    if (!ok) return;
     try {
       setActionLoading(guiderId);
       await AdminGuiderService.deleteGuider(token, guiderId);
+      toast.success('Guider deleted successfully');
       await loadGuiders(selectedTourismId);
     } catch (err) {
-      alert('Failed to delete: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to delete: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setActionLoading(null);
     }

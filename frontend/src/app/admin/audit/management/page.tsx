@@ -5,8 +5,10 @@ import { AuditService } from '../../../../services/audit.service';
 import { IntegrityStatus, CleanupResult, RepairResult } from '../../../../types/audit';
 import { useAuthStore } from '../../../../store/useAuthStore';
 import { useRouter } from 'next/navigation';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const AuditManagementPage = () => {
+  const confirm = useConfirm();
   const [integrityStatus, setIntegrityStatus] = useState<IntegrityStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,13 @@ const AuditManagementPage = () => {
   };
 
   const handleCleanupLogs = async () => {
-    if (!confirm(`Are you sure you want to delete audit logs older than ${cleanupDays} days? This action cannot be undone.`)) {
+    const ok = await confirm({
+      message: `Are you sure you want to delete audit logs older than ${cleanupDays} days? This action cannot be undone.`,
+      variant: 'danger',
+      title: 'Delete Old Logs',
+      confirmLabel: 'Delete Logs',
+    });
+    if (!ok) {
       return;
     }
 

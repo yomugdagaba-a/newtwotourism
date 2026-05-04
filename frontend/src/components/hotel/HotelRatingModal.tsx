@@ -14,12 +14,14 @@ interface HotelRatingModalProps {
 export default function HotelRatingModal({ isOpen, onClose, hotelId, hotelName, onSubmit }: HotelRatingModalProps) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [ratingError, setRatingError] = useState("");
 
   const handleSubmit = () => {
     if (rating < 1 || rating > 5) {
-      alert("Please select a rating between 1 and 5 stars.");
+      setRatingError("Please select a rating between 1 and 5 stars.");
       return;
     }
+    setRatingError("");
     onSubmit(rating, comment);
     setRating(0);
     setComment("");
@@ -45,6 +47,7 @@ export default function HotelRatingModal({ isOpen, onClose, hotelId, hotelName, 
       <div className="p-6 bg-white rounded-3xl max-w-md mx-auto">
         <h2 className="text-2xl font-bold mb-4">Rate {hotelName}</h2>
         <div className="flex gap-2 mb-4 justify-center">{renderStars()}</div>
+        {ratingError && <p className="text-red-600 text-sm font-semibold text-center mb-3">{ratingError}</p>}
         <textarea
           className="w-full border rounded-xl p-3 mb-4 text-gray-700"
           rows={4}
