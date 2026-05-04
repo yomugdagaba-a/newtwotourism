@@ -104,15 +104,20 @@ async function getSecurityLogs(days = 1) {
 }
 
 // High severity = active attack attempts against the system.
-// DELETE by an authorized admin is a normal operation, NOT high severity.
-// High severity = brute force lockouts, privilege escalation, token attacks, injection attempts.
+// SESSION_EXPIRED is NORMAL — JWT tokens expire after 15 minutes by design.
+// High severity = brute force lockouts, privilege escalation, tampered/invalid tokens.
 async function getHighSeverityLogs(days = 1) {
   const since = new Date();
   since.setDate(since.getDate() - parseInt(days));
   return prisma.auditLogEntry.findMany({
     where: {
       createdAt: { gte: since },
-      action: { in: ['ACCOUNT_LOCKED', 'AUTHORIZATION_CHECK', 'SESSION_EXPIRED'] },
+      action: { in: ['ACCOUNT_LOCKED', 'AUTHORIZATION_CHECK'] },
+      // AUTHORIZATION_CHECK with reason=INSUFFICIENT_PERMISSIONS = privilege escalation attempt
+      // AUTHORIZATION_CHECK with reason=TokenExpiredError is SESSION_EXPIRED — excluded here
+      NOT: {
+        changes: { contains: '"reason":"TokenExpiredError"' }
+      }
     },
     include: { user: true },
     orderBy: { createdAt: 'desc' },

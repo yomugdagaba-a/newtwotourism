@@ -76,7 +76,21 @@ const SecurityEventsPage = () => {
       case 'PASSWORD_RESET_CONFIRM': return '✅';
       case 'EMAIL_VERIFICATION_SEND': return '📧';
       case 'EMAIL_VERIFICATION_CONFIRM': return '✅';
-      default: return '';
+      case 'SESSION_EXPIRED': return '⏱️';
+      case 'AUTHORIZATION_CHECK': return '🚨';
+      default: return '⚠️';
+    }
+  };
+
+  // Returns a human-readable label and note for each action
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case 'SESSION_EXPIRED': return { label: 'Session Expired', note: 'Normal — JWT token expired (15 min lifetime)', color: 'text-gray-500' };
+      case 'ACCOUNT_LOCKED': return { label: 'Account Locked', note: 'Account locked after repeated failed logins', color: 'text-red-600' };
+      case 'AUTHORIZATION_CHECK': return { label: 'Authorization Check', note: 'Tampered token or privilege escalation attempt', color: 'text-red-600' };
+      case 'LOGOUT': return { label: 'Logout', note: 'User logged out', color: 'text-gray-500' };
+      case 'PASSWORD_RESET_REQUEST': return { label: 'Password Reset', note: 'Password reset requested', color: 'text-yellow-600' };
+      default: return { label: action.replace(/_/g, ' '), note: '', color: 'text-gray-700' };
     }
   };
 
@@ -226,8 +240,11 @@ const SecurityEventsPage = () => {
 
             {/* Events */}
             <div className="divide-y divide-gray-200">
-              {paginatedLogs.map((log) => (
-                <div key={log.id} className="p-6 hover:bg-gray-50">
+              {paginatedLogs.map((log) => {
+                const actionInfo = getActionLabel(log.action ?? '');
+                const isNormal = log.action === 'SESSION_EXPIRED' || log.action === 'LOGOUT';
+                return (
+                <div key={log.id} className={`p-6 hover:bg-gray-50 ${isNormal ? 'opacity-70' : ''}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4">
                       <div className="flex-shrink-0">
@@ -235,13 +252,22 @@ const SecurityEventsPage = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="text-lg font-black text-gray-900">
-                            {log.action.replace(/_/g, ' ')}
+                          <h3 className={`text-lg font-black ${actionInfo.color}`}>
+                            {actionInfo.label}
                           </h3>
-                          <span className={`inline-flex px-2 py-1 text-xs font-black rounded-full border ${getSeverityBadgeClass(log.severity ?? '')}`}>
-                            {log.severity}
-                          </span>
+                          {isNormal ? (
+                            <span className="inline-flex px-2 py-1 text-xs font-black rounded-full bg-gray-100 text-gray-600 border border-gray-300">
+                              NORMAL
+                            </span>
+                          ) : (
+                            <span className={`inline-flex px-2 py-1 text-xs font-black rounded-full border ${getSeverityBadgeClass(log.severity ?? '')}`}>
+                              {log.severity}
+                            </span>
+                          )}
                         </div>
+                        {actionInfo.note && (
+                          <p className="text-xs text-gray-500 font-medium mb-1 italic">{actionInfo.note}</p>
+                        )}
                         <p className="text-sm text-gray-700 font-bold mb-2">
                           {log.description || `${log.action} event`}
                         </p>
@@ -278,7 +304,8 @@ const SecurityEventsPage = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Pagination Controls */}
