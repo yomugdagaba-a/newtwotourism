@@ -192,7 +192,9 @@ async function acceptRequest(bookingId, ownerId) {
   const status = await getOrCreateStatus('OWNER_ACCEPTED');
   const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { statusId: status.id }, include: INCLUDE });
   await addMessage(bookingId, ownerId, 'Request accepted', true);
-  try { if (booking.user.email) await emailService.sendBookingAcceptedNotification(booking.user.email, booking.hotel.name, bookingId); } catch (e) {}
+  if (booking.user.email) {
+    emailService.sendBookingAcceptedNotification(booking.user.email, booking.hotel.name, bookingId).catch(() => {});
+  }
   return transform(updated);
 }
 
@@ -211,7 +213,9 @@ async function proposeCost(bookingId, cost, ownerId) {
   const status = await getOrCreateStatus('COST_PROPOSED');
   const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { totalCost: cost, statusId: status.id }, include: INCLUDE });
   await addMessage(bookingId, ownerId, `Cost proposed: ${cost} ETB`, true);
-  try { if (booking.user.email) await emailService.sendCostProposedNotification(booking.user.email, booking.hotel.name, cost, bookingId); } catch (e) {}
+  if (booking.user.email) {
+    emailService.sendCostProposedNotification(booking.user.email, booking.hotel.name, cost, bookingId).catch(() => {});
+  }
   return transform(updated);
 }
 
@@ -229,13 +233,12 @@ async function uploadReceipt(bookingId, receiptUrl, userId) {
   const status = await getOrCreateStatus('PAID');
   const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { receiptImageUrl: receiptUrl, statusId: status.id }, include: INCLUDE });
   await addMessage(bookingId, userId, 'Receipt uploaded', false);
-  // Notify owner
-  try {
-    if (booking.hotel.ownerId) {
-      const owner = await prisma.user.findUnique({ where: { id: booking.hotel.ownerId } });
-      if (owner?.email) await emailService.sendReceiptUploadedNotification(owner.email, booking.hotel.name, bookingId);
-    }
-  } catch (e) {}
+  // Notify owner — fire-and-forget
+  if (booking.hotel.ownerId) {
+    prisma.user.findUnique({ where: { id: booking.hotel.ownerId } }).then(owner => {
+      if (owner?.email) emailService.sendReceiptUploadedNotification(owner.email, booking.hotel.name, bookingId).catch(() => {});
+    }).catch(() => {});
+  }
   return transform(updated);
 }
 
@@ -253,7 +256,9 @@ async function approveBooking(bookingId, ownerId) {
   const status = await getOrCreateStatus('APPROVED');
   const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { statusId: status.id }, include: INCLUDE });
   await addMessage(bookingId, ownerId, 'Booking approved', true);
-  try { if (booking.user.email) await emailService.sendBookingApprovedNotification(booking.user.email, booking.hotel.name, bookingId); } catch (e) {}
+  if (booking.user.email) {
+    emailService.sendBookingApprovedNotification(booking.user.email, booking.hotel.name, bookingId).catch(() => {});
+  }
   return transform(updated);
 }
 
@@ -261,10 +266,21 @@ async function rejectBooking(bookingId, reason, ownerId) {
   const booking = await prisma.hotelBooking.findUnique({ where: { id: bookingId }, include: { hotel: true, user: true } });
   if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
   if (booking.hotel.ownerId !== ownerId) throw Object.assign(new Error('Not authorized'), { status: 403 });
+
+  // Validate current status allows rejection
+  const currentStatus = await prisma.bookingStatusEntity.findUnique({ where: { id: booking.statusId } });
+  const rejectable = ['REQUESTED', 'OWNER_ACCEPTED', 'COST_PROPOSED', 'PAID'];
+  if (!currentStatus || !rejectable.includes(currentStatus.name)) {
+    throw Object.assign(new Error(`Cannot reject booking in ${currentStatus?.name || 'unknown'} status`), { status: 400 });
+  }
+
   const status = await getOrCreateStatus('REJECTED');
   const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { statusId: status.id, rejectionReason: reason }, include: INCLUDE });
   await addMessage(bookingId, ownerId, `Rejected: ${reason}`, true);
-  try { if (booking.user.email) await emailService.sendBookingRejectedNotification(booking.user.email, booking.hotel.name, reason, bookingId); } catch (e) {}
+  // Fire-and-forget email — never block the response
+  if (booking.user.email) {
+    emailService.sendBookingRejectedNotification(booking.user.email, booking.hotel.name, reason, bookingId).catch(() => {});
+  }
   return transform(updated);
 }
 

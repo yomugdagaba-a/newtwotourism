@@ -63,7 +63,7 @@ router.post('/:id/accept', authenticate, async (req, res, next) => {
 router.post('/:id/cost', authenticate, async (req, res, next) => {
   try {
     const cost = parseFloat(req.query.cost);
-    if (isNaN(cost)) return res.status(400).json({ message: 'Cost must be a valid number' });
+    if (isNaN(cost) || cost <= 0) return res.status(400).json({ message: 'Cost must be a positive number' });
     res.json(await bookingsService.proposeCost(parseInt(req.params.id), cost, req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId));
   } catch (e) { next(e); }
 });

@@ -610,13 +610,16 @@ function OwnerBookingsContent() {
           <div className="bg-white rounded-xl shadow-2xl p-5 w-80 border border-gray-200">
             <h3 className="text-sm font-bold text-gray-900 mb-1">Propose Cost</h3>
             <p className="text-xs text-gray-500 mb-3">Booking {selectedBooking?.bookingId} — {selectedBooking?.hotel.name}</p>
+            {selectedBooking?.totalCost && (
+              <p className="text-xs text-purple-600 font-semibold mb-2">Current cost: {selectedBooking.totalCost} ETB</p>
+            )}
             <input type="number" value={proposedCost} onChange={e => setProposedCost(e.target.value)}
-              placeholder="Enter cost in ETB"
+              placeholder="Enter cost in ETB" min="1"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-300" />
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setShowCostModal(false); setProposedCost(""); }}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100">Cancel</button>
-              <button onClick={handleProposeCost} disabled={actionLoading || !proposedCost}
+              <button onClick={handleProposeCost} disabled={actionLoading || !proposedCost || parseFloat(proposedCost) <= 0}
                 className="bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-800 disabled:opacity-50">
                 {actionLoading ? "Sending..." : "Propose"}
               </button>
