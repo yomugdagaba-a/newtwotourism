@@ -47,13 +47,7 @@ async function getProgressiveDelay(ipAddress) {
 }
 
 async function detectSuspiciousActivity(ipAddress) {
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const distinctIps = await prisma.loginAttempt.findMany({
-    where: { createdAt: { gte: twentyFourHoursAgo } },
-    select: { ipAddress: true },
-    distinct: ['ipAddress'],
-  });
-  if (distinctIps.length >= SUSPICIOUS_ACTIVITY_THRESHOLD) return true;
+  // Only check recent failures from this specific IP — avoids full-table scan
   const recentAttempts = await prisma.loginAttempt.count({
     where: { ipAddress, success: false, createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) } },
   });
@@ -163,15 +157,17 @@ async function register({ username, email, password, fullName }) {
     include: { roles: true },
   });
 
-  // Send verification email — non-blocking, never crash register
-  try {
-    const otp = generateOtp();
-    await prisma.emailVerificationToken.create({
-      data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
-    });
-    await emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES);
-    await emailService.sendWelcomeEmail(email, fullName || username);
-  } catch (e) { console.error('Verification email failed (non-fatal):', e.message); }
+  // Send verification email — fire-and-forget, never blocks register response
+  Promise.resolve().then(async () => {
+    try {
+      const otp = generateOtp();
+      await prisma.emailVerificationToken.create({
+        data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
+      });
+      await emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES);
+      await emailService.sendWelcomeEmail(email, fullName || username);
+    } catch (e) { console.error('Verification email failed (non-fatal):', e.message); }
+  });
 
   return generateTokens(user);
 }
@@ -183,9 +179,15 @@ async function login({ username, password }, ip = 'unknown', ua = 'unknown') {
     throw Object.assign(new Error('Too many requests from this IP address. Please try again later.'), { status: 429 });
   }
 
-  // Identifier-level blocking (too many failures from this IP)
+  // Look up user by username OR email
+  const user = await prisma.user.findFirst({
+    where: { OR: [{ username }, { email: username }] },
+    include: { roles: true },
+  });
+
+  // Identifier-level blocking (too many failures for this user)
   if (await shouldBlockIdentifier(ip)) {
-    await prisma.loginAttempt.create({ data: { ipAddress: ip, success: false, reason: 'Identifier blocked' } });
+    await prisma.loginAttempt.create({ data: { userId: user?.id, ipAddress: ip, success: false, reason: 'Identifier blocked' } });
     throw Object.assign(new Error('Too many failed login attempts. Please try again later.'), { status: 429 });
   }
 
@@ -194,8 +196,6 @@ async function login({ username, password }, ip = 'unknown', ua = 'unknown') {
   if (delay > 0) {
     await new Promise(resolve => setTimeout(resolve, delay * 1000));
   }
-
-  const user = await prisma.user.findUnique({ where: { username }, include: { roles: true } });
 
   if (user && await isUserLockedOut(user.id)) {
     await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Account locked' } });
@@ -224,11 +224,10 @@ async function login({ username, password }, ip = 'unknown', ua = 'unknown') {
     throw Object.assign(new Error('User account is inactive'), { status: 401 });
   }
 
-  // Detect suspicious activity (non-blocking, just logs/alerts)
-  try {
-    const suspicious = await detectSuspiciousActivity(ip);
-    if (suspicious) await sendSecurityAlert(user.id, 'SUSPICIOUS_ACTIVITY', ip);
-  } catch (e) {}
+  // Detect suspicious activity — fire-and-forget, never blocks login response
+  detectSuspiciousActivity(ip).then(suspicious => {
+    if (suspicious) sendSecurityAlert(user.id, 'SUSPICIOUS_ACTIVITY', ip).catch(() => {});
+  }).catch(() => {});
 
   await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: true } });
   return generateTokens(user);

@@ -500,18 +500,18 @@ function OwnerBookingsContent() {
                           <>
                             <button onClick={() => handleAccept(selectedBooking.bookingId)} disabled={actionLoading}
                               className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-900 disabled:opacity-50">Accept</button>
-                            <button onClick={() => setShowCostModal(true)} disabled={actionLoading}
-                              className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-700 disabled:opacity-50">Propose Cost</button>
-                            <button onClick={() => setShowRejectModal(true)} disabled={actionLoading}
-                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 disabled:opacity-50">Reject</button>
+                            <button onClick={() => setShowCostModal(true)}
+                              className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-700">Propose Cost</button>
+                            <button onClick={() => setShowRejectModal(true)}
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700">Reject</button>
                           </>
                         )}
                         {selectedBooking.bookingStatus === BOOKING_STATUS.OWNER_ACCEPTED && (
                           <>
-                            <button onClick={() => setShowCostModal(true)} disabled={actionLoading}
-                              className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-700 disabled:opacity-50">Propose Cost</button>
-                            <button onClick={() => setShowRejectModal(true)} disabled={actionLoading}
-                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 disabled:opacity-50">Reject</button>
+                            <button onClick={() => setShowCostModal(true)}
+                              className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-700">Propose Cost</button>
+                            <button onClick={() => setShowRejectModal(true)}
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700">Reject</button>
                           </>
                         )}
                         {selectedBooking.bookingStatus === BOOKING_STATUS.PAID && (
