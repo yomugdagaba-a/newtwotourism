@@ -30,23 +30,26 @@ async function sendEmail(to, subject, html) {
     return false;
   }
 
+  const fromAddress = getFromAddress();
+  console.log(`📧 Sending email: to=${to} from="${fromAddress}" subject="${subject}"`);
+
   try {
     const { data, error } = await resend.emails.send({
-      from: getFromAddress(),
+      from: fromAddress,
       to,
       subject,
       html,
     });
 
     if (error) {
-      console.error(`❌ Failed to send email to ${to}: ${error.message}`);
+      console.error(`❌ Resend API error for ${to}: ${JSON.stringify(error)}`);
       return false;
     }
 
-    console.log(`✅ Email sent to ${to}: ${data?.id}`);
+    console.log(`✅ Email sent to ${to} — Resend ID: ${data?.id}`);
     return true;
   } catch (err) {
-    console.error(`❌ Failed to send email to ${to}: ${err.message}`);
+    console.error(`❌ Email exception for ${to}: ${err.message}`);
     return false;
   }
 }
