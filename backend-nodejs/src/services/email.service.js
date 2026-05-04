@@ -1,74 +1,48 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Create transporter lazily so env vars are always read at send time, not at module load
-function createTransporter() {
-  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
-  const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587');
-  const user = process.env.SMTP_USER || process.env.MAIL_USER;
-  const pass = process.env.SMTP_PASSWORD || process.env.MAIL_PASSWORD;
-  // secure=true for port 465 (SSL), false for 587 (STARTTLS)
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-
-  if (!host || !user || !pass) {
-    console.warn('⚠️  Email service: SMTP credentials not configured (SMTP_HOST/SMTP_USER/SMTP_PASSWORD missing)');
+// Resend uses HTTPS API (port 443) — works on all hosting platforms including Render free tier
+// No SMTP port blocking issues. Sign up free at resend.com (3,000 emails/month free)
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('⚠️  Email service: RESEND_API_KEY not set — emails will not be sent');
     return null;
   }
-
-  const config = {
-    host,
-    port,
-    secure,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-  };
-
-  // For port 587 STARTTLS, explicitly require STARTTLS upgrade
-  if (port === 587 && !secure) {
-    config.requireTLS = true;
-  }
-
-  return nodemailer.createTransport(config);
+  return new Resend(apiKey);
 }
 
-// Gmail requires the FROM address to match the authenticated account.
-// If SMTP_FROM is set to a custom domain (not gmail.com), use SMTP_USER instead.
 function getFromAddress() {
-  const smtpFrom = process.env.SMTP_FROM || process.env.MAIL_FROM;
-  const smtpUser = process.env.SMTP_USER || process.env.MAIL_USER;
-  const host = process.env.SMTP_HOST || '';
-
-  // If using Gmail SMTP, always use the Gmail account as sender
-  if (host.includes('gmail.com') && smtpUser) {
-    // Use a friendly display name if SMTP_FROM has one, but force the Gmail address
-    return `North Wollo Tourism <${smtpUser}>`;
-  }
-
-  return smtpFrom || smtpUser || 'noreply@northwollotourism.com';
+  // Use SMTP_FROM if set, otherwise fall back to a sensible default
+  return process.env.SMTP_FROM ||
+    process.env.MAIL_FROM ||
+    `North Wollo Tourism <${process.env.SMTP_USER || 'noreply@northwollotourism.com'}>`;
 }
 
 async function sendEmail(to, subject, html) {
-  const transporter = createTransporter();
+  const resend = getResendClient();
 
-  if (!transporter) {
-    console.error(`❌ Email not sent to ${to}: SMTP not configured`);
+  if (!resend) {
+    console.error(`❌ Email not sent to ${to}: RESEND_API_KEY not configured`);
     return false;
   }
 
   try {
-    const info = await transporter.sendMail({
+    const { data, error } = await resend.emails.send({
       from: getFromAddress(),
       to,
       subject,
       html,
     });
-    console.log(`✅ Email sent to ${to}: ${info.messageId}`);
+
+    if (error) {
+      console.error(`❌ Failed to send email to ${to}: ${error.message}`);
+      return false;
+    }
+
+    console.log(`✅ Email sent to ${to}: ${data?.id}`);
     return true;
   } catch (err) {
     console.error(`❌ Failed to send email to ${to}: ${err.message}`);
-    console.error(`   SMTP config: host=${process.env.SMTP_HOST} port=${process.env.SMTP_PORT} user=${process.env.SMTP_USER} from=${getFromAddress()}`);
     return false;
   }
 }
@@ -124,7 +98,6 @@ async function sendCostProposedNotification(email, hotelName, cost, bookingId) {
         <tr><td style="padding:8px 12px;font-weight:bold;color:#6b7280;border-bottom:1px solid #e5e7eb;">Hotel</td><td style="padding:8px 12px;font-weight:bold;border-bottom:1px solid #e5e7eb;">${hotelName}</td></tr>
         <tr><td style="padding:8px 12px;font-weight:bold;color:#6b7280;">Proposed Cost</td><td style="padding:8px 12px;font-weight:900;font-size:20px;color:#7c3aed;">${cost} ETB</td></tr>
       </table>
-      <p>To proceed, please upload your payment receipt:</p>
       <a href="${appUrl}/bookings" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">View My Bookings & Upload Receipt</a>
     </div>
   `);

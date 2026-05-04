@@ -141,31 +141,16 @@ const keyPath = path.resolve(__dirname, '../certificates/localhost-key.pem');
 async function start() {
   await initBookingStatuses();
 
-  // Verify SMTP connection on startup
+  // Verify email service on startup
   try {
-    const emailService = require('./services/email.service');
-    const nodemailer = require('nodemailer');
-    const host = process.env.SMTP_HOST;
-    const port = parseInt(process.env.SMTP_PORT || '587');
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASSWORD;
-    if (host && user && pass) {
-      const testTransporter = nodemailer.createTransport({
-        host, port,
-        secure: port === 465,
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 8000,
-        requireTLS: port === 587,
-      });
-      await testTransporter.verify();
-      console.log(`✅ SMTP connection verified (${host}:${port} as ${user})`);
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      console.log(`✅ Email service ready (Resend API key configured)`);
     } else {
-      console.warn('⚠️  SMTP not configured — emails will not be sent');
+      console.warn('⚠️  RESEND_API_KEY not set — emails will not be sent');
     }
   } catch (smtpErr) {
-    console.error(`❌ SMTP connection failed: ${smtpErr.message}`);
-    console.error('   Check SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD in .env');
+    console.error(`❌ Email service check failed: ${smtpErr.message}`);
   }
 
   if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
