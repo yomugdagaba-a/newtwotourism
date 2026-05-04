@@ -18,17 +18,28 @@ function createTransporter() {
     port,
     secure,
     auth: { user, pass },
-    tls: {
-      // Allow self-signed certs and avoid TLS errors on some SMTP servers
-      rejectUnauthorized: false,
-    },
-    connectionTimeout: 10000, // 10s — don't hang forever
+    tls: { rejectUnauthorized: false },
+    connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
   });
 }
 
-const FROM = () => process.env.SMTP_FROM || process.env.MAIL_FROM || 'noreply@northwollotourism.com';
+// Gmail requires the FROM address to match the authenticated account.
+// If SMTP_FROM is set to a custom domain (not gmail.com), use SMTP_USER instead.
+function getFromAddress() {
+  const smtpFrom = process.env.SMTP_FROM || process.env.MAIL_FROM;
+  const smtpUser = process.env.SMTP_USER || process.env.MAIL_USER;
+  const host = process.env.SMTP_HOST || '';
+
+  // If using Gmail SMTP, always use the Gmail account as sender
+  if (host.includes('gmail.com') && smtpUser) {
+    // Use a friendly display name if SMTP_FROM has one, but force the Gmail address
+    return `North Wollo Tourism <${smtpUser}>`;
+  }
+
+  return smtpFrom || smtpUser || 'noreply@northwollotourism.com';
+}
 
 async function sendEmail(to, subject, html) {
   const transporter = createTransporter();
@@ -40,7 +51,7 @@ async function sendEmail(to, subject, html) {
 
   try {
     const info = await transporter.sendMail({
-      from: FROM(),
+      from: getFromAddress(),
       to,
       subject,
       html,
@@ -49,10 +60,7 @@ async function sendEmail(to, subject, html) {
     return true;
   } catch (err) {
     console.error(`❌ Failed to send email to ${to}: ${err.message}`);
-    // Log full error in development for easier debugging
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(err);
-    }
+    console.error(`   SMTP config: host=${process.env.SMTP_HOST} port=${process.env.SMTP_PORT} user=${process.env.SMTP_USER} from=${getFromAddress()}`);
     return false;
   }
 }

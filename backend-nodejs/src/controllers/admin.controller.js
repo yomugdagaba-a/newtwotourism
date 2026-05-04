@@ -595,4 +595,47 @@ router.post('/security/send-alert/:userId', ...guard, async (req, res, next) => 
   } catch (e) { next(e); }
 });
 
+// ── Email Test (admin only) ────────────────────────────────────────────────────
+router.post('/test-email', ...guard, async (req, res, next) => {
+  try {
+    const emailService = require('../services/email.service');
+    const nodemailer = require('nodemailer');
+    const to = req.body.to || req.user.email;
+    const host = process.env.SMTP_HOST;
+    const port = parseInt(process.env.SMTP_PORT || '587');
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASSWORD;
+
+    if (!host || !user || !pass) {
+      return res.status(500).json({ success: false, error: 'SMTP not configured', config: { host, port, user: user ? '***set***' : 'MISSING', pass: pass ? '***set***' : 'MISSING' } });
+    }
+
+    // Verify connection first
+    const transporter = nodemailer.createTransport({
+      host, port,
+      secure: port === 465,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 8000,
+    });
+
+    await transporter.verify();
+
+    // Send test email
+    const result = await emailService.sendEmail(
+      to || user,
+      'Test Email — North Wollo Tourism',
+      `<h2>SMTP Test</h2><p>If you received this, email is working correctly.</p><p>Sent at: ${new Date().toISOString()}</p>`
+    );
+
+    res.json({
+      success: result,
+      config: { host, port, user, from: `North Wollo Tourism <${user}>` },
+      sentTo: to || user,
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message, config: { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER } });
+  }
+});
+
 module.exports = router;
