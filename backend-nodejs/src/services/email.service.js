@@ -41,19 +41,29 @@ async function sendEmailVerificationOtp(email, otp, expiryMinutes) {
 }
 
 async function sendBookingAcceptedNotification(email, hotelName, bookingId) {
-  return sendEmail(email, 'Booking Request Accepted', `
-    <h2>Booking Request Accepted</h2>
-    <p>Your booking at <strong>${hotelName}</strong> has been accepted.</p>
+  const appUrl = process.env.FRONTEND_URL || 'https://tourism-system-sand.vercel.app';
+  return sendEmail(email, `Booking #${bookingId} Accepted — ${hotelName}`, `
+    <h2>Your Booking Request Was Accepted</h2>
+    <p>Great news! <strong>${hotelName}</strong> has accepted your booking request.</p>
     <p><strong>Booking ID:</strong> #${bookingId}</p>
+    <p>The hotel will now propose a cost. You will receive another email once the cost is ready for you to review and pay.</p>
+    <a href="${appUrl}/bookings" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">View My Bookings</a>
   `);
 }
 
 async function sendCostProposedNotification(email, hotelName, cost, bookingId) {
-  return sendEmail(email, 'Cost Proposed for Your Booking', `
-    <h2>Cost Proposed</h2>
-    <p>Hotel <strong>${hotelName}</strong> proposed a cost for booking #${bookingId}.</p>
-    <p><strong>Cost:</strong> ${cost} ETB</p>
-    <p>Please upload your payment receipt to proceed.</p>
+  const appUrl = process.env.FRONTEND_URL || 'https://tourism-system-sand.vercel.app';
+  return sendEmail(email, `Cost Proposed for Booking #${bookingId} — ${hotelName}`, `
+    <h2>Cost Proposed for Your Booking</h2>
+    <p>Hotel <strong>${hotelName}</strong> has proposed a cost for your booking.</p>
+    <table style="border-collapse:collapse;margin:16px 0;">
+      <tr><td style="padding:6px 12px;font-weight:bold;color:#6b7280;">Booking ID</td><td style="padding:6px 12px;font-weight:bold;">#${bookingId}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold;color:#6b7280;">Hotel</td><td style="padding:6px 12px;font-weight:bold;">${hotelName}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold;color:#6b7280;">Proposed Cost</td><td style="padding:6px 12px;font-weight:900;font-size:18px;color:#7c3aed;">${cost} ETB</td></tr>
+    </table>
+    <p>To proceed, please upload your payment receipt:</p>
+    <a href="${appUrl}/bookings" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">View My Bookings & Upload Receipt</a>
+    <p style="margin-top:16px;color:#6b7280;font-size:13px;">If you did not make this booking, please ignore this email.</p>
   `);
 }
 

@@ -30,6 +30,9 @@ export default function ClientBookingsPage() {
   useEffect(() => {
     if (!isAuthenticated) { router.push("/auth/login"); return; }
     loadBookings();
+    // Poll every 15 seconds so client sees cost proposals / status changes without manual refresh
+    const interval = setInterval(() => loadBookings(), 15000);
+    return () => clearInterval(interval);
   }, [isAuthenticated]);
 
   // When filter changes, auto-select first or clear
@@ -377,7 +380,7 @@ export default function ClientBookingsPage() {
                     )}
 
                     {/* Receipt Image */}
-                    {selectedBooking.receiptImageUrl && new Date(selectedBooking.checkOut) >= new Date(new Date().toDateString()) && (
+                    {selectedBooking.receiptImageUrl && (
                       <div className="px-5 py-4 border-b border-gray-200">
                         <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '10px' }}>Payment Receipt</p>
                         <img src={selectedBooking.receiptImageUrl?.startsWith('http') ? selectedBooking.receiptImageUrl : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://tourismsystem.onrender.com'}/${selectedBooking.receiptImageUrl?.replace(/^\//, '')}`} alt="Receipt" className="max-w-xs rounded-lg border border-gray-200"

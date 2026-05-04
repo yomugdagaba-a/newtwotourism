@@ -83,6 +83,9 @@ export default function HotelDetailPage() {
   useEffect(() => {
     if (activeTab === 'my-bookings' && isAuthenticated) {
       loadMyBookings();
+      // Poll every 15 seconds so client sees cost proposals without manual refresh
+      const interval = setInterval(() => loadMyBookings(), 15000);
+      return () => clearInterval(interval);
     }
   }, [activeTab, isAuthenticated]);
 
@@ -760,12 +763,11 @@ export default function HotelDetailPage() {
                     const statuses = [
                       { key: 'ALL', label: 'All' },
                       { key: 'REQUESTED', label: 'Requested' },
-                      { key: 'ACCEPTED', label: 'Accepted' },
+                      { key: 'OWNER_ACCEPTED', label: 'Accepted' },
                       { key: 'COST_PROPOSED', label: 'Cost Proposed' },
                       { key: 'PAID', label: 'Paid' },
                       { key: 'APPROVED', label: 'Approved' },
                       { key: 'REJECTED', label: 'Rejected' },
-                      { key: 'CANCELLED', label: 'Cancelled' },
                     ];
                     return (
                       <div className="flex flex-wrap gap-2">
