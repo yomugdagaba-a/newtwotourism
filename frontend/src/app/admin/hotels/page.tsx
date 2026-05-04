@@ -18,8 +18,6 @@ import {
   hasValidationErrors,
   ValidationResult
 } from '../../../utils/ethiopianValidation';
-import { useToast } from '@/components/common/Toast';
-import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const PAGE_SIZE_OPTIONS = [9, 12, 15, 20, 30];
 

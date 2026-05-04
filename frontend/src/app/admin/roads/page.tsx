@@ -16,8 +16,6 @@ import {
   hasValidationErrors,
   ValidationResult
 } from '../../../utils/ethiopianValidation';
-import { useToast } from '@/components/common/Toast';
-import { useConfirm } from '@/components/common/ConfirmDialog';
 
 const ROAD_TYPES = [
   { value: 'CAR', label: '🚗 Car Route', icon: '🚗' },

@@ -6,8 +6,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { AdminHotelService, AdminUserService, User } from '@/services/admin.service';
 import { useToast } from '@/components/common/Toast';
 import { useConfirm } from '@/components/common/ConfirmDialog';
-import { useToast } from '@/components/common/Toast';
-import { useConfirm } from '@/components/common/ConfirmDialog';
 
 interface HotelDetail {
   id: number;
@@ -28,8 +26,6 @@ export default function AdminHotelDetailPage() {
   const router = useRouter();
   const hotelId = Number(params.id);
   const { token, role, isAuthenticated } = useAuthStore();
-  const toast = useToast();
-  const confirm = useConfirm();
   const toast = useToast();
   const confirm = useConfirm();
 
