@@ -1,104 +1,51 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// ── Mailtrap (primary — HTTPS API, no domain needed, works on Render/Railway) ─
-async function sendViaMailtrap(to, subject, html) {
-  const token = process.env.MAILTRAP_API_TOKEN;
-  if (!token) return null;
+// Email service using Resend API
+// Note: On free plan without verified domain, emails only deliver to maryeabebe55@gmail.com
+// To send to any email, verify a domain at resend.com/domains
+
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('⚠️  RESEND_API_KEY not set — emails will not be sent');
+    return null;
+  }
+  return new Resend(apiKey);
+}
+
+function getFromAddress() {
+  // Always use onboarding@resend.dev — works on free plan
+  return 'North Wollo Tourism <onboarding@resend.dev>';
+}
+
+async function sendEmail(to, subject, html) {
+  const resend = getResendClient();
+  if (!resend) {
+    console.error(`❌ Email not sent to ${to}: RESEND_API_KEY not configured`);
+    return false;
+  }
+
+  console.log(`📧 Sending email to=${to} subject="${subject}"`);
 
   try {
-    const { MailtrapClient } = require('mailtrap');
-    const client = new MailtrapClient({ token });
-    const from = process.env.SMTP_FROM
-      ? { email: process.env.SMTP_FROM.match(/<(.+)>/)?.[1] || process.env.SMTP_FROM, name: 'North Wollo Tourism' }
-      : { email: 'noreply@northwollotourism.com', name: 'North Wollo Tourism' };
-
-    await client.send({
-      from,
-      to: [{ email: to }],
+    const { data, error } = await resend.emails.send({
+      from: getFromAddress(),
+      to,
       subject,
       html,
     });
-    console.log(`✅ Email sent via Mailtrap to ${to}`);
-    return true;
-  } catch (err) {
-    console.error(`❌ Mailtrap error for ${to}: ${err.message}`);
-    return false;
-  }
-}
 
-async function sendViaResend(to, subject, html) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return null; // not configured, skip
-
-  try {
-    const { Resend } = require('resend');
-    const resend = new Resend(apiKey);
-    // Always use onboarding@resend.dev — works without domain verification
-    const { data, error } = await resend.emails.send({
-      from: 'North Wollo Tourism <onboarding@resend.dev>',
-      to, subject, html,
-    });
     if (error) {
       console.error(`❌ Resend error for ${to}: ${JSON.stringify(error)}`);
       return false;
     }
+
     console.log(`✅ Email sent via Resend to ${to}: ${data?.id}`);
     return true;
   } catch (err) {
     console.error(`❌ Resend exception for ${to}: ${err.message}`);
     return false;
   }
-}
-
-async function sendViaSMTP(to, subject, html) {
-  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
-  if (!host) return null; // not configured, skip
-
-  const port = parseInt(process.env.SMTP_PORT || '587');
-  const user = process.env.SMTP_USER || process.env.MAIL_USER;
-  const pass = process.env.SMTP_PASSWORD || process.env.MAIL_PASSWORD;
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-  const fromAddress = (process.env.SMTP_FROM || '').replace(/^["']|["']$/g, '').trim()
-    || `North Wollo Tourism <${user}>`;
-
-  try {
-    const transporter = nodemailer.createTransport({
-      host, port, secure,
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false },
-      requireTLS: port === 587 && !secure,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-    });
-    const info = await transporter.sendMail({ from: fromAddress, to, subject, html });
-    console.log(`✅ Email sent via SMTP to ${to}: ${info.messageId}`);
-    return true;
-  } catch (err) {
-    console.error(`❌ SMTP failed for ${to}: ${err.message}`);
-    return false;
-  }
-}
-
-async function sendEmail(to, subject, html) {
-  console.log(`📧 Sending email to=${to} subject="${subject}"`);
-
-  // 1. Try Mailtrap (HTTPS API, no domain needed, works everywhere)
-  const mailtrapResult = await sendViaMailtrap(to, subject, html);
-  if (mailtrapResult === true) return true;
-  if (mailtrapResult === false) console.log('Mailtrap failed, trying Resend...');
-
-  // 2. Try Resend (needs verified domain for non-owner emails)
-  const resendResult = await sendViaResend(to, subject, html);
-  if (resendResult === true) return true;
-  if (resendResult === false) console.log('Resend failed, trying SMTP...');
-
-  // 3. Try SMTP last (blocked on Render/Railway free tier)
-  const smtpResult = await sendViaSMTP(to, subject, html);
-  if (smtpResult === true) return true;
-
-  console.error(`❌ All email providers failed for ${to}`);
-  return false;
 }
 
 async function sendPasswordResetOtp(email, otp, expiryMinutes) {
@@ -129,7 +76,7 @@ async function sendEmailVerificationOtp(email, otp, expiryMinutes) {
 }
 
 async function sendBookingAcceptedNotification(email, hotelName, bookingId) {
-  const appUrl = process.env.FRONTEND_URL || 'https://tourism-system-sand.vercel.app';
+  const appUrl = process.env.FRONTEND_URL || 'https://tourism-system-ten.vercel.app';
   return sendEmail(email, `Booking #${bookingId} Accepted — ${hotelName}`, `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
       <h2 style="color:#1d4ed8;">Your Booking Request Was Accepted</h2>
@@ -142,7 +89,7 @@ async function sendBookingAcceptedNotification(email, hotelName, bookingId) {
 }
 
 async function sendCostProposedNotification(email, hotelName, cost, bookingId) {
-  const appUrl = process.env.FRONTEND_URL || 'https://tourism-system-sand.vercel.app';
+  const appUrl = process.env.FRONTEND_URL || 'https://tourism-system-ten.vercel.app';
   return sendEmail(email, `Cost Proposed for Booking #${bookingId} — ${hotelName}`, `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
       <h2 style="color:#7c3aed;">Cost Proposed for Your Booking</h2>
