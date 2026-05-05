@@ -1,38 +1,27 @@
 const nodemailer = require('nodemailer');
 
-// ── Provider selection ────────────────────────────────────────────────────────
-// Priority: Postmark (HTTP API, no domain needed) → Resend → SMTP
-// Postmark free: 100 emails/month, verify sender email only (no domain)
-// Resend free: needs verified domain
-// SMTP: blocked on Render free tier
-
-async function sendViaPostmark(to, subject, html) {
-  const token = process.env.POSTMARK_API_TOKEN;
-  if (!token) return null; // not configured, skip
-
-  const from = (process.env.SMTP_FROM || '').replace(/^["']|["']$/g, '').trim()
-    || process.env.POSTMARK_FROM_EMAIL
-    || 'noreply@northwollotourism.com';
+// ── Mailtrap (primary — HTTPS API, no domain needed, works on Render/Railway) ─
+async function sendViaMailtrap(to, subject, html) {
+  const token = process.env.MAILTRAP_API_TOKEN;
+  if (!token) return null;
 
   try {
-    const res = await fetch('https://api.postmarkapp.com/email', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Postmark-Server-Token': token,
-      },
-      body: JSON.stringify({ From: from, To: to, Subject: subject, HtmlBody: html, MessageStream: 'outbound' }),
+    const { MailtrapClient } = require('mailtrap');
+    const client = new MailtrapClient({ token });
+    const from = process.env.SMTP_FROM
+      ? { email: process.env.SMTP_FROM.match(/<(.+)>/)?.[1] || process.env.SMTP_FROM, name: 'North Wollo Tourism' }
+      : { email: 'noreply@northwollotourism.com', name: 'North Wollo Tourism' };
+
+    await client.send({
+      from,
+      to: [{ email: to }],
+      subject,
+      html,
     });
-    const data = await res.json();
-    if (!res.ok) {
-      console.error(`❌ Postmark error for ${to}: ${JSON.stringify(data)}`);
-      return false;
-    }
-    console.log(`✅ Email sent via Postmark to ${to}: ${data.MessageID}`);
+    console.log(`✅ Email sent via Mailtrap to ${to}`);
     return true;
   } catch (err) {
-    console.error(`❌ Postmark exception for ${to}: ${err.message}`);
+    console.error(`❌ Mailtrap error for ${to}: ${err.message}`);
     return false;
   }
 }
@@ -94,21 +83,17 @@ async function sendViaSMTP(to, subject, html) {
 async function sendEmail(to, subject, html) {
   console.log(`📧 Sending email to=${to} subject="${subject}"`);
 
-  // Try Postmark first (HTTP API, works on Render, no domain needed)
-  const postmarkResult = await sendViaPostmark(to, subject, html);
-  if (postmarkResult === true) return true;
-  if (postmarkResult === false) {
-    console.log('Postmark failed, trying next provider...');
-  }
+  // 1. Try Mailtrap (HTTPS API, no domain needed, works everywhere)
+  const mailtrapResult = await sendViaMailtrap(to, subject, html);
+  if (mailtrapResult === true) return true;
+  if (mailtrapResult === false) console.log('Mailtrap failed, trying Resend...');
 
-  // Try Resend (needs verified domain for non-owner emails)
+  // 2. Try Resend (needs verified domain for non-owner emails)
   const resendResult = await sendViaResend(to, subject, html);
   if (resendResult === true) return true;
-  if (resendResult === false) {
-    console.log('Resend failed, trying SMTP...');
-  }
+  if (resendResult === false) console.log('Resend failed, trying SMTP...');
 
-  // Try SMTP last (blocked on Render free tier)
+  // 3. Try SMTP last (blocked on Render/Railway free tier)
   const smtpResult = await sendViaSMTP(to, subject, html);
   if (smtpResult === true) return true;
 
