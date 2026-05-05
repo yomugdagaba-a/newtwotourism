@@ -31,7 +31,9 @@ async function sendViaResend(to, subject, html) {
   try {
     const { Resend } = require('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const from = (process.env.SMTP_FROM || '').replace(/^["']|["']$/g, '').trim() || 'North Wollo Tourism <onboarding@resend.dev>';
+    // Always use onboarding@resend.dev for Resend — it's their verified sender
+    // that works for any recipient on the free plan
+    const from = 'North Wollo Tourism <onboarding@resend.dev>';
     const { data, error } = await resend.emails.send({ from, to, subject, html });
     if (error) {
       console.error(`❌ Resend error for ${to}: ${JSON.stringify(error)}`);
