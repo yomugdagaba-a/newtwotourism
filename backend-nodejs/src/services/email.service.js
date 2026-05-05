@@ -1,56 +1,75 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-// Resend uses HTTPS API (port 443) — works on all hosting platforms including Render free tier
-// No SMTP port blocking issues. Sign up free at resend.com (3,000 emails/month free)
-function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn('⚠️  Email service: RESEND_API_KEY not set — emails will not be sent');
+// Creates a fresh transporter on each call so env vars are always current
+function createTransporter() {
+  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+  const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587');
+  const user = process.env.SMTP_USER || process.env.MAIL_USER;
+  const pass = process.env.SMTP_PASSWORD || process.env.MAIL_PASSWORD;
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+
+  if (!host || !user || !pass) {
+    console.warn('⚠️  Email: SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASSWORD missing)');
     return null;
   }
-  return new Resend(apiKey);
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false },
+    requireTLS: port === 587 && !secure,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+  });
 }
 
-function getFromAddress() {
-  const smtpFrom = (process.env.SMTP_FROM || process.env.MAIL_FROM || '').replace(/^["']|["']$/g, '').trim();
-  // If a valid custom domain address is set (not gmail, not northwollotourism), use it
-  if (smtpFrom && !smtpFrom.includes('northwollotourism.com') && !smtpFrom.includes('gmail.com') && smtpFrom.length > 5) {
-    return smtpFrom;
+// Also support Resend as fallback if RESEND_API_KEY is set
+async function sendViaResend(to, subject, html) {
+  try {
+    const { Resend } = require('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const from = (process.env.SMTP_FROM || '').replace(/^["']|["']$/g, '').trim() || 'North Wollo Tourism <onboarding@resend.dev>';
+    const { data, error } = await resend.emails.send({ from, to, subject, html });
+    if (error) {
+      console.error(`❌ Resend error for ${to}: ${JSON.stringify(error)}`);
+      return false;
+    }
+    console.log(`✅ Email sent via Resend to ${to}: ${data?.id}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ Resend exception for ${to}: ${err.message}`);
+    return false;
   }
-  // onboarding@resend.dev is Resend's verified sender — works for any recipient on free plan
-  return 'North Wollo Tourism <onboarding@resend.dev>';
 }
 
 async function sendEmail(to, subject, html) {
-  const resend = getResendClient();
+  const fromAddress = (process.env.SMTP_FROM || '').replace(/^["']|["']$/g, '').trim()
+    || `North Wollo Tourism <${process.env.SMTP_USER || 'noreply@northwollotourism.com'}>`;
 
-  if (!resend) {
-    console.error(`❌ Email not sent to ${to}: RESEND_API_KEY not configured`);
-    return false;
-  }
+  console.log(`📧 Sending email to=${to} subject="${subject}"`);
 
-  const fromAddress = getFromAddress();
-  console.log(`📧 Sending email: to=${to} from="${fromAddress}" subject="${subject}"`);
-
-  try {
-    const { data, error } = await resend.emails.send({
-      from: fromAddress,
-      to,
-      subject,
-      html,
-    });
-
-    if (error) {
-      console.error(`❌ Resend API error for ${to}: ${JSON.stringify(error)}`);
-      return false;
+  // Try SMTP first (Brevo or any SMTP provider)
+  const transporter = createTransporter();
+  if (transporter) {
+    try {
+      const info = await transporter.sendMail({ from: fromAddress, to, subject, html });
+      console.log(`✅ Email sent via SMTP to ${to}: ${info.messageId}`);
+      return true;
+    } catch (err) {
+      console.error(`❌ SMTP failed for ${to}: ${err.message} — trying Resend fallback`);
     }
-
-    console.log(`✅ Email sent to ${to} — Resend ID: ${data?.id}`);
-    return true;
-  } catch (err) {
-    console.error(`❌ Email exception for ${to}: ${err.message}`);
-    return false;
   }
+
+  // Fallback to Resend if SMTP fails or not configured
+  if (process.env.RESEND_API_KEY) {
+    return sendViaResend(to, subject, html);
+  }
+
+  console.error(`❌ No email provider configured. Set SMTP_HOST+SMTP_USER+SMTP_PASSWORD or RESEND_API_KEY`);
+  return false;
 }
 
 async function sendPasswordResetOtp(email, otp, expiryMinutes) {
