@@ -176,17 +176,23 @@ async function register({ username, email, password, fullName }) {
     include: { roles: true },
   });
 
-  // Save OTP to DB synchronously (must exist before user reaches verify page)
-  // then send emails fire-and-forget so they don't block the response
+  // Save OTP to DB and send email — await the email so it completes before
+  // Render's free tier can spin down the process
   try {
     const otp = generateOtp();
     await prisma.emailVerificationToken.create({
       data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
     });
-    // Fire-and-forget the actual email sends — DB token is already saved
-    emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES).catch(e =>
-      console.error('Verification email send failed:', e.message)
-    );
+    // Await email send with a timeout — if it takes too long, continue anyway
+    const emailTimeout = new Promise(resolve => setTimeout(() => resolve(false), 8000));
+    const emailSent = await Promise.race([
+      emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES),
+      emailTimeout,
+    ]);
+    if (!emailSent) {
+      console.warn(`⚠️ Verification email may not have sent to ${email} (timeout or error)`);
+    }
+    // Welcome email — truly fire-and-forget, less critical
     emailService.sendWelcomeEmail(email, fullName || username).catch(e =>
       console.error('Welcome email send failed:', e.message)
     );

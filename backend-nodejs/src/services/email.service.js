@@ -12,10 +12,9 @@ function getResendClient() {
 }
 
 function getFromAddress() {
-  const smtpFrom = process.env.SMTP_FROM || process.env.MAIL_FROM;
-  // If SMTP_FROM is set to a verified custom domain address, use it
-  // Otherwise fall back to Resend's built-in verified sender (works on free plan)
-  if (smtpFrom && !smtpFrom.includes('northwollotourism.com') && !smtpFrom.includes('gmail.com')) {
+  const smtpFrom = (process.env.SMTP_FROM || process.env.MAIL_FROM || '').replace(/^["']|["']$/g, '').trim();
+  // If a valid custom domain address is set (not gmail, not northwollotourism), use it
+  if (smtpFrom && !smtpFrom.includes('northwollotourism.com') && !smtpFrom.includes('gmail.com') && smtpFrom.length > 5) {
     return smtpFrom;
   }
   // onboarding@resend.dev is Resend's verified sender — works for any recipient on free plan
