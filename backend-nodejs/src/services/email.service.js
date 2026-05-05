@@ -1,40 +1,54 @@
 const nodemailer = require('nodemailer');
 
-// Creates a fresh transporter on each call so env vars are always current
-function createTransporter() {
-  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
-  const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587');
-  const user = process.env.SMTP_USER || process.env.MAIL_USER;
-  const pass = process.env.SMTP_PASSWORD || process.env.MAIL_PASSWORD;
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+// ── Provider selection ────────────────────────────────────────────────────────
+// Priority: Postmark (HTTP API, no domain needed) → Resend → SMTP
+// Postmark free: 100 emails/month, verify sender email only (no domain)
+// Resend free: needs verified domain
+// SMTP: blocked on Render free tier
 
-  if (!host || !user || !pass) {
-    console.warn('⚠️  Email: SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASSWORD missing)');
-    return null;
+async function sendViaPostmark(to, subject, html) {
+  const token = process.env.POSTMARK_API_TOKEN;
+  if (!token) return null; // not configured, skip
+
+  const from = (process.env.SMTP_FROM || '').replace(/^["']|["']$/g, '').trim()
+    || process.env.POSTMARK_FROM_EMAIL
+    || 'noreply@northwollotourism.com';
+
+  try {
+    const res = await fetch('https://api.postmarkapp.com/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Postmark-Server-Token': token,
+      },
+      body: JSON.stringify({ From: from, To: to, Subject: subject, HtmlBody: html, MessageStream: 'outbound' }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error(`❌ Postmark error for ${to}: ${JSON.stringify(data)}`);
+      return false;
+    }
+    console.log(`✅ Email sent via Postmark to ${to}: ${data.MessageID}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ Postmark exception for ${to}: ${err.message}`);
+    return false;
   }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false },
-    requireTLS: port === 587 && !secure,
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-  });
 }
 
-// Also support Resend as fallback if RESEND_API_KEY is set
 async function sendViaResend(to, subject, html) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null; // not configured, skip
+
   try {
     const { Resend } = require('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    // Always use onboarding@resend.dev for Resend — it's their verified sender
-    // that works for any recipient on the free plan
-    const from = 'North Wollo Tourism <onboarding@resend.dev>';
-    const { data, error } = await resend.emails.send({ from, to, subject, html });
+    const resend = new Resend(apiKey);
+    // Always use onboarding@resend.dev — works without domain verification
+    const { data, error } = await resend.emails.send({
+      from: 'North Wollo Tourism <onboarding@resend.dev>',
+      to, subject, html,
+    });
     if (error) {
       console.error(`❌ Resend error for ${to}: ${JSON.stringify(error)}`);
       return false;
@@ -47,30 +61,58 @@ async function sendViaResend(to, subject, html) {
   }
 }
 
-async function sendEmail(to, subject, html) {
-  const fromAddress = (process.env.SMTP_FROM || '').replace(/^["']|["']$/g, '').trim()
-    || `North Wollo Tourism <${process.env.SMTP_USER || 'noreply@northwollotourism.com'}>`;
+async function sendViaSMTP(to, subject, html) {
+  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+  if (!host) return null; // not configured, skip
 
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const user = process.env.SMTP_USER || process.env.MAIL_USER;
+  const pass = process.env.SMTP_PASSWORD || process.env.MAIL_PASSWORD;
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  const fromAddress = (process.env.SMTP_FROM || '').replace(/^["']|["']$/g, '').trim()
+    || `North Wollo Tourism <${user}>`;
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host, port, secure,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
+      requireTLS: port === 587 && !secure,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+    const info = await transporter.sendMail({ from: fromAddress, to, subject, html });
+    console.log(`✅ Email sent via SMTP to ${to}: ${info.messageId}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ SMTP failed for ${to}: ${err.message}`);
+    return false;
+  }
+}
+
+async function sendEmail(to, subject, html) {
   console.log(`📧 Sending email to=${to} subject="${subject}"`);
 
-  // Try SMTP first (Brevo or any SMTP provider)
-  const transporter = createTransporter();
-  if (transporter) {
-    try {
-      const info = await transporter.sendMail({ from: fromAddress, to, subject, html });
-      console.log(`✅ Email sent via SMTP to ${to}: ${info.messageId}`);
-      return true;
-    } catch (err) {
-      console.error(`❌ SMTP failed for ${to}: ${err.message} — trying Resend fallback`);
-    }
+  // Try Postmark first (HTTP API, works on Render, no domain needed)
+  const postmarkResult = await sendViaPostmark(to, subject, html);
+  if (postmarkResult === true) return true;
+  if (postmarkResult === false) {
+    console.log('Postmark failed, trying next provider...');
   }
 
-  // Fallback to Resend if SMTP fails or not configured
-  if (process.env.RESEND_API_KEY) {
-    return sendViaResend(to, subject, html);
+  // Try Resend (needs verified domain for non-owner emails)
+  const resendResult = await sendViaResend(to, subject, html);
+  if (resendResult === true) return true;
+  if (resendResult === false) {
+    console.log('Resend failed, trying SMTP...');
   }
 
-  console.error(`❌ No email provider configured. Set SMTP_HOST+SMTP_USER+SMTP_PASSWORD or RESEND_API_KEY`);
+  // Try SMTP last (blocked on Render free tier)
+  const smtpResult = await sendViaSMTP(to, subject, html);
+  if (smtpResult === true) return true;
+
+  console.error(`❌ All email providers failed for ${to}`);
   return false;
 }
 
