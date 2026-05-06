@@ -13,16 +13,17 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { role, isAuthenticated, username } = useAuthStore();
+  const { role, isAuthenticated, username, isHydrated } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
+    if (!isHydrated) return; // Wait for store to hydrate from localStorage
     if (!isAuthenticated || role !== 'ADMIN') {
       router.push('/auth/login');
       return;
     }
     loadDashboardData();
-  }, [isAuthenticated, role]);
+  }, [isAuthenticated, role, isHydrated]);
 
   const loadDashboardData = async () => {
     try {

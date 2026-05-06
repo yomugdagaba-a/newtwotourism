@@ -7,6 +7,7 @@ jest.mock('../../src/lib/prisma', () => ({
   hotelBooking: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
   bookingStatusEntity: { findUnique: jest.fn(), create: jest.fn() },
   bookingMessage: { create: jest.fn() },
+  user: { findUnique: jest.fn() },
 }));
 
 jest.mock('../../src/services/email.service', () => ({
@@ -57,6 +58,7 @@ test('UT-09 upload receipt transitions to PAID when status is COST_PROPOSED', as
   prisma.bookingStatusEntity.create.mockResolvedValue(mockStatus('PAID'));
   prisma.hotelBooking.update.mockResolvedValue({ ...booking, status: { name: 'PAID' }, messages: [] });
   prisma.bookingMessage.create.mockResolvedValue({});
+  prisma.user.findUnique.mockResolvedValue({ id: 10, email: 'owner@test.com' });
 
   const result = await bookingsService.uploadReceipt(1, 'https://example.com/receipt.jpg', 5);
   expect(result.bookingStatus).toBe('PAID');

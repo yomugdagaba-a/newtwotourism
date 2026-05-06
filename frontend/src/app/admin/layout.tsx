@@ -10,15 +10,16 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { username, role, logout, isAuthenticated } = useAuthStore();
+  const { username, role, logout, isAuthenticated, isHydrated } = useAuthStore();
 
   useEffect(() => { setIsClient(true); }, []);
 
   useEffect(() => {
-    if (isClient && !isAuthenticated) {
+    if (!isClient || !isHydrated) return; // Wait for client mount and store hydration
+    if (!isAuthenticated) {
       router.push('/auth/login?redirect=' + encodeURIComponent(pathname));
     }
-  }, [isClient, isAuthenticated, router, pathname]);
+  }, [isClient, isHydrated, isAuthenticated, router, pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -78,6 +79,14 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     );
   }

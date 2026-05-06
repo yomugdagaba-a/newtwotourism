@@ -25,25 +25,30 @@ async function sendEmail(to, subject, html) {
     return false;
   }
 
-  console.log(`📧 Sending email to=${to} subject="${subject}"`);
+  // In test/dev environments, redirect all emails to the verified address
+  // (Resend free plan only allows sending to the account owner's email)
+  const actualTo = process.env.TEST_EMAIL_OVERRIDE || to;
+  const testNote = actualTo !== to ? ` [redirected from ${to}]` : '';
+
+  console.log(`📧 Sending email to=${actualTo}${testNote} subject="${subject}"`);
 
   try {
     const { data, error } = await resend.emails.send({
       from: getFromAddress(),
-      to,
+      to: actualTo,
       subject,
       html,
     });
 
     if (error) {
-      console.error(`❌ Resend error for ${to}: ${JSON.stringify(error)}`);
+      console.error(`❌ Resend error for ${actualTo}: ${JSON.stringify(error)}`);
       return false;
     }
 
-    console.log(`✅ Email sent via Resend to ${to}: ${data?.id}`);
+    console.log(`✅ Email sent via Resend to ${actualTo}: ${data?.id}`);
     return true;
   } catch (err) {
-    console.error(`❌ Resend exception for ${to}: ${err.message}`);
+    console.error(`❌ Resend exception for ${actualTo}: ${err.message}`);
     return false;
   }
 }

@@ -33,9 +33,9 @@ function LoginFormContent() {
   useEffect(() => {
     if (auth.isAuthenticated && auth.token) {
       const redirectTo = searchParams.get('redirect') || getDefaultRedirect(auth.role);
-      router.push(redirectTo);
+      window.location.href = redirectTo;
     }
-  }, [auth.isAuthenticated, auth.token, auth.role, router, searchParams]);
+  }, [auth.isAuthenticated, auth.token, auth.role, searchParams]);
 
   const getDefaultRedirect = (role: string | null) => {
     switch (role) {
@@ -77,12 +77,13 @@ function LoginFormContent() {
       if (res?.token) {
         auth.login(res.token, res.refreshToken, res.userId);
         
-        // Standalone login page - redirect based on role or redirect param
-          setTimeout(() => {
-            const currentAuth = useAuthStore.getState();
-            const redirectTo = searchParams.get('redirect') || getDefaultRedirect(currentAuth.role);
-            router.push(redirectTo);
-          }, 100);
+        // Use window.location.href for a full page reload to ensure the cookie
+        // is included in the request (router.push may not include it in time)
+        setTimeout(() => {
+          const currentAuth = useAuthStore.getState();
+          const redirectTo = searchParams.get('redirect') || getDefaultRedirect(currentAuth.role);
+          window.location.href = redirectTo;
+        }, 150);
       } else {
         throw new Error("Invalid login response - no token received");
       }

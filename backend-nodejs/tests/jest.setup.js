@@ -13,6 +13,9 @@ console.error = (...args) => {
   // Suppress: email delivery failures (no SMTP in test env)
   if (msg.includes('Failed to send email') || msg.includes('ECONNREFUSED')) return;
 
+  // Suppress: Resend API errors (free plan domain restriction)
+  if (msg.includes('Resend error') || msg.includes('Resend exception')) return;
+
   // Suppress: expected HTTP error logs from GlobalExceptionHandler
   if (msg.match(/\] (POST|GET|PUT|PATCH|DELETE) .+ →/)) return;
 

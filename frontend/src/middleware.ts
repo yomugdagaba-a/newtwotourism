@@ -10,7 +10,9 @@ const publicRoutes = [
   '/',
 ];
 
-// Routes that require authentication
+// Routes that require authentication (middleware-level check)
+// Note: Individual pages also do their own auth checks via useAuthStore
+// Admin routes are NOT blocked here — the admin layout handles auth
 const protectedRoutes = [
   '/dashboard',
   '/profile',
@@ -22,23 +24,18 @@ const protectedRoutes = [
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Get token from cookies or localStorage (via header)
+  // Get token from cookies
   const token = request.cookies.get('token')?.value;
   
   // Check if route is protected
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
   
   // If accessing protected route without token, redirect to login
+  // But only if we're confident there's no token (not just a cookie timing issue)
   if (isProtectedRoute && !token) {
     const loginUrl = new URL('/auth/login', request.url);
-    // Store the original path to redirect back after login
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
-  }
-  
-  // If accessing login page while authenticated, redirect to dashboard
-  if (pathname === '/auth/login' && token) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   
   return NextResponse.next();

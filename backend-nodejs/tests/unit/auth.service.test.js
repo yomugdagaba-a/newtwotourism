@@ -68,7 +68,7 @@ describe('login()', () => {
   test('UT-02 returns tokens on correct credentials', async () => {
     const user = await mockUser();
     prisma.loginAttempt.count.mockResolvedValue(0); // no IP blocks
-    prisma.user.findUnique.mockResolvedValue(user);
+    prisma.user.findFirst.mockResolvedValue(user);  // login uses findFirst
     prisma.accountLockout.findUnique.mockResolvedValue(null);
     prisma.loginAttempt.create.mockResolvedValue({});
     prisma.refreshToken.deleteMany.mockResolvedValue({});
@@ -81,7 +81,7 @@ describe('login()', () => {
   test('TC-AUTH-04 throws 401 on wrong password', async () => {
     const user = await mockUser();
     prisma.loginAttempt.count.mockResolvedValue(0);
-    prisma.user.findUnique.mockResolvedValue(user);
+    prisma.user.findFirst.mockResolvedValue(user);
     prisma.accountLockout.findUnique.mockResolvedValue(null);
     prisma.loginAttempt.create.mockResolvedValue({});
     // count for lockout check after failure
@@ -99,7 +99,7 @@ describe('login()', () => {
       .mockResolvedValueOnce(4)   // shouldBlockIdentifier (4 prior = not blocked yet)
       .mockResolvedValueOnce(0)   // getProgressiveDelay
       .mockResolvedValueOnce(5);  // failures after this attempt → triggers lockout
-    prisma.user.findUnique.mockResolvedValue(user);
+    prisma.user.findFirst.mockResolvedValue(user);
     prisma.accountLockout.findUnique.mockResolvedValue(null);
     prisma.loginAttempt.create.mockResolvedValue({});
     prisma.accountLockout.upsert.mockResolvedValue({});
@@ -111,7 +111,7 @@ describe('login()', () => {
   test('TC-AUTH-11 throws 401 for deactivated account', async () => {
     const user = await mockUser({ active: false });
     prisma.loginAttempt.count.mockResolvedValue(0);
-    prisma.user.findUnique.mockResolvedValue(user);
+    prisma.user.findFirst.mockResolvedValue(user);
     prisma.accountLockout.findUnique.mockResolvedValue(null);
     prisma.loginAttempt.create.mockResolvedValue({});
 

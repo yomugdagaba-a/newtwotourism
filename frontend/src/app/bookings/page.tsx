@@ -8,7 +8,7 @@ import { useToast } from "@/components/common/Toast";
 
 export default function ClientBookingsPage() {
   const router = useRouter();
-  const { isAuthenticated, token, userId } = useAuthStore();
+  const { isAuthenticated, token, userId, isHydrated } = useAuthStore();
   const toast = useToast();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -30,12 +30,13 @@ export default function ClientBookingsPage() {
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
+    if (!isHydrated) return;
     if (!isAuthenticated) { router.push("/auth/login"); return; }
     loadBookings();
     // Poll every 15 seconds so client sees cost proposals / status changes without manual refresh
     const interval = setInterval(() => loadBookings(), 15000);
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isHydrated]);
 
   // When filter changes, auto-select first or clear
   useEffect(() => {
