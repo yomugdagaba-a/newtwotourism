@@ -143,10 +143,13 @@ async function start() {
 
   // Verify email service on startup
   try {
+    const sendgridKey = process.env.SENDGRID_API_KEY;
     const gmailUser = process.env.GMAIL_USER;
     const gmailPassword = process.env.GMAIL_APP_PASSWORD;
     
-    if (gmailUser && gmailPassword) {
+    if (sendgridKey) {
+      console.log(`✅ Email service ready (SendGrid API configured)`);
+    } else if (gmailUser && gmailPassword) {
       console.log(`✅ Email service ready (Gmail SMTP configured)`);
     } else {
       console.warn('⚠️  No email credentials set — emails will not be sent');
