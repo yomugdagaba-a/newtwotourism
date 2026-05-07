@@ -47,6 +47,10 @@ uploads/
 # Test artifacts
 frontend/test-results/
 frontend/playwright-report/
+backend-nodejs/coverage/
+
+# TypeScript build cache
+*.tsbuildinfo
 
 # Documentation and test guide (not for GitHub)
 documentation/

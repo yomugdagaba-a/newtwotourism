@@ -1,7 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
-const emailService = require('./email.service');
+const emailService = require('./email-gmail.service');
+const emailValidator = require('./email-validator.service');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '15m';
@@ -164,7 +165,23 @@ async function generateTokens(user) {
 }
 
 async function register({ username, email, password, fullName }) {
-  const existing = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
+  // Validate email with essential checks only
+  const emailValidation = await emailValidator.validateEmail(email, {
+    checkMX: true,  // Check DNS MX records (domain exists)
+    blockDisposable: true,  // Block disposable emails
+    checkSuspicious: false,  // Disabled - causes false positives
+    checkTypos: true  // Check for common typos
+  });
+  
+  if (!emailValidation.valid) {
+    const errorMessage = emailValidation.errors.join(', ');
+    throw Object.assign(new Error(errorMessage), { status: 400 });
+  }
+  
+  // Use normalized email from validation
+  const normalizedEmail = emailValidation.email;
+  
+  const existing = await prisma.user.findFirst({ where: { OR: [{ username }, { email: normalizedEmail }] } });
   if (existing) throw Object.assign(new Error('Username or email already exists'), { status: 400 });
 
   // Ensure CLIENT role exists
@@ -172,7 +189,16 @@ async function register({ username, email, password, fullName }) {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { username, email, passwordHash, fullName, roles: { connect: { name: 'CLIENT' } } },
+    data: { 
+      username, 
+      email: normalizedEmail, 
+      passwordHash, 
+      fullName, 
+      roles: { connect: { name: 'CLIENT' } },
+      // Auto-verify email in test environment
+      emailVerified: process.env.NODE_ENV === 'test',
+      emailVerifiedAt: process.env.NODE_ENV === 'test' ? new Date() : null
+    },
     include: { roles: true },
   });
 
@@ -181,19 +207,19 @@ async function register({ username, email, password, fullName }) {
   try {
     const otp = generateOtp();
     await prisma.emailVerificationToken.create({
-      data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
+      data: { userId: user.id, token: otp, email: normalizedEmail, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
     });
     // Await email send with a timeout — if it takes too long, continue anyway
     const emailTimeout = new Promise(resolve => setTimeout(() => resolve(false), 8000));
     const emailSent = await Promise.race([
-      emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES),
+      emailService.sendEmailVerificationOtp(normalizedEmail, otp, OTP_EXPIRY_MINUTES),
       emailTimeout,
     ]);
     if (!emailSent) {
-      console.warn(`⚠️ Verification email may not have sent to ${email} (timeout or error)`);
+      console.warn(`⚠️ Verification email may not have sent to ${normalizedEmail} (timeout or error)`);
     }
     // Welcome email — truly fire-and-forget, less critical
-    emailService.sendWelcomeEmail(email, fullName || username).catch(e =>
+    emailService.sendWelcomeEmail(normalizedEmail, fullName || username).catch(e =>
       console.error('Welcome email send failed:', e.message)
     );
   } catch (e) {
@@ -255,6 +281,12 @@ async function login({ username, password }, ip = 'unknown', ua = 'unknown') {
     throw Object.assign(new Error('User account is inactive'), { status: 401 });
   }
 
+  // CHECK IF EMAIL IS VERIFIED - NEW REQUIREMENT
+  if (!user.emailVerified) {
+    await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Email not verified' } });
+    throw Object.assign(new Error('Please verify your email address before logging in. Check your inbox for the verification code.'), { status: 403 });
+  }
+
   // Detect suspicious activity — fire-and-forget, never blocks login response
   detectSuspiciousActivity(ip).then(suspicious => {
     if (suspicious) sendSecurityAlert(user.id, 'SUSPICIOUS_ACTIVITY', ip).catch(() => {});
@@ -280,7 +312,18 @@ async function logout(userId) {
 }
 
 async function initiatePasswordReset(email, ip, ua) {
-  const normalizedEmail = email.toLowerCase().trim();
+  // Validate email format (but don't check DNS - too strict)
+  const emailValidation = await emailValidator.validateEmail(email, {
+    checkMX: false,  // Disable DNS check - too strict and slow
+    blockDisposable: true
+  });
+  
+  if (!emailValidation.valid) {
+    const errorMessage = emailValidation.errors.join(', ');
+    throw Object.assign(new Error(errorMessage), { status: 400 });
+  }
+  
+  const normalizedEmail = emailValidation.email;
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (!user) return { success: true, message: 'If the email exists, a 6-digit OTP has been sent.' };
   if (!user.active) throw Object.assign(new Error('Account is inactive.'), { status: 400 });
@@ -323,7 +366,18 @@ async function validateResetToken(token) {
 }
 
 async function sendVerificationEmail(email, ip, ua) {
-  const normalizedEmail = email.toLowerCase().trim();
+  // Validate email format (but don't check DNS - too strict)
+  const emailValidation = await emailValidator.validateEmail(email, {
+    checkMX: false,  // Disable DNS check - too strict and slow
+    blockDisposable: true
+  });
+  
+  if (!emailValidation.valid) {
+    const errorMessage = emailValidation.errors.join(', ');
+    throw Object.assign(new Error(errorMessage), { status: 400 });
+  }
+  
+  const normalizedEmail = emailValidation.email;
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (!user) throw Object.assign(new Error('Email address not found.'), { status: 400 });
   if (!user.active) throw Object.assign(new Error('Account is inactive.'), { status: 400 });

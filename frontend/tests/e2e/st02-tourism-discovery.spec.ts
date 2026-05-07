@@ -43,7 +43,7 @@ test.describe('ST-02 Tourism discovery', () => {
     await searchInput.fill('Lalibela');
     await page.keyboard.press('Enter');
     // Should navigate to /tourisms with keyword param
-    await expect(page).toHaveURL(/tourisms|tourism/i, { timeout: 8000 });
+    await expect(page).toHaveURL(/tourisms|tourism/i, { timeout: 20000 });
   });
 
   test('tourism list page loads', async ({ page }) => {

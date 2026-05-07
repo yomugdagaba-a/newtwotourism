@@ -143,11 +143,13 @@ async function start() {
 
   // Verify email service on startup
   try {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (apiKey) {
-      console.log(`✅ Email service ready (Resend API key configured)`);
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPassword = process.env.GMAIL_APP_PASSWORD;
+    
+    if (gmailUser && gmailPassword) {
+      console.log(`✅ Email service ready (Gmail SMTP configured)`);
     } else {
-      console.warn('⚠️  RESEND_API_KEY not set — emails will not be sent');
+      console.warn('⚠️  No email credentials set — emails will not be sent');
     }
   } catch (smtpErr) {
     console.error(`❌ Email service check failed: ${smtpErr.message}`);

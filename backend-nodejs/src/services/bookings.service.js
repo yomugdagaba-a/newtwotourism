@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma');
-const emailService = require('./email.service');
+const emailService = require('./email-gmail.service');
 
 const INCLUDE = {
   hotel: { include: { owner: true } },

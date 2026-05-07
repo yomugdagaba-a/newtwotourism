@@ -69,3 +69,19 @@ npm run dev
 ## License
 
 MIT
+## Local Development SSL Certificates
+
+Both frontend and backend use self-signed SSL certificates for local HTTPS development.
+
+### Generate certificates (if missing):
+
+**Using mkcert (recommended):**
+```bash
+# Install mkcert
+# Windows: choco install mkcert
+# Mac: brew install mkcert
+
+# Generate certificates
+mkcert -install
+mkcert -key-file backend-nodejs/certificates/localhost-key.pem -cert-file backend-nodejs/certificates/localhost.pem localhost
+mkcert -key-file frontend/certificates/localhost-key.pem -cert-file frontend/certificates/localhost.pem localhost

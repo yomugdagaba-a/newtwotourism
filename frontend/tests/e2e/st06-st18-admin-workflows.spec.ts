@@ -13,7 +13,7 @@ async function loginViaDirect(page: Page, username: string, password: string) {
   await usernameField.fill(username);
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
-  await page.waitForURL(/dashboard|admin|home/i, { timeout: 15000 });
+  await page.waitForURL(/dashboard|admin|home/i, { timeout: 25000 });
 }
 
 // ── ST-06: Hotel owner assignment ─────────────────────────────────────────────

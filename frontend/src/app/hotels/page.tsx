@@ -253,8 +253,8 @@ function HotelsContent() {
           </div>
         </div>
 
-        <Modal isOpen={authModal} onClose={() => setAuthModal(false)}>
-          <LoginForm onSuccess={() => { setAuthModal(false); loadHotels(); }} />
+        <Modal isOpen={authModal} onClose={() => setAuthModal(false)} closeOnOutsideClick={false} closeOnEscape={false}>
+          <LoginForm onSuccess={() => { setAuthModal(false); loadHotels(); }} onCancel={() => setAuthModal(false)} />
         </Modal>
 
         {ratingHotelId && ratingHotelName && (

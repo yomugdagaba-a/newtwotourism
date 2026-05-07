@@ -598,25 +598,26 @@ router.post('/security/send-alert/:userId', ...guard, async (req, res, next) => 
 // ── Email Test (admin only) ────────────────────────────────────────────────────
 router.post('/test-email', ...guard, async (req, res, next) => {
   try {
-    const emailService = require('../services/email.service');
+    const emailService = require('../services/email-gmail.service');
     const to = req.body.to;
-    const apiKey = process.env.RESEND_API_KEY;
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPassword = process.env.GMAIL_APP_PASSWORD;
 
-    if (!apiKey) {
-      return res.status(500).json({ success: false, error: 'RESEND_API_KEY not configured on this server' });
+    if (!gmailUser || !gmailPassword) {
+      return res.status(500).json({ success: false, error: 'Gmail SMTP not configured on this server' });
     }
 
     const result = await emailService.sendEmail(
       to || 'test@example.com',
       'Test Email — North Wollo Tourism',
-      `<h2>SMTP Test</h2><p>If you received this, email is working correctly via Resend.</p><p>Sent at: ${new Date().toISOString()}</p>`
+      `<h2>SMTP Test</h2><p>If you received this, email is working correctly via Gmail SMTP.</p><p>Sent at: ${new Date().toISOString()}</p>`
     );
 
     res.json({
       success: result,
-      provider: 'Resend',
+      provider: 'Gmail SMTP',
       sentTo: to || 'test@example.com',
-      from: process.env.SMTP_FROM || 'onboarding@resend.dev',
+      from: gmailUser,
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

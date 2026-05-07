@@ -308,7 +308,7 @@ export default function TopBar({
       )}
 
       {/* Auth Modal */}
-      <Modal isOpen={!!modalContent} onClose={() => setModalContent(null)}>
+      <Modal isOpen={!!modalContent} onClose={() => setModalContent(null)} closeOnOutsideClick={false} closeOnEscape={false}>
         {modalContent === "login" && (
           <LoginForm onSuccess={() => setModalContent(null)} onRegisterClick={() => setModalContent("register")} onCancel={() => setModalContent(null)} />
         )}

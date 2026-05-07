@@ -1,58 +1,69 @@
-const { Resend } = require('resend');
+// ============================================
+// GMAIL SMTP EMAIL SERVICE (Using Nodemailer)
+// ============================================
+// Free, reliable, works with any Gmail account
+// Uses Gmail App Password (not your regular password)
+// ============================================
 
-// Email service using Resend API
-// Note: On free plan without verified domain, emails only deliver to maryeabebe55@gmail.com
-// To send to any email, verify a domain at resend.com/domains
+const nodemailer = require('nodemailer');
 
-function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn('⚠️  RESEND_API_KEY not set — emails will not be sent');
+function getGmailTransporter() {
+  const email = process.env.GMAIL_USER;
+  const password = process.env.GMAIL_APP_PASSWORD;
+  
+  if (!email || !password) {
+    console.warn('⚠️  GMAIL_USER or GMAIL_APP_PASSWORD not set — emails will not be sent');
     return null;
   }
-  return new Resend(apiKey);
+  
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: email,
+      pass: password
+    }
+  });
+  
+  return transporter;
 }
 
-function getFromAddress() {
-  // Always use onboarding@resend.dev — works on free plan
-  return 'North Wollo Tourism <onboarding@resend.dev>';
+function getSenderInfo() {
+  return {
+    email: process.env.GMAIL_USER || 'noreply@example.com',
+    name: process.env.GMAIL_SENDER_NAME || 'North Wollo Tourism'
+  };
 }
 
 async function sendEmail(to, subject, html) {
-  const resend = getResendClient();
-  if (!resend) {
-    console.error(`❌ Email not sent to ${to}: RESEND_API_KEY not configured`);
+  const transporter = getGmailTransporter();
+  if (!transporter) {
+    console.error(`❌ Email not sent to ${to}: Gmail credentials not configured`);
     return false;
   }
-
-  // In test/dev environments, redirect all emails to the verified address
-  // (Resend free plan only allows sending to the account owner's email)
-  const actualTo = process.env.TEST_EMAIL_OVERRIDE || to;
-  const testNote = actualTo !== to ? ` [redirected from ${to}]` : '';
-
-  console.log(`📧 Sending email to=${actualTo}${testNote} subject="${subject}"`);
-
+  
+  console.log(`📧 Sending email to=${to} subject="${subject}"`);
+  
   try {
-    const { data, error } = await resend.emails.send({
-      from: getFromAddress(),
-      to: actualTo,
-      subject,
-      html,
-    });
-
-    if (error) {
-      console.error(`❌ Resend error for ${actualTo}: ${JSON.stringify(error)}`);
-      return false;
-    }
-
-    console.log(`✅ Email sent via Resend to ${actualTo}: ${data?.id}`);
+    const sender = getSenderInfo();
+    
+    const mailOptions = {
+      from: `"${sender.name}" <${sender.email}>`,
+      to: to,
+      subject: subject,
+      html: html
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    
+    console.log(`✅ Email sent via Gmail to ${to}: ${info.messageId}`);
     return true;
   } catch (err) {
-    console.error(`❌ Resend exception for ${actualTo}: ${err.message}`);
+    console.error(`❌ Gmail error for ${to}:`, err.message);
     return false;
   }
 }
 
+// All email template functions
 async function sendPasswordResetOtp(email, otp, expiryMinutes) {
   return sendEmail(email, 'Password Reset OTP — North Wollo Tourism', `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">

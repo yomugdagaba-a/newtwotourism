@@ -8,16 +8,28 @@ interface Props {
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
   title?: string;
+  closeOnOutsideClick?: boolean;
+  closeOnEscape?: boolean;
 }
 
-const Modal: React.FC<Props> = ({ isOpen, onClose, children, size = "lg", title }) => {
+const Modal: React.FC<Props> = ({ 
+  isOpen, 
+  onClose, 
+  children, 
+  size = "lg", 
+  title,
+  closeOnOutsideClick = true,
+  closeOnEscape = true
+}) => {
   useEffect(() => {
+    if (!closeOnEscape) return;
+    
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
+  }, [onClose, closeOnEscape]);
 
   if (!isOpen) return null;
 
@@ -29,10 +41,16 @@ const Modal: React.FC<Props> = ({ isOpen, onClose, children, size = "lg", title 
     "2xl": "max-w-2xl",
   };
 
+  const handleBackdropClick = () => {
+    if (closeOnOutsideClick) {
+      onClose();
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
+      onClick={handleBackdropClick}
     >
       <div
         className={`bg-white rounded-2xl p-6 w-full relative max-h-[90vh] overflow-y-auto ${sizeClasses[size]}`}

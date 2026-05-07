@@ -15,11 +15,15 @@ jest.mock('../../src/lib/prisma', () => ({
   passwordResetToken: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), updateMany: jest.fn(), update: jest.fn() },
 }));
 
-jest.mock('../../src/services/email.service', () => ({
+jest.mock('../../src/services/email-gmail.service', () => ({
   sendEmailVerificationOtp: jest.fn().mockResolvedValue(true),
   sendWelcomeEmail: jest.fn().mockResolvedValue(true),
   sendPasswordResetOtp: jest.fn().mockResolvedValue(true),
   sendEmail: jest.fn().mockResolvedValue(true),
+}));
+
+jest.mock('../../src/services/email-validator.service', () => ({
+  validateEmail: jest.fn().mockResolvedValue({ valid: true, normalizedEmail: 'test@test.com', errors: [] }),
 }));
 
 const prisma = require('../../src/lib/prisma');
@@ -66,7 +70,7 @@ describe('register()', () => {
 // ── UT-02 to UT-07: Login ─────────────────────────────────────────────────────
 describe('login()', () => {
   test('UT-02 returns tokens on correct credentials', async () => {
-    const user = await mockUser();
+    const user = await mockUser({ emailVerified: true }); // Set email as verified
     prisma.loginAttempt.count.mockResolvedValue(0); // no IP blocks
     prisma.user.findFirst.mockResolvedValue(user);  // login uses findFirst
     prisma.accountLockout.findUnique.mockResolvedValue(null);

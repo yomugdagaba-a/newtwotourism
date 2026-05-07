@@ -274,7 +274,7 @@ function TourismListingContent() {
       </div>
 
       {/* Auth Modal */}
-      <Modal isOpen={authModalOpen} onClose={() => { setAuthModalOpen(false); setPendingNavId(null); setAuthModalContent(null); }}>
+      <Modal isOpen={authModalOpen} onClose={() => { setAuthModalOpen(false); setPendingNavId(null); setAuthModalContent(null); }} closeOnOutsideClick={false} closeOnEscape={false}>
         {authModalContent === "login" && (
           <LoginForm 
             onSuccess={handleLoginSuccess} 

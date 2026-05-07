@@ -1020,11 +1020,11 @@ export default function HotelDetailPage() {
       </main>
 
       {/* Modals */}
-      <Modal isOpen={authModal} onClose={() => setAuthModal(false)}>
+      <Modal isOpen={authModal} onClose={() => setAuthModal(false)} closeOnOutsideClick={false} closeOnEscape={false}>
         {authMode === 'login' ? (
-          <LoginForm onSuccess={() => { setAuthModal(false); router.refresh(); }} onRegisterClick={() => setAuthMode('register')} />
+          <LoginForm onSuccess={() => { setAuthModal(false); router.refresh(); }} onRegisterClick={() => setAuthMode('register')} onCancel={() => setAuthModal(false)} />
         ) : (
-          <RegisterForm onSuccess={() => { setAuthModal(false); }} onLoginClick={() => setAuthMode('login')} />
+          <RegisterForm onSuccess={() => { setAuthModal(false); }} onLoginClick={() => setAuthMode('login')} onCancel={() => setAuthModal(false)} />
         )}
       </Modal>
 

@@ -10,7 +10,7 @@ jest.mock('../../src/lib/prisma', () => ({
   user: { findUnique: jest.fn() },
 }));
 
-jest.mock('../../src/services/email.service', () => ({
+jest.mock('../../src/services/email-gmail.service', () => ({
   sendBookingAcceptedNotification: jest.fn().mockResolvedValue(true),
   sendCostProposedNotification: jest.fn().mockResolvedValue(true),
   sendReceiptUploadedNotification: jest.fn().mockResolvedValue(true),
