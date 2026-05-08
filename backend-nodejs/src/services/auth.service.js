@@ -321,11 +321,45 @@ async function initiatePasswordReset(email, ip, ua) {
   }
   
   const normalizedEmail = emailValidation.email;
+  
+  // Check failed attempts from this IP in the last hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentFailedAttempts = await prisma.loginAttempt.count({
+    where: { 
+      ipAddress: ip, 
+      success: false,
+      reason: 'Password reset - email not registered',
+      createdAt: { gte: oneHourAgo } 
+    }
+  });
+  
+  // Block after 3 failed attempts with unregistered emails
+  if (recentFailedAttempts >= 3) {
+    throw Object.assign(
+      new Error('Too many failed attempts with unregistered emails. Please try again later.'), 
+      { status: 429 }
+    );
+  }
+  
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   
-  // If user doesn't exist, return generic message (prevent email enumeration)
+  // If user doesn't exist, log failed attempt and return error
   if (!user) {
-    return { success: true, message: 'If the email exists and is verified, a 6-digit OTP has been sent.' };
+    try {
+      await prisma.loginAttempt.create({ 
+        data: { 
+          ipAddress: ip, 
+          success: false, 
+          reason: 'Password reset - email not registered'
+        } 
+      });
+    } catch (logError) {
+      console.error('Failed to log password reset attempt:', logError.message);
+    }
+    throw Object.assign(
+      new Error('This email is not registered. Please check your email or sign up.'), 
+      { status: 404 }
+    );
   }
   
   // Check if account is active
@@ -333,7 +367,7 @@ async function initiatePasswordReset(email, ip, ua) {
     throw Object.assign(new Error('Account is inactive. Please contact support.'), { status: 400 });
   }
   
-  // NEW: Check if email is verified
+  // Check if email is verified
   if (!user.emailVerified) {
     throw Object.assign(new Error('Email address is not verified. Please verify your email first before resetting password.'), { status: 403 });
   }
@@ -364,12 +398,25 @@ async function initiatePasswordReset(email, ip, ua) {
       userId: user.id, 
       token: otp, 
       expiresAt: new Date(Date.now() + 10 * 60000), 
-      ipAddress: ip, 
-      userAgent: ua 
+      ipAddress: ip
     } 
   });
   
   await emailService.sendPasswordResetOtp(normalizedEmail, otp, 10);
+  
+  // Log successful password reset request
+  try {
+    await prisma.loginAttempt.create({ 
+      data: { 
+        userId: user.id,
+        ipAddress: ip, 
+        success: true, 
+        reason: 'Password reset OTP sent'
+      } 
+    });
+  } catch (logError) {
+    console.error('Failed to log successful password reset:', logError.message);
+  }
   
   return { 
     success: true, 

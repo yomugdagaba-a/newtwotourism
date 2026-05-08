@@ -159,14 +159,30 @@ describe('getProgressiveDelay()', () => {
   });
 });
 
-// ── TC-AUTH-14: User enumeration prevention ───────────────────────────────────
+// ── TC-AUTH-14: Email validation and attempt limiting ───────────────────────────────────
 describe('initiatePasswordReset()', () => {
-  test('TC-AUTH-14 returns generic success for unknown email', async () => {
+  test('TC-AUTH-14 throws 404 for unregistered email', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
-    const result = await authService.initiatePasswordReset('nobody@nowhere.com', '127.0.0.1', 'test-agent');
-    expect(result.success).toBe(true);
-    // Must NOT reveal whether email exists
-    expect(result.message).not.toMatch(/not found/i);
+    prisma.loginAttempt.count.mockResolvedValue(0); // No previous failed attempts
+    prisma.loginAttempt.create.mockResolvedValue({});
+    
+    await expect(
+      authService.initiatePasswordReset('nobody@nowhere.com', '127.0.0.1', 'test-agent')
+    ).rejects.toMatchObject({ 
+      message: 'This email is not registered. Please check your email or sign up.',
+      status: 404 
+    });
+  });
+  
+  test('TC-AUTH-14b blocks after 3 failed attempts with unregistered emails', async () => {
+    prisma.loginAttempt.count.mockResolvedValue(3); // 3 previous failed attempts
+    
+    await expect(
+      authService.initiatePasswordReset('another@nowhere.com', '127.0.0.1', 'test-agent')
+    ).rejects.toMatchObject({ 
+      message: 'Too many failed attempts with unregistered emails. Please try again later.',
+      status: 429 
+    });
   });
 });
 

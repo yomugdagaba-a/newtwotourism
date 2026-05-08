@@ -112,12 +112,24 @@ describe('Route protection', () => {
   });
 });
 
-// ── TC-AUTH-14: User enumeration prevention ───────────────────────────────────
+// ── TC-AUTH-14: Email validation and attempt limiting ───────────────────────────────────
 describe('Password reset', () => {
-  test('TC-AUTH-14 unknown email returns generic 200 (no enumeration)', async () => {
+  test('TC-AUTH-14 unregistered email returns 404', async () => {
     const res = await request(app).post('/api/auth/reset-password').send({ email: 'nobody@nowhere.com' });
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.status).toBe(404);
+    expect(res.body.message).toMatch(/not registered/i);
+  });
+  
+  test('TC-AUTH-14b blocks after 3 failed attempts', async () => {
+    // Make 3 failed attempts
+    await request(app).post('/api/auth/reset-password').send({ email: 'fake1@nowhere.com' });
+    await request(app).post('/api/auth/reset-password').send({ email: 'fake2@nowhere.com' });
+    await request(app).post('/api/auth/reset-password').send({ email: 'fake3@nowhere.com' });
+    
+    // 4th attempt should be blocked
+    const res = await request(app).post('/api/auth/reset-password').send({ email: 'fake4@nowhere.com' });
+    expect(res.status).toBe(429);
+    expect(res.body.message).toMatch(/too many failed attempts/i);
   });
 });
 
