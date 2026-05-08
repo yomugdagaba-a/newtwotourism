@@ -312,7 +312,8 @@ async function initiatePasswordReset(email, ip, ua) {
   // Validate email format (but don't check DNS - too strict)
   const emailValidation = await emailValidator.validateEmail(email, {
     checkMX: false,  // Disable DNS check - too strict and slow
-    blockDisposable: true
+    blockDisposable: true,
+    checkSuspicious: false  // Disable suspicious pattern check - causes false positives
   });
   
   if (!emailValidation.valid) {
