@@ -39,9 +39,9 @@ const { auditMiddleware } = require('./middleware/audit.middleware');
 app.use(auditMiddleware);
 
 // Static uploads
-const uploadsDir = process.env.UPLOAD_DIR || 'uploads';
+const uploadsDir = path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-app.use('/uploads', express.static(path.resolve(uploadsDir)));
+app.use('/uploads', express.static(uploadsDir));
 
 // ── Controllers ────────────────────────────────────────────────────────────────
 const { publicRouter: tourismPublicRouter, crudRouter: tourismCrudRouter } = require('./controllers/tourism.controller');
