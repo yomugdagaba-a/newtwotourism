@@ -325,20 +325,60 @@ async function initiatePasswordReset(email, ip, ua) {
   
   const normalizedEmail = emailValidation.email;
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-  if (!user) return { success: true, message: 'If the email exists, a 6-digit OTP has been sent.' };
-  if (!user.active) throw Object.assign(new Error('Account is inactive.'), { status: 400 });
-
-  const lastToken = await prisma.passwordResetToken.findFirst({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } });
-  if (lastToken) {
-    const secs = Math.floor((Date.now() - lastToken.createdAt.getTime()) / 1000);
-    if (secs < COOLDOWN_SECONDS) throw Object.assign(new Error(`Please wait ${COOLDOWN_SECONDS - secs} seconds.`), { status: 400 });
+  
+  // If user doesn't exist, return generic message (prevent email enumeration)
+  if (!user) {
+    return { success: true, message: 'If the email exists and is verified, a 6-digit OTP has been sent.' };
+  }
+  
+  // Check if account is active
+  if (!user.active) {
+    throw Object.assign(new Error('Account is inactive. Please contact support.'), { status: 400 });
+  }
+  
+  // NEW: Check if email is verified
+  if (!user.emailVerified) {
+    throw Object.assign(new Error('Email address is not verified. Please verify your email first before resetting password.'), { status: 403 });
   }
 
-  await prisma.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
+  // Check cooldown
+  const lastToken = await prisma.passwordResetToken.findFirst({ 
+    where: { userId: user.id }, 
+    orderBy: { createdAt: 'desc' } 
+  });
+  
+  if (lastToken) {
+    const secs = Math.floor((Date.now() - lastToken.createdAt.getTime()) / 1000);
+    if (secs < COOLDOWN_SECONDS) {
+      throw Object.assign(new Error(`Please wait ${COOLDOWN_SECONDS - secs} seconds before requesting another OTP.`), { status: 400 });
+    }
+  }
+
+  // Invalidate old tokens
+  await prisma.passwordResetToken.updateMany({ 
+    where: { userId: user.id, used: false }, 
+    data: { used: true } 
+  });
+  
+  // Generate and send OTP
   const otp = generateOtp();
-  await prisma.passwordResetToken.create({ data: { userId: user.id, token: otp, expiresAt: new Date(Date.now() + 10 * 60000), ipAddress: ip, userAgent: ua } });
+  await prisma.passwordResetToken.create({ 
+    data: { 
+      userId: user.id, 
+      token: otp, 
+      expiresAt: new Date(Date.now() + 10 * 60000), 
+      ipAddress: ip, 
+      userAgent: ua 
+    } 
+  });
+  
   await emailService.sendPasswordResetOtp(normalizedEmail, otp, 10);
-  return { success: true, message: 'A 6-digit OTP has been sent to your email.', expiresInMinutes: 10 };
+  
+  return { 
+    success: true, 
+    message: 'A 6-digit OTP has been sent to your email.', 
+    expiresInMinutes: 10 
+  };
 }
 
 async function confirmPasswordReset({ token, newPassword, email }) {
