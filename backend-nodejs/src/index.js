@@ -38,8 +38,10 @@ app.use(express.urlencoded({ extended: true }));
 const { auditMiddleware } = require('./middleware/audit.middleware');
 app.use(auditMiddleware);
 
-// Static uploads
-const uploadsDir = path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'uploads');
+// Static uploads - use /tmp in production (serverless environments)
+const uploadsDir = process.env.NODE_ENV === 'production' 
+  ? path.join('/tmp', 'uploads')
+  : path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 

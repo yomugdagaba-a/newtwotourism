@@ -9,8 +9,10 @@ const bookingsService = require('../services/bookings.service');
 
 const router = Router();
 
-// Multer setup for receipt uploads
-const uploadDir = path.resolve(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads', 'receipts');
+// Multer setup for receipt uploads - use /tmp in production
+const uploadDir = process.env.NODE_ENV === 'production'
+  ? path.join('/tmp', 'uploads', 'receipts')
+  : path.resolve(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads', 'receipts');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
 const storage = multer.diskStorage({
