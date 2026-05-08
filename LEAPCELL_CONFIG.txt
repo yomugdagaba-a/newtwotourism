@@ -1,0 +1,39 @@
+LEAPCELL DEPLOYMENT CONFIGURATION
+==================================
+
+In the Leapcell dashboard, configure these settings:
+
+1. BUILD SETTINGS:
+   - Root Directory: Leave empty (use root)
+   - Build Command: npm install && cd backend-nodejs && npx prisma migrate deploy
+   - Start Command: npm start
+   - Port: 3001
+
+2. ENVIRONMENT VARIABLES:
+   Add all these in the Leapcell dashboard:
+
+   DATABASE_URL=postgresql://postgres.gclzstgdcguzocxxgkdv:53816705Aa%40@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+   DIRECT_URL=postgresql://postgres.gclzstgdcguzocxxgkdv:53816705Aa%40@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+   JWT_SECRET=north-wollo-tourism-jwt-secret-key-2025-very-secure-strong-key-0123456789-extra-padding-for-512-bits
+   JWT_EXPIRATION=15m
+   JWT_REFRESH_EXPIRATION=7d
+   NODE_ENV=production
+   PORT=3001
+   FRONTEND_URL=https://tourism-system-two.vercel.app
+   GMAIL_USER=abebemarye5381@gmail.com
+   GMAIL_APP_PASSWORD=odprlcravjovfhpj
+   UPLOAD_DIR=uploads
+   MAX_FILE_SIZE=10485760
+   MAX_FAILED_ATTEMPTS=5
+   LOCKOUT_DURATION_MINUTES=15
+   MAX_IP_ATTEMPTS_PER_HOUR=100
+   AUDIT_ENABLED=true
+   AUDIT_RETENTION_DAYS=90
+
+3. HEALTH CHECK:
+   - Health Check Path: /health
+
+IMPORTANT NOTES:
+- The postinstall script will automatically run "npx prisma generate" after npm install
+- The build command runs database migrations
+- Make sure to set all environment variables before deploying
