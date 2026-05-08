@@ -1,8 +1,5 @@
 const prisma = require('../lib/prisma');
-// Use SendGrid for Render deployment (works on free tier)
-const emailService = process.env.SENDGRID_API_KEY 
-  ? require('./email-sendgrid.service')
-  : require('./email-gmail.service');
+const emailService = require('./email-gmail.service');
 
 const INCLUDE = {
   hotel: { include: { owner: true } },

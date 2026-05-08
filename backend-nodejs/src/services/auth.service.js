@@ -1,11 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
-// Use SendGrid for Render deployment (works on free tier)
-// Gmail SMTP is blocked on Render free tier
-const emailService = process.env.SENDGRID_API_KEY 
-  ? require('./email-sendgrid.service')
-  : require('./email-gmail.service');
+const emailService = require('./email-gmail.service');
 const emailValidator = require('./email-validator.service');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
