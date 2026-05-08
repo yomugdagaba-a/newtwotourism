@@ -77,16 +77,24 @@ async function sendPasswordResetOtp(email, otp, expiryMinutes) {
   `);
 }
 
-async function sendEmailVerificationOtp(email, otp, expiryMinutes) {
+async function sendEmailVerificationOtp(email, otp, expiryMinutes, fullName = '') {
+  const greeting = fullName ? `Welcome, ${fullName}!` : 'Welcome!';
   return sendEmail(email, 'Verify Your Email — North Wollo Tourism', `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
-      <h2 style="color:#059669;margin-bottom:8px;">Email Verification</h2>
-      <p style="color:#374151;">Please verify your email address using the code below:</p>
-      <div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:8px;padding:20px;text-align:center;margin:20px 0;">
-        <span style="color:#15803d;font-size:36px;font-weight:900;letter-spacing:10px;">${otp}</span>
+      <h2 style="color:#1d4ed8;margin-bottom:8px;">${greeting}</h2>
+      <p style="color:#374151;margin-bottom:16px;">Thank you for joining <strong>North Wollo Tourism</strong>. You can now explore amazing tourism destinations and book hotels across North Wollo.</p>
+      
+      <div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:16px;margin:20px 0;border-radius:4px;">
+        <h3 style="color:#059669;margin:0 0 8px 0;font-size:16px;">📧 Email Verification Required</h3>
+        <p style="color:#374151;margin:0;">Please verify your email address using the code below:</p>
       </div>
-      <p style="color:#6b7280;font-size:14px;">Expires in <strong>${expiryMinutes} minutes</strong>.</p>
-      <p style="color:#6b7280;font-size:13px;">If you didn't create an account, you can safely ignore this email.</p>
+      
+      <div style="background:#eff6ff;border:2px solid #3b82f6;border-radius:8px;padding:20px;text-align:center;margin:20px 0;">
+        <span style="color:#1d4ed8;font-size:36px;font-weight:900;letter-spacing:10px;">${otp}</span>
+      </div>
+      
+      <p style="color:#6b7280;font-size:14px;margin-bottom:8px;">⏱️ This code expires in <strong>${expiryMinutes} minutes</strong>.</p>
+      <p style="color:#6b7280;font-size:13px;margin:0;">If you didn't create an account, you can safely ignore this email.</p>
     </div>
   `);
 }

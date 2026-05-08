@@ -210,18 +210,15 @@ async function register({ username, email, password, fullName }) {
       data: { userId: user.id, token: otp, email: normalizedEmail, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
     });
     // Await email send with a timeout — if it takes too long, continue anyway
+    // Now sends combined welcome + verification email in ONE message
     const emailTimeout = new Promise(resolve => setTimeout(() => resolve(false), 8000));
     const emailSent = await Promise.race([
-      emailService.sendEmailVerificationOtp(normalizedEmail, otp, OTP_EXPIRY_MINUTES),
+      emailService.sendEmailVerificationOtp(normalizedEmail, otp, OTP_EXPIRY_MINUTES, fullName || username),
       emailTimeout,
     ]);
     if (!emailSent) {
       console.warn(`⚠️ Verification email may not have sent to ${normalizedEmail} (timeout or error)`);
     }
-    // Welcome email — truly fire-and-forget, less critical
-    emailService.sendWelcomeEmail(normalizedEmail, fullName || username).catch(e =>
-      console.error('Welcome email send failed:', e.message)
-    );
   } catch (e) {
     console.error('Verification token creation failed (non-fatal):', e.message);
   }
@@ -432,7 +429,7 @@ async function sendVerificationEmail(email, ip, ua) {
   await prisma.emailVerificationToken.updateMany({ where: { email: normalizedEmail, verified: false }, data: { verified: true } });
   const otp = generateOtp();
   await prisma.emailVerificationToken.create({ data: { userId: user.id, token: otp, email: normalizedEmail, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000), ipAddress: ip, userAgent: ua } });
-  await emailService.sendEmailVerificationOtp(normalizedEmail, otp, OTP_EXPIRY_MINUTES);
+  await emailService.sendEmailVerificationOtp(normalizedEmail, otp, OTP_EXPIRY_MINUTES, user.fullName || user.username);
   return { success: true, message: `OTP sent. Expires in ${OTP_EXPIRY_MINUTES} minutes.`, expiresInMinutes: OTP_EXPIRY_MINUTES };
 }
 
@@ -473,7 +470,7 @@ async function resendVerificationEmail(userId, ip, ua) {
   await prisma.emailVerificationToken.updateMany({ where: { email, verified: false }, data: { verified: true } });
   const otp = generateOtp();
   await prisma.emailVerificationToken.create({ data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000), ipAddress: ip, userAgent: ua } });
-  await emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES);
+  await emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES, user.fullName || user.username);
   return { success: true, message: `OTP resent. Expires in ${OTP_EXPIRY_MINUTES} minutes.` };
 }
 
