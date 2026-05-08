@@ -18,6 +18,7 @@ function LoginFormContent() {
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const auth = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,13 +30,30 @@ function LoginFormContent() {
     }
   }, [searchParams]);
 
-  // If already authenticated, redirect
+  // Wait for hydration and check authentication
   useEffect(() => {
+    // Wait for store to hydrate
+    if (!auth.isHydrated) {
+      return;
+    }
+
+    setIsChecking(false);
+
+    // If already authenticated, redirect
     if (auth.isAuthenticated && auth.token) {
       const redirectTo = searchParams.get('redirect') || getDefaultRedirect(auth.role);
-      window.location.href = redirectTo;
+      router.replace(redirectTo);
     }
-  }, [auth.isAuthenticated, auth.token, auth.role, searchParams]);
+  }, [auth.isHydrated, auth.isAuthenticated, auth.token, auth.role, searchParams, router]);
+
+  // Show loading while checking authentication
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   const getDefaultRedirect = (role: string | null) => {
     switch (role) {
@@ -77,13 +95,9 @@ function LoginFormContent() {
       if (res?.token) {
         auth.login(res.token, res.refreshToken, res.userId);
         
-        // Use window.location.href for a full page reload to ensure the cookie
-        // is included in the request (router.push may not include it in time)
-        setTimeout(() => {
-          const currentAuth = useAuthStore.getState();
-          const redirectTo = searchParams.get('redirect') || getDefaultRedirect(currentAuth.role);
-          window.location.href = redirectTo;
-        }, 150);
+        // Use router.replace for smooth navigation
+        const redirectTo = searchParams.get('redirect') || getDefaultRedirect(auth.role);
+        router.replace(redirectTo);
       } else {
         throw new Error("Invalid login response - no token received");
       }
