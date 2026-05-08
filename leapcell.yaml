@@ -1,0 +1,24 @@
+name: north-wollo-tourism-backend
+runtime: nodejs
+buildCommand: cd backend-nodejs && npm install && npx prisma generate && npx prisma migrate deploy
+startCommand: cd backend-nodejs && npm start
+port: 3001
+healthCheck: /health
+envVars:
+  - DATABASE_URL
+  - DIRECT_URL
+  - JWT_SECRET
+  - JWT_EXPIRATION
+  - JWT_REFRESH_EXPIRATION
+  - NODE_ENV
+  - PORT
+  - FRONTEND_URL
+  - GMAIL_USER
+  - GMAIL_APP_PASSWORD
+  - UPLOAD_DIR
+  - MAX_FILE_SIZE
+  - MAX_FAILED_ATTEMPTS
+  - LOCKOUT_DURATION_MINUTES
+  - MAX_IP_ATTEMPTS_PER_HOUR
+  - AUDIT_ENABLED
+  - AUDIT_RETENTION_DAYS

@@ -1,0 +1,15 @@
+node_modules/
+.git/
+.env
+.env.local
+.env.test
+*.log
+coverage/
+.vscode/
+.idea/
+frontend/
+*.md
+tests/
+certificates/
+uploads/receipts/
+.next/
