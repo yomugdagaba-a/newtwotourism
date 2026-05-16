@@ -53,21 +53,39 @@ app.use('/uploads', express.static(uploadsDir));
 
 // Debug endpoint to check environment variables
 app.get('/api/debug/env', (req, res) => {
-  const supabaseStorage = require('./services/supabase-storage.service');
-  res.json({
-    BACKEND_URL: process.env.BACKEND_URL || 'NOT SET',
-    API_URL: process.env.API_URL || 'NOT SET',
-    NODE_ENV: process.env.NODE_ENV,
-    PORT: process.env.PORT,
-    uploadsDir: uploadsDir,
-    sampleImageUrl: process.env.BACKEND_URL 
-      ? `${process.env.BACKEND_URL}/uploads/tourism-images/sample.jpg`
-      : '/uploads/tourism-images/sample.jpg',
-    // Supabase Storage configuration
-    supabaseConfigured: supabaseStorage.isConfigured(),
-    supabaseUrl: process.env.SUPABASE_URL || 'NOT SET',
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY
-  });
+  try {
+    const supabaseStorage = require('./services/supabase-storage.service');
+    res.json({
+      BACKEND_URL: process.env.BACKEND_URL || 'NOT SET',
+      API_URL: process.env.API_URL || 'NOT SET',
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      uploadsDir: uploadsDir,
+      sampleImageUrl: process.env.BACKEND_URL 
+        ? `${process.env.BACKEND_URL}/uploads/tourism-images/sample.jpg`
+        : '/uploads/tourism-images/sample.jpg',
+      // Supabase Storage configuration
+      supabaseConfigured: supabaseStorage.isConfigured(),
+      supabaseUrl: process.env.SUPABASE_URL || 'NOT SET',
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY
+    });
+  } catch (error) {
+    res.json({
+      BACKEND_URL: process.env.BACKEND_URL || 'NOT SET',
+      API_URL: process.env.API_URL || 'NOT SET',
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      uploadsDir: uploadsDir,
+      sampleImageUrl: process.env.BACKEND_URL 
+        ? `${process.env.BACKEND_URL}/uploads/tourism-images/sample.jpg`
+        : '/uploads/tourism-images/sample.jpg',
+      // Supabase Storage configuration
+      supabaseConfigured: false,
+      supabaseUrl: process.env.SUPABASE_URL || 'NOT SET',
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY,
+      error: error.message
+    });
+  }
 });
 
 // ── Controllers ────────────────────────────────────────────────────────────────
