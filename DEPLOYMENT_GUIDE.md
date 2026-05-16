@@ -34,11 +34,12 @@ port: 3001
 ```env
 # Database
 DATABASE_URL=postgresql://user:password@host:5432/tourism_db
+DIRECT_URL=postgresql://user:password@host:5432/tourism_db
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
-JWT_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
+JWT_EXPIRATION=15m
+JWT_REFRESH_EXPIRATION=7h
 
 # Email (Gmail)
 GMAIL_USER=your-email@gmail.com
@@ -50,10 +51,13 @@ NODE_ENV=production
 FRONTEND_URL=https://your-frontend-domain.leapcell.app
 
 # Security
-BCRYPT_ROUNDS=12
-MAX_LOGIN_ATTEMPTS=5
-LOCKOUT_DURATION=900000
-SESSION_TIMEOUT=900000
+MAX_FAILED_ATTEMPTS=5
+LOCKOUT_DURATION_MINUTES=15
+MAX_IP_ATTEMPTS_PER_HOUR=100
+
+# Audit
+AUDIT_ENABLED=true
+AUDIT_RETENTION_DAYS=90
 ```
 
 #### Database Setup:

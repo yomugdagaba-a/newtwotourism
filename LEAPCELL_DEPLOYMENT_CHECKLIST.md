@@ -48,17 +48,18 @@ Copy these from your `.env` file and add to Leapcell:
 DATABASE_URL=postgresql://user:password@host:5432/tourism_db
 DIRECT_URL=postgresql://user:password@host:5432/tourism_db
 JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
-JWT_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
+JWT_EXPIRATION=15m
+JWT_REFRESH_EXPIRATION=7h
 NODE_ENV=production
 PORT=3001
 FRONTEND_URL=https://your-frontend-url.leapcell.app
 GMAIL_USER=your-email@gmail.com
 GMAIL_APP_PASSWORD=your-16-char-app-password
-BCRYPT_ROUNDS=12
-MAX_LOGIN_ATTEMPTS=5
-LOCKOUT_DURATION=900000
-SESSION_TIMEOUT=900000
+MAX_FAILED_ATTEMPTS=5
+LOCKOUT_DURATION_MINUTES=15
+MAX_IP_ATTEMPTS_PER_HOUR=100
+AUDIT_ENABLED=true
+AUDIT_RETENTION_DAYS=90
 ```
 
 **Important Notes**:
