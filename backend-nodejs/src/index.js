@@ -40,7 +40,15 @@ app.use(auditMiddleware);
 
 // Static uploads — always use UPLOAD_DIR from env (persistent path)
 const uploadsDir = path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log(`✓ Created uploads directory: ${uploadsDir}`);
+  }
+} catch (error) {
+  console.warn(`⚠ Could not create uploads directory: ${error.message}`);
+  console.warn('File uploads may not work properly. Consider using cloud storage.');
+}
 app.use('/uploads', express.static(uploadsDir));
 
 // ── Controllers ────────────────────────────────────────────────────────────────
