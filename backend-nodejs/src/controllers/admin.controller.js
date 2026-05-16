@@ -52,6 +52,12 @@ class AdminController {
   }
 
   _imagePath(subFolder, filename) {
+    // Return absolute URL pointing to backend for production
+    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || '';
+    if (backendUrl) {
+      return `${backendUrl}/uploads/${subFolder}/${filename}`;
+    }
+    // Fallback to relative path for local development
     return `/uploads/${subFolder}/${filename}`;
   }
 

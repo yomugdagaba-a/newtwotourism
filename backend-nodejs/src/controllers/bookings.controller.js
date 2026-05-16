@@ -153,7 +153,11 @@ class BookingsController {
   async uploadReceiptFile(req, res, next) {
     try {
       if (!req.file) return res.status(400).json({ message: 'No file provided' });
-      const receiptUrl = `/uploads/receipts/${req.file.filename}`;
+      // Return absolute URL pointing to backend for production
+      const backendUrl = process.env.BACKEND_URL || process.env.API_URL || '';
+      const receiptUrl = backendUrl 
+        ? `${backendUrl}/uploads/receipts/${req.file.filename}`
+        : `/uploads/receipts/${req.file.filename}`;
       res.json(await bookingsService.uploadReceipt(parseInt(req.params.id), receiptUrl, req.query.userId ? parseInt(req.query.userId) : req.user.userId));
     } catch (e) { next(e); }
   }
