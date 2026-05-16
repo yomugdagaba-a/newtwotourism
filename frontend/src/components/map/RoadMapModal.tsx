@@ -55,6 +55,7 @@ export default function RoadMapModal({
   const [error, setError] = useState<string | null>(null);
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mapInitialized, setMapInitialized] = useState(false);
 
   // Initialize map
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function RoadMapModal({
       routingControl.current = null;
       startMarker.current = null;
       destinationMarker.current = null;
+      setMapInitialized(false);
     }
 
     const initializeMap = async () => {
@@ -143,6 +145,7 @@ export default function RoadMapModal({
           [destWithOffset.latitude, destWithOffset.longitude],
           13
         );
+        setMapInitialized(true);
 
         // Add OpenStreetMap tiles
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -392,7 +395,7 @@ export default function RoadMapModal({
           className="w-full rounded-lg border border-gray-300 bg-gray-100 relative overflow-hidden"
           style={{ height: "380px", minHeight: "380px", width: "100%" }}
         >
-          {!map.current && loading && (
+          {!mapInitialized && loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-2"></div>
@@ -400,7 +403,7 @@ export default function RoadMapModal({
               </div>
             </div>
           )}
-          {!map.current && error && (
+          {!mapInitialized && error && (
             <div className="absolute inset-0 flex items-center justify-center bg-red-50">
               <div className="text-center px-4">
                 <p className="text-red-600 font-semibold">{error}</p>

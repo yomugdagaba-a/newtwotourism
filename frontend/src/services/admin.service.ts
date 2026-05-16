@@ -1208,8 +1208,11 @@ export class AdminImageUploadService {
   }
 
   // Upload hotel gallery image
-  static async uploadHotelGalleryImage(token: string, hotelId: number, file: File): Promise<string> {
-    return this.uploadFile(token, `${API_BASE_URL}/admin/hotels/${hotelId}/images/upload`, file);
+  static async uploadHotelGalleryImage(token: string, hotelId: number, file: File, title?: string, description?: string): Promise<string> {
+    return this.uploadFile(token, `${API_BASE_URL}/admin/hotels/${hotelId}/images/upload`, file, {
+      ...(title ? { title } : {}),
+      ...(description ? { description } : {}),
+    });
   }
 
   // Upload hero image (creates new hero image record)

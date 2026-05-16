@@ -49,6 +49,7 @@ export default function TourismMapModal({
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [usingFallbackLocation, setUsingFallbackLocation] = useState(false);
+  const [mapInitialized, setMapInitialized] = useState(false);
 
   // Initialize map
   useEffect(() => {
@@ -65,6 +66,7 @@ export default function TourismMapModal({
       routingControl.current = null;
       userMarker.current = null;
       tourismMarker.current = null;
+      setMapInitialized(false);
     }
 
     const initializeMap = async () => {
@@ -122,6 +124,7 @@ export default function TourismMapModal({
           [tourismLocationWithOffset.latitude, tourismLocationWithOffset.longitude],
           13
         );
+        setMapInitialized(true);
         console.log('✅ Map created successfully');
 
         // Add OpenStreetMap tiles
@@ -397,7 +400,7 @@ export default function TourismMapModal({
           className="w-full rounded-lg border border-gray-300 bg-gray-100 relative overflow-hidden"
           style={{ height: "380px", minHeight: "380px", width: "100%" }}
         >
-          {!map.current && loading && (
+          {!mapInitialized && loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-2"></div>
@@ -405,7 +408,7 @@ export default function TourismMapModal({
               </div>
             </div>
           )}
-          {!map.current && error && (
+          {!mapInitialized && error && (
             <div className="absolute inset-0 flex items-center justify-center bg-red-50">
               <div className="text-center px-4">
                 <p className="text-red-600 font-semibold">{error}</p>
