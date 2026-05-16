@@ -32,14 +32,8 @@ class AdminController {
   // ── Multer factory ─────────────────────────────────────────────────────────
 
   _createUploader(subFolder) {
-    const uploadDir = process.env.NODE_ENV === 'production'
-      ? path.join('/tmp', 'uploads', subFolder)
-      : path.resolve(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads', subFolder);
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-    const storage = multer.diskStorage({
-      destination: (req, file, cb) => cb(null, uploadDir),
-      filename: (req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`),
-    });
+    // Always use memory storage for Supabase compatibility
+    const storage = multer.memoryStorage();
     return multer({
       storage,
       limits: { fileSize: 10 * 1024 * 1024 },
@@ -278,7 +272,27 @@ class AdminController {
   async uploadTourismGalleryImage(req, res, next) {
     try {
       if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-      const imageUrl = this._imagePath('tourism-images', req.file.filename);
+      
+      // Try Supabase Storage first, fall back to local storage
+      const supabaseStorage = require('../services/supabase-storage.service');
+      let imageUrl;
+      
+      if (supabaseStorage.isConfigured()) {
+        // Upload to Supabase Storage
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        imageUrl = await supabaseStorage.uploadFile(
+          req.file.buffer,
+          fileName,
+          'tourism-images',
+          req.file.mimetype
+        );
+        console.log('✓ Uploaded to Supabase Storage:', imageUrl);
+      } else {
+        // Fall back to local storage
+        imageUrl = this._imagePath('tourism-images', req.file.filename);
+        console.warn('⚠️  Using local storage (Supabase not configured)');
+      }
+      
       res.status(201).json(await tourismService.addImage(parseInt(req.params.id), imageUrl));
     } catch (e) { next(e); }
   }
