@@ -3,9 +3,15 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { AdminTourismService } from "@/services/admin.service";
+import { AdminTourismService, AdminImageUploadService } from "@/services/admin.service";
 import { useToast } from "@/components/common/Toast";
 import { useConfirm } from "@/components/common/ConfirmDialog";
+import { getImageUrl } from "@/utils/imageUrl";
+
+// Use shared proxy-aware getImageUrl
+function getImageSrc(imageUrl: string): string {
+  return getImageUrl(imageUrl);
+}
 interface TourismImage {
   id: number;
   imageUrl: string;
@@ -73,16 +79,19 @@ export default function TourismImagesPage() {
   };
 
   const handleAdd = async () => {
-    if (!token || !newImageUrl.trim()) return;
+    if (!token) return;
+    const pendingFile = (window as any).__pendingTourismGalleryFile as File | undefined;
+    if (!pendingFile && !newImageUrl.trim()) { setAddError('Please select an image file'); return; }
     try {
       setAddLoading(true);
       setAddError(null);
-      const data: TourismImageCreateDto = {
-        imageUrl: newImageUrl.trim(),
-        title: newTitle || undefined,
-        description: newDescription || undefined,
-      };
-      await AdminTourismService.addTourismImage(token, tourismId, data);
+      let imageUrl = newImageUrl.trim();
+      if (pendingFile) {
+        imageUrl = await AdminImageUploadService.uploadTourismGalleryImage(token, tourismId, pendingFile, newTitle || undefined, newDescription || undefined);
+      } else {
+        await AdminTourismService.addTourismImage(token, tourismId, { imageUrl, title: newTitle || undefined, description: newDescription || undefined });
+      }
+      (window as any).__pendingTourismGalleryFile = undefined;
       setNewImageUrl(""); setNewTitle(""); setNewDescription("");
       setShowAddForm(false);
       await loadImages();
@@ -95,7 +104,7 @@ export default function TourismImagesPage() {
 
   const handleDelete = async (imageId: number) => {
     if (!token) return;
-    const ok = await confirm({ title: "Delete Image", message: "Delete this image?", variant: "danger", confirmLabel: "Delete" });
+    const ok = await confirm({ title: "Delete Image", message: "Delete this image?", variant: "danger", confirmLabel: "Yes", cancelLabel: "No" });
     if (!ok) return;
     try {
       setActionLoading(imageId);
@@ -164,7 +173,7 @@ export default function TourismImagesPage() {
           <h1 className="text-base font-black text-gray-900">Gallery Images — Tourism #{tourismId}</h1>
         </div>
         <button onClick={() => setShowAddForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center gap-2">
+          className="text-purple-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-50 flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -172,7 +181,7 @@ export default function TourismImagesPage() {
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         {error && (
           <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg mb-4 text-sm font-bold">{error}</div>
         )}
@@ -194,7 +203,7 @@ export default function TourismImagesPage() {
             {images.map(img => (
               <div key={img.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
                 <div className="relative h-40">
-                  <img src={img.imageUrl} alt={img.title || "Gallery image"}
+                  <img src={getImageSrc(img.imageUrl)} alt={img.title || "Gallery image"}
                     className="w-full h-full object-cover"
                     onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
                   {img.imageUrl === mainImageUrl && (
@@ -235,33 +244,49 @@ export default function TourismImagesPage() {
             )}
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Image URL <span className="text-red-500">*</span></label>
-                <input type="text" value={newImageUrl} onChange={e => setNewImageUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                <label className="block text-xs font-bold text-gray-700 mb-1">Image <span className="text-red-500">*</span></label>
+                {newImageUrl && (
+                  <img src={newImageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg border border-gray-200 mb-2"
+                    onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                )}
+                <div
+                  className="border border-dashed border-gray-300 rounded-lg px-3 py-3 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors"
+                  onClick={() => document.getElementById('tourism-gallery-input')?.click()}
+                >
+                  <input id="tourism-gallery-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      (window as any).__pendingTourismGalleryFile = file;
+                      setNewImageUrl(URL.createObjectURL(file));
+                      e.target.value = '';
+                    }}
+                  />
+                  <svg className="w-5 h-5 text-gray-400 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-xs text-gray-500">{newImageUrl ? 'Click to change' : 'Click to upload image'}</p>
+                  <p className="text-xs text-gray-400">JPG, PNG, GIF, WebP — max 10MB</p>
+                </div>
               </div>
-              {newImageUrl && (
-                <img src={newImageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              )}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Title (optional)</label>
                 <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)}
                   placeholder="e.g., Bete Giorgis Church"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-200 focus:border-blue-300" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Description (optional)</label>
                 <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)}
                   placeholder="Brief description of this image..." rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-200 focus:border-blue-300 resize-none" />
               </div>
             </div>
             <div className="flex gap-2 mt-4 justify-end">
               <button onClick={() => { setShowAddForm(false); setAddError(null); setNewImageUrl(""); setNewTitle(""); setNewDescription(""); }}
                 className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
               <button onClick={handleAdd} disabled={addLoading || !newImageUrl.trim()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-50">
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-purple-700 disabled:opacity-50">
                 {addLoading ? "Adding..." : "Add Image"}
               </button>
             </div>
@@ -278,7 +303,7 @@ export default function TourismImagesPage() {
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Image URL <span className="text-red-500">*</span></label>
                 <input type="text" value={editUrl} onChange={e => setEditUrl(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400" />
               </div>
               {editUrl && (
                 <img src={editUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg border border-gray-200"
@@ -287,19 +312,19 @@ export default function TourismImagesPage() {
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Title</label>
                 <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>
                 <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 resize-none" />
               </div>
             </div>
             <div className="flex gap-2 mt-4 justify-end">
               <button onClick={() => setEditingImage(null)}
                 className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
               <button onClick={handleEdit} disabled={editLoading || !editUrl.trim()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-50">
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-purple-700 disabled:opacity-50">
                 {editLoading ? "Saving..." : "Save Changes"}
               </button>
             </div>

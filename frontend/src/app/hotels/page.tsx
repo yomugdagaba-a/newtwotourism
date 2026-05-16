@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import TopBar from "@/components/layout/TopBar";
 import { useAuthStore } from "@/store/useAuthStore";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { getHotelsByTourism, getAllHotels } from "@/services/hotel.service";
@@ -14,6 +15,7 @@ import HotelRatingModal from "@/components/hotel/HotelRatingModal";
 import RatingsViewModal from "@/components/common/RatingsViewModal";
 import { API_BASE_URL } from "@/services/api";
 import { useToast } from "@/components/common/Toast";
+import { getImageUrl } from "@/utils/imageUrl";
 
 function HotelsContent() {
   const searchParams = useSearchParams();
@@ -139,6 +141,7 @@ function HotelsContent() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-100">
+        <TopBar showCategories={false} />
         <div className="px-4 sm:px-6 py-8">
           <div className="max-w-6xl mx-auto">
             <Link
@@ -169,7 +172,7 @@ function HotelsContent() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search hotels by name..."
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 font-semibold shadow-sm"
+                  className="w-full pl-12 pr-4 py-3 bg-white border-0 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-gray-200 font-semibold shadow-sm outline-none"
                 />
               </div>
               <select
@@ -200,12 +203,13 @@ function HotelsContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredHotels.map((hotel) => {
                   const imgUrl = hotel.imageUrl || (hotel.images?.[0] && typeof hotel.images[0] === 'string' ? hotel.images[0] : (hotel.images?.[0] as any)?.imageUrl) || '';
+                  const imageUrl = getImageUrl(imgUrl, '');
                   return (
                     <div key={hotel.id} onClick={() => handleAction("detail", hotel)} className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border border-gray-200 cursor-pointer">
                       <div className="relative h-48 w-full bg-gray-100">
-                        {imgUrl ? (
+                        {imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={imgUrl} alt={hotel.name} className="w-full h-full object-cover" />
+                          <img src={imageUrl} alt={hotel.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>

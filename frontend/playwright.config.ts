@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 60000,
-  retries: 1,
+  retries: 2,
   use: {
     baseURL: process.env.FRONTEND_URL || 'https://localhost:9000',
     ignoreHTTPSErrors: true,

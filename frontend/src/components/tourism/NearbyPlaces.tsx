@@ -4,6 +4,7 @@
 
 import React from "react";
 import { NearbyTourismDto } from "../../types/tourism";
+import { getImageUrl } from "@/utils/imageUrl";
 
 interface Props {
   places: NearbyTourismDto[];
@@ -25,7 +26,7 @@ const NearbyPlaces: React.FC<Props> = ({ places, onSelect }) => {
         >
           {place.imageUrl ? (
             <img
-              src={place.imageUrl}
+              src={getImageUrl(place.imageUrl)}
               alt={place.name}
               className="w-full h-40 object-cover"
             />

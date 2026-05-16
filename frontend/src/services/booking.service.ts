@@ -232,6 +232,17 @@ export class BookingService {
     return handleResponse<Booking>(response);
   }
 
+  static async hideBooking(token: string, bookingId: number, userId: number): Promise<Booking> {
+    const response = await fetch(
+      `${API_BASE_URL}/bookings/${bookingId}/hide?userId=${userId}`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(token),
+      }
+    );
+    return handleResponse<Booking>(response);
+  }
+
   // ==================== HOTEL OWNER OPERATIONS ====================
 
   static async getHotelBookings(token: string, hotelId: number, ownerId: number): Promise<Booking[]> {
@@ -352,17 +363,28 @@ export class BookingService {
     return handleResponse<Booking>(response);
   }
 
+  static async deleteBooking(token: string, bookingId: number): Promise<void> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/bookings/${bookingId}`,
+      {
+        method: "DELETE",
+        headers: getAuthHeaders(token),
+      }
+    );
+    return handleResponse<void>(response);
+  }
+
   // ==================== HELPER METHODS ====================
 
   static getStatusColor(status: string): string {
     switch (status) {
-      case 'REQUESTED': return 'bg-yellow-100 text-yellow-800';
-      case 'OWNER_ACCEPTED': return 'bg-blue-100 text-blue-800';
-      case 'COST_PROPOSED': return 'bg-purple-100 text-purple-800';
-      case 'PAID': return 'bg-indigo-100 text-indigo-800';
-      case 'APPROVED': return 'bg-green-100 text-green-800';
-      case 'REJECTED': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'REQUESTED': return 'text-yellow-700 font-bold';
+      case 'OWNER_ACCEPTED': return 'text-blue-700 font-bold';
+      case 'COST_PROPOSED': return 'text-purple-700 font-bold';
+      case 'PAID': return 'text-indigo-700 font-bold';
+      case 'APPROVED': return 'text-green-700 font-bold';
+      case 'REJECTED': return 'text-red-700 font-bold';
+      default: return 'text-gray-700 font-bold';
     }
   }
 
@@ -372,6 +394,18 @@ export class BookingService {
       case 'OWNER_ACCEPTED': return 'Accepted - Awaiting Cost';
       case 'COST_PROPOSED': return 'Cost Proposed - Pay Now';
       case 'PAID': return 'Paid - Awaiting Approval';
+      case 'APPROVED': return 'Approved ✓';
+      case 'REJECTED': return 'Rejected';
+      default: return status;
+    }
+  }
+
+  static getOwnerStatusLabel(status: string): string {
+    switch (status) {
+      case 'REQUESTED': return 'Requested';
+      case 'OWNER_ACCEPTED': return 'Accepted';
+      case 'COST_PROPOSED': return 'Cost Proposed';
+      case 'PAID': return 'Paid - Approve?';
       case 'APPROVED': return 'Approved ✓';
       case 'REJECTED': return 'Rejected';
       default: return status;

@@ -10,6 +10,7 @@ interface Props {
   title?: string;
   closeOnOutsideClick?: boolean;
   closeOnEscape?: boolean;
+  rounded?: boolean;
 }
 
 const Modal: React.FC<Props> = ({ 
@@ -19,11 +20,11 @@ const Modal: React.FC<Props> = ({
   size = "lg", 
   title,
   closeOnOutsideClick = true,
-  closeOnEscape = true
+  closeOnEscape = true,
+  rounded = true
 }) => {
   useEffect(() => {
     if (!closeOnEscape) return;
-    
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -34,7 +35,7 @@ const Modal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   const sizeClasses = {
-    sm: "max-w-sm",
+    sm: "max-w-xs",
     md: "max-w-md",
     lg: "max-w-lg",
     xl: "max-w-xl",
@@ -42,23 +43,22 @@ const Modal: React.FC<Props> = ({
   };
 
   const handleBackdropClick = () => {
-    if (closeOnOutsideClick) {
-      onClose();
-    }
+    if (closeOnOutsideClick) onClose();
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4"
       onClick={handleBackdropClick}
     >
       <div
-        className={`bg-white rounded-2xl p-6 w-full relative max-h-[90vh] overflow-y-auto ${sizeClasses[size]}`}
+        className={`bg-white ${rounded ? 'rounded-2xl' : ''} ${size === 'sm' ? 'p-4' : 'p-4 sm:p-6'} w-full relative max-h-[90vh] overflow-y-auto ${sizeClasses[size]}`}
+        style={{ scrollbarWidth: 'none' }}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
           <div className="mb-4 pb-4 border-b border-gray-200">
-            <h2 className="text-2xl font-black text-gray-900">{title}</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900">{title}</h2>
           </div>
         )}
         {children}

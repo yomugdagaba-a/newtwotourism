@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import FormInput, { FormButton, Alert } from '@/components/common/FormInput';
 import { useToast } from '@/components/common/Toast';
 import { useConfirm } from '@/components/common/ConfirmDialog';
+import TopBar from '@/components/layout/TopBar';
 import { ValidationErrors } from '@/utils/validation';
 import {
   validateFullName,
@@ -28,6 +29,8 @@ const GuidersManagementPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedTourismId, setSelectedTourismId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchTourismTerm, setSearchTourismTerm] = useState('');
+  const [showTourismDropdown, setShowTourismDropdown] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingGuider, setEditingGuider] = useState<Guider | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -52,6 +55,18 @@ const GuidersManagementPage = () => {
     loadTourisms();
   }, [isAuthenticated, role]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.tourism-dropdown-container')) {
+        setShowTourismDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (selectedTourismId) {
       loadGuiders(selectedTourismId);
@@ -64,16 +79,27 @@ const GuidersManagementPage = () => {
     if (!token) return;
     try {
       const response = await AdminTourismService.getAllTourism(token, 0, 100);
-      setTourisms(response.content || []);
-      if (response.content && response.content.length > 0) {
-        setSelectedTourismId(response.content[0].id);
-      }
+      const sortedTourisms = (response.content || []).sort((a, b) => 
+        (a.name || '').localeCompare(b.name || '')
+      );
+      setTourisms(sortedTourisms);
+      // Don't auto-select - let admin choose
+      // if (sortedTourisms.length > 0) {
+      //   setSelectedTourismId(sortedTourisms[0].id);
+      //   setSearchTourismTerm(sortedTourisms[0].name);
+      // }
     } catch (err) {
       console.error('Failed to load tourisms:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Filter tourisms based on search term
+  const filteredTourisms = tourisms.filter(t =>
+    t.name?.toLowerCase().includes(searchTourismTerm.toLowerCase()) ||
+    t.wereda?.toLowerCase().includes(searchTourismTerm.toLowerCase())
+  );
 
   const loadGuiders = async (tourismId: number) => {
     if (!token) return;
@@ -161,7 +187,7 @@ const GuidersManagementPage = () => {
 
   const handleDelete = async (guiderId: number) => {
     if (!token || !selectedTourismId) return;
-    const ok = await confirm({ message: 'Are you sure you want to delete this guider?', variant: 'danger', title: 'Delete Guider', confirmLabel: 'Delete' });
+    const ok = await confirm({ message: 'Are you sure you want to delete this guider?', variant: 'danger', title: 'Delete Guider', confirmLabel: 'Yes', cancelLabel: 'No' });
     if (!ok) return;
     try {
       setActionLoading(guiderId);
@@ -242,100 +268,111 @@ const GuidersManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-white admin-page">
+      <TopBar 
+        showCategories={false} 
+        showBackButton={false} 
+        pageTitle="Guiders Management" 
+        showAdminMenu={true}
+        keyword={searchTerm}
+        onSearch={(value) => setSearchTerm(value)}
+        liveSearch={true}
+        actionButtons={
+          <div className="flex items-center flex-1 justify-end">
+            <button onClick={() => { resetForm(); setShowModal(true); }} disabled={!selectedTourismId}
+              style={{ fontSize: '14px' }}
+              className="text-gray-900 font-black hover:text-black transition-all whitespace-nowrap px-1 disabled:opacity-40">
+              + Add Guider
+            </button>
+          </div>
+        }
+      />
       
       <div className="container mx-auto px-4 pt-4 pb-8">
-      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
-        <button
-          onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span className="font-bold">Back to Dashboard</span>
-        </button>
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-lg font-black text-gray-900 mb-0.5">Guiders Management</h1>
-            <p className="text-gray-600 text-sm">Manage tour guides and language specialists</p>
-          </div>
-          <button onClick={() => { resetForm(); setShowModal(true); }} disabled={!selectedTourismId}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 transition-colors font-black shadow-lg">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Guider
-          </button>
-        </div>
-      </div>
 
-      {/* Tourism Selector */}
-      <div className="bg-purple-100 rounded-xl shadow-xl p-6 mb-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex-1 max-w-md">
-            <label className="block text-sm font-black text-gray-900 mb-1">Select Tourism Place</label>
-            <select value={selectedTourismId || ''} onChange={(e) => setSelectedTourismId(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full border-2 border-purple-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-bold bg-white shadow-sm">
-              <option value="">-- Select a tourism place --</option>
-              {tourisms.map(tourism => (
-                <option key={tourism.id} value={tourism.id}>{tourism.name} ({tourism.wereda})</option>
-              ))}
-            </select>
-          </div>
-          <div className="relative flex-1 max-w-md">
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input type="text" placeholder="Search guiders..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-bold bg-white shadow-sm" />
-          </div>
+      {/* Tourism Selector - Compact inline version with search */}
+      <div className="mb-6 flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700">Select Tourism Place:</label>
+        <div className="relative flex-1 max-w-md tourism-dropdown-container">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Filter tourism places..."
+            value={searchTourismTerm}
+            onChange={(e) => setSearchTourismTerm(e.target.value)}
+            onFocus={() => setShowTourismDropdown(true)}
+            className="w-full border-0 bg-gray-50 text-gray-900 rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-200 text-sm"
+          />
+          {showTourismDropdown && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {filteredTourisms.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-gray-500">No tourism places found</div>
+              ) : (
+                filteredTourisms.map(tourism => (
+                  <div
+                    key={tourism.id}
+                    onClick={() => {
+                      setSelectedTourismId(tourism.id);
+                      setSearchTourismTerm(tourism.name);
+                      setShowTourismDropdown(false);
+                    }}
+                    className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 ${
+                      selectedTourismId === tourism.id ? 'bg-blue-100 font-semibold' : ''
+                    }`}
+                  >
+                    {tourism.name} ({tourism.wereda})
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Guiders Table */}
-      <div className="bg-purple-100 rounded-xl shadow-xl overflow-hidden">
+      <div className="bg-white rounded-xl overflow-hidden">
         {!selectedTourismId ? (
           <div className="p-8 text-center text-gray-800 font-bold bg-white">
-            <p className="text-lg font-black">Please select a tourism place to view its guiders</p>
+            <p className="text-lg font-black">Please select a tourism place to view language guiders or to add a new guider</p>
           </div>
         ) : loading ? (
           <div className="p-8 text-center bg-white">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-800 font-bold">Loading guiders...</p>
           </div>
         ) : error ? (
           <div className="p-8 text-center bg-white">
             <Alert type="error" message={error} />
-            <button onClick={() => selectedTourismId && loadGuiders(selectedTourismId)} className="mt-4 bg-purple-200 text-purple-800 px-4 py-2 rounded-md font-black shadow-md">Retry</button>
+            <button onClick={() => selectedTourismId && loadGuiders(selectedTourismId)} className="mt-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-bold border border-gray-300">Retry</button>
           </div>
         ) : filteredGuiders.length === 0 ? (
           <div className="p-8 text-center text-gray-800 bg-white">
-            <p className="text-lg mb-4 font-black">No guiders found for {getSelectedTourismName()}</p>
-            <button onClick={() => { resetForm(); setShowModal(true); }} className="bg-purple-200 text-purple-800 px-4 py-2 rounded-lg hover:bg-purple-300 font-black shadow-md">Add First Guider</button>
+            <p className="text-lg font-black text-gray-500">No guiders found for {getSelectedTourismName()}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-purple-200">
-              <thead className="bg-purple-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-black text-purple-900 uppercase tracking-wider">Guider</th>
-                  <th className="px-6 py-3 text-left text-xs font-black text-purple-900 uppercase tracking-wider">Contact</th>
-                  <th className="px-6 py-3 text-left text-xs font-black text-purple-900 uppercase tracking-wider">Languages</th>
-                  <th className="px-6 py-3 text-left text-xs font-black text-purple-900 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-black text-purple-900 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Guider</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Languages</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-purple-100">
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredGuiders.map((guider) => (
-                  <tr key={guider.id} className="hover:bg-purple-50 transition-colors">
+                  <tr key={guider.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-md">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
                           <span className="text-white font-black">{guider.name?.charAt(0) || '?'}</span>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-black text-gray-900">{guider.name}</div>
-                          <div className="text-xs text-purple-700 font-bold">ID: {guider.id}</div>
+                          <div className="text-xs text-gray-600 font-bold">ID: {guider.id}</div>
                         </div>
                       </div>
                     </td>
@@ -348,18 +385,20 @@ const GuidersManagementPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {guider.languages?.slice(0, 3).map(lang => (
-                          <span key={lang} className="px-2 py-1 text-xs bg-blue-200 text-blue-900 rounded-full font-black shadow-sm">{lang}</span>
+                      <div className="flex flex-wrap gap-x-1">
+                        {guider.languages?.slice(0, 3).map((lang, i, arr) => (
+                          <span key={lang} className="text-xs text-gray-700 font-medium">
+                            {lang}{i < arr.length - 1 || (guider.languages.length > 3) ? ',' : ''}
+                          </span>
                         ))}
-                        {guider.languages && guider.languages.length > 3 && (
-                          <span className="px-2 py-1 text-xs bg-gray-200 text-gray-800 rounded-full font-black shadow-sm">+{guider.languages.length - 3}</span>
+                        {guider.languages?.length > 3 && (
+                          <span className="text-xs text-gray-400 font-medium">+{guider.languages.length - 3} more</span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 text-xs font-black rounded-full shadow-sm ${guider.active ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900'}`}>
-                        {guider.active ? '✓ Active' : '✗ Inactive'}
+                      <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full border ${guider.active ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>
+                        {guider.active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -382,13 +421,12 @@ const GuidersManagementPage = () => {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border-2 border-gray-300">
-            <div className="sticky top-0 bg-gray-100 border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center">
+          <div className="bg-white shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+            <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center z-10">
               <div>
                 <h3 className="text-xl font-black text-gray-900">
                   {editingGuider ? 'Edit Guider' : 'Add New Guider'}
                 </h3>
-                <p className="text-sm text-gray-600 font-semibold mt-1">Tourism Place: {getSelectedTourismName()}</p>
               </div>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="text-gray-500 hover:text-gray-700 font-bold">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -404,7 +442,6 @@ const GuidersManagementPage = () => {
               <FormInput label="Full Name" name="name" value={formData.name} onChange={handleInputChange}
                 error={formErrors.name} placeholder="e.g., Abebe Kebede" required
                 onKeyDown={handleNameKeyDown}
-                helpText="Enter first and last name (at least 2 words, each 2+ letters)"
                 icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
               />
 
@@ -421,8 +458,8 @@ const GuidersManagementPage = () => {
                     value={formData.contactInfo}
                     onChange={(e) => handlePhoneChange(e.target.value)}
                     onKeyDown={handlePhoneKeyDown}
-                    className={`w-full pl-10 pr-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 font-semibold bg-gray-50 ${formErrors.contactInfo ? 'border-red-500 bg-red-50' : 'border-gray-400'}`}
-                    placeholder="09XXXXXXXX or 07XXXXXXXX"
+                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-400 bg-white ${formErrors.contactInfo ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                    placeholder="Phone number"
                   />
                 </div>
                 {formErrors.contactInfo && (
@@ -433,23 +470,24 @@ const GuidersManagementPage = () => {
                     {formErrors.contactInfo}
                   </p>
                 )}
-                <p className="text-gray-600 text-xs mt-1 font-medium">Ethiopian phone: Ethio Telecom (09X) or Safaricom (07X)</p>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">
-                  Languages Spoken <span className="text-red-500 font-black">*</span>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Languages Spoken <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {LANGUAGES.map(lang => (
-                    <label key={lang} className={`inline-flex items-center px-3 py-2 rounded-lg border-2 cursor-pointer transition-colors font-semibold ${
-                      formData.languages?.includes(lang) ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-gray-50 border-gray-400 hover:bg-gray-100'
+                    <label key={lang} className={`inline-flex items-center px-2.5 py-1.5 rounded-lg border cursor-pointer transition-all text-sm ${
+                      formData.languages?.includes(lang) 
+                        ? 'bg-purple-100 border-purple-300 text-purple-800' 
+                        : 'bg-purple-50 border-purple-200 text-gray-700 hover:bg-purple-100 hover:border-purple-300'
                     }`}>
                       <input type="checkbox" checked={formData.languages?.includes(lang) || false}
                         onChange={() => handleLanguageChange(lang)} className="sr-only" />
-                      <span className="text-sm font-semibold">{lang}</span>
+                      <span className="text-xs font-medium">{lang}</span>
                       {formData.languages?.includes(lang) && (
-                        <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-3.5 h-3.5 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
@@ -474,7 +512,7 @@ const GuidersManagementPage = () => {
                       value={customLanguage}
                       onChange={(e) => setCustomLanguage(e.target.value)}
                       placeholder="e.g., Japanese, Portuguese, Swahili..."
-                      className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-400"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -494,11 +532,10 @@ const GuidersManagementPage = () => {
                         }
                         setCustomLanguage('');
                       }}
-                      className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">
+                      className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700">
                       Add
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Type any language and press Enter or click Add</p>
                   {/* Show custom languages */}
                   {formData.languages?.filter(l => !LANGUAGES.includes(l)).length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
@@ -514,7 +551,7 @@ const GuidersManagementPage = () => {
               </div>
 
               {editingGuider && (
-                <div className="flex items-center border-2 border-gray-300 rounded-lg p-3 bg-gray-50">
+                <div className="flex items-center border border-gray-200 rounded-lg p-3 bg-gray-50">
                   <input type="checkbox" id="active" checked={formData.active}
                     onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-400 rounded" />
@@ -523,12 +560,20 @@ const GuidersManagementPage = () => {
               )}
             </div>
 
-            <div className="sticky bottom-0 bg-gray-100 border-t-2 border-gray-300 px-6 py-4 flex justify-end space-x-3">
-              <FormButton variant="secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</FormButton>
-              <FormButton variant="primary" onClick={editingGuider ? handleUpdate : handleCreate}
-                loading={actionLoading !== null} disabled={actionLoading !== null}>
-                {editingGuider ? 'Update Guider' : 'Create Guider'}
-              </FormButton>
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-4 py-2.5 flex justify-end space-x-2 z-10">
+              <button
+                onClick={() => { setShowModal(false); resetForm(); }}
+                className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-semibold text-sm transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={editingGuider ? handleUpdate : handleCreate}
+                disabled={actionLoading !== null}
+                className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 font-semibold text-sm transition-all"
+              >
+                {actionLoading !== null ? 'Saving...' : editingGuider ? 'Update' : 'Create'}
+              </button>
             </div>
           </div>
         </div>

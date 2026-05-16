@@ -38,10 +38,8 @@ app.use(express.urlencoded({ extended: true }));
 const { auditMiddleware } = require('./middleware/audit.middleware');
 app.use(auditMiddleware);
 
-// Static uploads - use /tmp in production (serverless environments)
-const uploadsDir = process.env.NODE_ENV === 'production' 
-  ? path.join('/tmp', 'uploads')
-  : path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'uploads');
+// Static uploads — always use UPLOAD_DIR from env (persistent path)
+const uploadsDir = path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 
@@ -136,12 +134,24 @@ async function initBookingStatuses() {
   console.log(`✓ Booking statuses ready. Total: ${total}`);
 }
 
+// Clean up any blob: URLs accidentally stored in the DB
+async function cleanupBlobUrls() {
+  const result = await prisma.tourismPlace.updateMany({
+    where: { imageUrl: { startsWith: 'blob:' } },
+    data: { imageUrl: null },
+  });
+  if (result.count > 0) {
+    console.log(`✓ Cleaned up ${result.count} tourism place(s) with invalid blob: imageUrl`);
+  }
+}
+
 // Start server
 const certPath = path.resolve(__dirname, '../certificates/localhost.pem');
 const keyPath = path.resolve(__dirname, '../certificates/localhost-key.pem');
 
 async function start() {
   await initBookingStatuses();
+  await cleanupBlobUrls();
 
   // Verify email service on startup
   try {

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import RoadInfo from "@/components/road/RoadInfo";
 import { useRouter } from "next/navigation";
-import HorseServiceList from "@/components/horse/HorseServiceList";
 import { RoadInfoDto } from "@/types/road";
 import { getRoadInfoByTourism } from "@/services/map.service";
 
@@ -57,15 +56,21 @@ export default function RoadInfoTab({ tourismId }: Props) {
           <RoadInfo road={road} />
 
           <div className="mt-3 flex gap-3">
-            <button className="px-3 py-2 rounded-md bg-emerald-600 text-white" onClick={() => router.push(`/roads/${road.id}`)}>View details</button>
+            <button 
+              className="px-3 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition" 
+              onClick={() => router.push(`/roads/${road.id}`)}
+            >
+              View details
+            </button>
+            
+            {/* Horse Services Button - Navigate to dedicated page */}
+            <button 
+              className="px-3 py-2 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition flex items-center gap-2" 
+              onClick={() => router.push(`/horsers?roadId=${road.id}`)}
+            >
+              🐴 Horse Services
+            </button>
           </div>
-
-          {/* Horse Services (optional) */}
-          {road.id && (
-            <div className="mt-4">
-              <HorseServiceList roadInfoId={road.id} />
-            </div>
-          )}
         </div>
       ))}
     </div>

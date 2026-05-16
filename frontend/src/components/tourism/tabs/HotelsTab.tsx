@@ -5,6 +5,7 @@ import { getHotelsByTourism } from "@/services/hotel.service";
 import { useAuthStore } from "@/store/useAuthStore";
 import { HotelSummaryDto } from "@/types/hotel";
 import HotelDetails from "@/components/hotel/HotelDetail";
+import { getImageUrl } from "@/utils/imageUrl";
 
 interface Props {
   tourismId: number;
@@ -33,7 +34,7 @@ export default function HotelsTab({ tourismId }: Props) {
           className="border rounded-md overflow-hidden cursor-pointer hover:shadow-lg transition"
           onClick={() => setSelectedHotel(hotel.id)}
         >
-          <img src={hotel.imageUrl || "/images/placeholder.jpg"} alt={hotel.name} className="w-full h-40 object-cover" />
+          <img src={getImageUrl(hotel.imageUrl, "/images/placeholder.jpg")} alt={hotel.name} className="w-full h-40 object-cover" />
           <div className="p-2">
             <h3 className="font-semibold">{hotel.name}</h3>
             <p>{hotel.stars} stars</p>

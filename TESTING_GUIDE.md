@@ -314,3 +314,12 @@ If tests fail unexpectedly:
 
 **Last Updated**: May 8, 2026
 **Test Status**: ✅ ALL 223 TESTS PASSING
+cd frontend
+npm run test:e2e
+cd backend-nodejs
+npm test
+cd backend-nodejs
+npm run test:integration
+cd backend-nodejs
+npm run test:unit
+![alt text](image.png)

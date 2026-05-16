@@ -19,23 +19,22 @@ test.describe('ST-01 Registration and email verification', () => {
 
   test('homepage loads with Get Started button', async ({ page }) => {
     await page.goto(BASE);
-    // TopBar renders a loading skeleton first, then shows auth buttons after hydration
-    // Wait for the skeleton to disappear and the real button to appear
     await page.waitForFunction(() => {
       const skeleton = document.querySelector('.animate-pulse');
       return !skeleton || skeleton.clientWidth === 0;
-    }, { timeout: 10000 }).catch(() => {}); // ignore if no skeleton
+    }, { timeout: 10000 }).catch(() => {});
 
-    const getStartedBtn = page.locator('button:has-text("Get Started")').first();
-    await expect(getStartedBtn).toBeVisible({ timeout: 20000 });
+    // The app shows "Join" button for unauthenticated users
+    const joinBtn = page.locator('button:has-text("Join"), button:has-text("Get Started"), button:has-text("Sign Up")').first();
+    await expect(joinBtn).toBeVisible({ timeout: 20000 });
   });
 
   test('Get Started button opens register modal', async ({ page }) => {
     await page.goto(BASE);
-    // Wait for hydration
-    const getStartedBtn = page.locator('button:has-text("Get Started")').first();
-    await expect(getStartedBtn).toBeVisible({ timeout: 20000 });
-    await getStartedBtn.click();
+    // The app shows "Join" button for unauthenticated users
+    const joinBtn = page.locator('button:has-text("Join"), button:has-text("Get Started"), button:has-text("Sign Up")').first();
+    await expect(joinBtn).toBeVisible({ timeout: 20000 });
+    await joinBtn.click();
     // Modal should appear with registration form
     const modal = page.locator('[class*="modal"], [role="dialog"], form').first();
     await expect(modal).toBeVisible({ timeout: 8000 });

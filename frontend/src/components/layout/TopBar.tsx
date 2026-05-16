@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Modal from "@/components/common/Modal";
 import LoginForm from "@/components/auth/LoginFormModal";
 import RegisterForm from "@/components/auth/RegisterFormModal";
@@ -18,15 +18,19 @@ interface Props {
   onCategoryToggle?: (category: string) => void;
   onClearCategories?: () => void;
   liveSearch?: boolean;
+  showBackButton?: boolean;
+  pageTitle?: string;
+  showAdminMenu?: boolean;
+  actionButtons?: React.ReactNode;
 }
 
 const CATEGORIES = [
-  { id: "HERITAGE", icon: "🕌", label: "Heritage" },
-  { id: "HIGHLAND", icon: "⛰️", label: "Highland" },
-  { id: "CAVERN", icon: "🕳️", label: "Cavern" },
-  { id: "AQUATICS", icon: "🌊", label: "Aquatics" },
-  { id: "CULTURE", icon: "🎭", label: "Culture" },
-  { id: "MODERN", icon: "🏛️", label: "Modern" },
+  { id: "HERITAGE", label: "Heritage" },
+  { id: "HIGHLAND", label: "Highland" },
+  { id: "CAVERN", label: "Cavern" },
+  { id: "AQUATICS", label: "Aquatics" },
+  { id: "CULTURE", label: "Culture" },
+  { id: "MODERN", label: "Modern" },
 ];
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -47,17 +51,34 @@ export default function TopBar({
   onCategoryToggle,
   onClearCategories,
   liveSearch = false,
+  showBackButton = false,
+  pageTitle,
+  showAdminMenu = false,
+  actionButtons,
 }: Props) {
   const [openMenu, setOpenMenu] = useState(false);
-  const [catMenuOpen, setCatMenuOpen] = useState(false);
+  const [catDropdownOpen, setCatDropdownOpen] = useState(false);
+  const [actionDropdownOpen, setActionDropdownOpen] = useState(false);
   const [modalContent, setModalContent] = useState<"login" | "register" | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [searchValue, setSearchValue] = useState(keyword);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { isAuthenticated, username, role, browsingMode, logout, isHydrated, setBrowsingMode } = useAuthStore();
+  const catDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Close category dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (catDropdownRef.current && !catDropdownRef.current.contains(e.target as Node)) {
+        setCatDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const showAuthenticatedUI = mounted && isHydrated && isAuthenticated;
   const debouncedSearchValue = useDebounce(searchValue, 300);
@@ -87,127 +108,202 @@ export default function TopBar({
   };
 
   const handleCategoryClick = (categoryId: string) => {
+    setCatDropdownOpen(false);
     router.push(`/tourisms?categories=${categoryId}`);
   };
 
   return (
     <>
-      <header
-        className={`sticky top-0 z-50 ${transparent ? "bg-white/95 backdrop-blur-lg" : "bg-white"} border-b border-gray-200`}
-        style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.13), 0 1px 6px rgba(0,0,0,0.07)" }}
-      >
-        <div className="max-w-7xl mx-auto px-3">
-          {/* Single row — all elements visible on all screen sizes */}
-          <div className="flex items-center h-14 gap-2">
+      <header className={`sticky top-0 z-50 ${transparent ? "bg-white/95 backdrop-blur-lg" : "bg-white"} border-b border-gray-200`}>
+        <div className="max-w-7xl mx-auto px-2">
+          <div className="flex items-center h-12 gap-1">
 
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-1.5 group shrink-0">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg group-hover:scale-105 transition-transform">
-                NW
-              </div>
-              <span className="hidden lg:block font-bold text-gray-900 text-base">North Wollo</span>
-            </Link>
-
-            {/* Category pills — desktop only */}
-            <div className="hidden lg:flex items-center gap-1 flex-1 overflow-x-auto scrollbar-hide">
-              {CATEGORIES.map((cat) => {
-                const isSelected = selectedCategories?.includes(cat.id);
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => (onCategoryToggle ? onCategoryToggle(cat.id) : handleCategoryClick(cat.id))}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap ${
-                      isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    <span>{cat.label}</span>
-                  </button>
-                );
-              })}
-              {selectedCategories && selectedCategories.length > 0 && onClearCategories && (
-                <button onClick={onClearCategories} className="ml-1 px-2 py-1 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full border border-red-200 transition-all whitespace-nowrap">
-                  ✕ Clear
-                </button>
-              )}
-            </div>
-
-            {/* Spacer on mobile/tablet */}
-            <div className="flex-1 lg:hidden" />
-
-            {/* Search — visible on all sizes, compact on mobile */}
-            <form onSubmit={handleSearch} className="shrink-0">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchValue}
-                  onChange={handleSearchInputChange}
-                  placeholder="Search..."
-                  className="w-24 sm:w-32 md:w-40 pl-7 pr-2 py-1.5 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all text-xs text-gray-900 placeholder-gray-500"
-                />
-                <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            {/* Admin hamburger */}
+            {showAdminMenu && (
+              <button
+                onClick={() => { if (typeof window !== 'undefined' && (window as any).__toggleAdminSidebar) (window as any).__toggleAdminSidebar(); }}
+                className="flex items-center justify-center w-7 h-7 text-gray-700 hover:bg-gray-100 rounded-md transition-colors shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-              </div>
-            </form>
+              </button>
+            )}
 
-            {/* Auth area */}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Back button — arrow only */}
+            {showBackButton && (
+              <button onClick={() => router.push('/')} className="flex items-center justify-center w-7 h-7 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors shrink-0">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </button>
+            )}
+
+            {/* Page title — hidden on mobile */}
+            {pageTitle && (
+              <div className="shrink-0 hidden sm:block">
+                <span className="text-sm font-bold text-gray-900">{pageTitle}</span>
+              </div>
+            )}
+
+            {/* Logo — hidden on mobile */}
+            {!pageTitle && (
+              <Link href="/" className="flex items-center gap-1 group shrink-0">
+                <div className="hidden sm:flex w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg items-center justify-center text-white font-bold text-xs shadow group-hover:scale-105 transition-transform">
+                  NW
+                </div>
+              </Link>
+            )}
+
+            {/* Spacer — on desktop pushes everything right; on mobile collapses */}
+            <div className="flex-1 min-w-0" />
+
+            {/* Categories dropdown button — mobile/tablet (< lg) */}
+            {showCategories && (
+              <div className="lg:hidden relative shrink-0" ref={catDropdownRef}>
+                <button
+                  onClick={() => setCatDropdownOpen(!catDropdownOpen)}
+                  className={`flex items-center gap-0.5 px-1.5 py-1 text-xs font-semibold rounded-md border transition-all whitespace-nowrap ${
+                    catDropdownOpen || (selectedCategories && selectedCategories.length > 0)
+                      ? 'bg-blue-600 text-white border-blue-500'
+                      : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-100'
+                  }`}
+                >
+                  <span>Categories</span>
+                  <svg className={`w-3 h-3 transition-transform ${catDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {catDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-xl py-1 min-w-[160px]">
+                    {CATEGORIES.map((cat) => {
+                      const isSelected = selectedCategories?.includes(cat.id);
+                      return (
+                        <button key={cat.id}
+                          onClick={() => { onCategoryToggle ? onCategoryToggle(cat.id) : handleCategoryClick(cat.id); setCatDropdownOpen(false); }}
+                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold transition-all ${isSelected ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-100"}`}
+                        >
+                          <span>{cat.label}</span>
+                          {isSelected && <span className="ml-auto text-blue-600 text-xs">✓</span>}
+                        </button>
+                      );
+                    })}
+                    {selectedCategories && selectedCategories.length > 0 && onClearCategories && (
+                      <button onClick={() => { onClearCategories(); setCatDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 border-t border-gray-100 mt-1">
+                        ✕ Clear filter
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Category pills — desktop only (lg+) */}
+            {showCategories && (
+              <div className="hidden lg:flex items-center gap-1 overflow-x-auto scrollbar-hide shrink-0">
+                {CATEGORIES.map((cat) => {
+                  const isSelected = selectedCategories?.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => onCategoryToggle ? onCategoryToggle(cat.id) : handleCategoryClick(cat.id)}
+                      className={`flex items-center px-3 py-1.5 text-sm font-semibold rounded-full border transition-all whitespace-nowrap ${
+                        isSelected
+                          ? "bg-blue-600 text-white border-blue-500"
+                          : "bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-100"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
+                {selectedCategories && selectedCategories.length > 0 && onClearCategories && (
+                  <button onClick={onClearCategories} className="px-2.5 py-1.5 text-sm font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full border border-red-100 transition-all whitespace-nowrap">
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Search — after categories */}
+            {(!showAdminMenu || (showAdminMenu && onSearch)) && (
+              <form onSubmit={handleSearch} className="shrink-0">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchValue}
+                    onChange={handleSearchInputChange}
+                    placeholder="Search..."
+                    className="w-16 sm:w-28 lg:w-40 pl-6 lg:pl-7 pr-1 py-1 lg:py-1.5 bg-gray-50 border border-gray-100 rounded-md lg:rounded-lg focus:ring-1 focus:ring-blue-100 focus:bg-white transition-all text-xs lg:text-sm text-gray-900 placeholder-gray-400 outline-none"
+                  />
+                  <svg className="absolute left-1.5 lg:left-2 top-1/2 -translate-y-1/2 w-3 h-3 lg:w-3.5 lg:h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </form>
+            )}
+
+            {/* Action Buttons — after search */}
+            {actionButtons && (
+              <div className="flex items-center gap-1 shrink-0">{actionButtons}</div>
+            )}
+
+            {/* Auth shortcuts — Owner/Client switcher + Bookings/Manage/Admin */}
+            {showAuthenticatedUI && (
+              <div className="flex items-center gap-0.5 shrink-0">
+                {/* Owner/Client mode switcher */}
+                {role === "HOTEL_OWNER" && (
+                  <div className="flex items-center gap-0.5">
+                    <button onClick={() => setBrowsingMode("OWNER")}
+                      className={`px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold rounded lg:rounded-md transition-all whitespace-nowrap ${browsingMode === "OWNER" ? "bg-orange-500 text-white border border-orange-400" : "text-gray-600 hover:bg-gray-100 border border-gray-100"}`}>
+                      Owner
+                    </button>
+                    <button onClick={() => setBrowsingMode("CLIENT")}
+                      className={`px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold rounded lg:rounded-md transition-all whitespace-nowrap ${browsingMode === "CLIENT" ? "bg-emerald-500 text-white border border-emerald-400" : "text-gray-600 hover:bg-gray-100 border border-gray-100"}`}>
+                      Client
+                    </button>
+                  </div>
+                )}
+
+                {/* My Bookings */}
+                {(role === "CLIENT" || (role === "HOTEL_OWNER" && browsingMode === "CLIENT")) && (
+                  <Link href="/bookings"
+                    className="flex items-center px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded lg:rounded-md border border-gray-100 transition-all whitespace-nowrap">
+                    My Bookings
+                  </Link>
+                )}
+
+                {/* Manage */}
+                {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
+                  <Link href="/owner/bookings"
+                    className="flex items-center px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold text-orange-700 hover:bg-orange-50 rounded lg:rounded-md border border-orange-100 transition-all whitespace-nowrap">
+                    Manage
+                  </Link>
+                )}
+
+                {/* Admin shortcut */}
+                {role === "ADMIN" && !showAdminMenu && (
+                  <Link href="/admin"
+                    className="flex items-center px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold text-purple-700 hover:bg-purple-50 rounded lg:rounded-md border border-purple-100 transition-all whitespace-nowrap">
+                    Admin
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {/* Auth area — avatar always at rightmost */}
+            <div className="flex items-center gap-0.5 shrink-0">
               {showAuthenticatedUI ? (
                 <>
-                  {/* Mode switcher — visible on all sizes */}
-                  {role === "HOTEL_OWNER" && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setBrowsingMode("OWNER")}
-                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
-                          browsingMode === "OWNER" ? "bg-orange-500 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-300"
-                        }`}
-                      >
-                        Owner
-                      </button>
-                      <button
-                        onClick={() => setBrowsingMode("CLIENT")}
-                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
-                          browsingMode === "CLIENT" ? "bg-emerald-500 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-300"
-                        }`}
-                      >
-                        Client
-                      </button>
-                    </div>
-                  )}
-
-                  {/* My Bookings — visible on all sizes */}
-                  {(role === "CLIENT" || (role === "HOTEL_OWNER" && browsingMode === "CLIENT")) && (
-                    <Link href="/bookings" className="px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300 transition-all whitespace-nowrap hidden sm:flex">
-                      My Bookings
-                    </Link>
-                  )}
-
-                  {/* Owner manage — visible on all sizes */}
-                  {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
-                    <Link href="/owner/bookings" className="px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-50 rounded-md border border-orange-300 transition-all whitespace-nowrap hidden sm:flex">
-                      Manage
-                    </Link>
-                  )}
-
-                  {/* Admin link */}
-                  {role === "ADMIN" && (
-                    <Link href="/admin" className="px-2 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-50 rounded-md border border-purple-300 transition-all whitespace-nowrap hidden sm:flex">
-                      Admin
-                    </Link>
-                  )}
-
-                  {/* User avatar + dropdown */}
+                  {/* User avatar + dropdown — circle initial + chevron only */}
                   <div className="relative">
-                    <button
-                      onClick={() => setOpenMenu(!openMenu)}
-                      className="flex items-center gap-1 px-1.5 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors border border-gray-300"
-                    >
-                      <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    <button onClick={() => setOpenMenu(!openMenu)}
+                      className="flex items-center gap-0.5 lg:gap-1 px-1 lg:px-1.5 py-0.5 lg:py-1 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100">
+                      <div className="w-6 h-6 lg:w-7 lg:h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs lg:text-sm font-bold shrink-0">
                         {username?.charAt(0).toUpperCase() || "U"}
                       </div>
-                      <span className="hidden sm:block text-xs font-medium text-gray-900 max-w-[60px] truncate">{username}</span>
-                      <svg className={`w-3 h-3 text-gray-500 transition-transform ${openMenu ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className={`w-3 h-3 text-gray-400 transition-transform ${openMenu ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
@@ -218,24 +314,18 @@ export default function TopBar({
                           <p className="text-sm font-bold text-gray-900">{username}</p>
                           <p className="text-xs text-gray-500">{role}</p>
                         </div>
-                        <button onClick={() => { setShowProfileModal(true); setOpenMenu(false); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">
-                          My Profile
-                        </button>
+                        <button onClick={() => { setShowProfileModal(true); setOpenMenu(false); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">My Profile</button>
                         <Link href="/" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Home</Link>
                         <Link href="/tourisms" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Explore</Link>
                         <Link href="/hotels" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Hotels</Link>
-                        {/* Mobile-only links */}
-                        {role === "CLIENT" && (
-                          <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>My Bookings</Link>
-                        )}
-                        {role === "HOTEL_OWNER" && browsingMode === "CLIENT" && (
-                          <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>My Bookings</Link>
+                        {(role === "CLIENT" || (role === "HOTEL_OWNER" && browsingMode === "CLIENT")) && (
+                          <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>My Bookings</Link>
                         )}
                         {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
-                          <Link href="/owner/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>Manage Bookings</Link>
+                          <Link href="/owner/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Manage Bookings</Link>
                         )}
-                        {role === "ADMIN" && (
-                          <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:hidden" onClick={() => setOpenMenu(false)}>Admin Panel</Link>
+                        {role === "ADMIN" && !showAdminMenu && (
+                          <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Admin Panel</Link>
                         )}
                         {role === "HOTEL_OWNER" && (
                           <Link href="/owner/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Owner Dashboard</Link>
@@ -249,66 +339,24 @@ export default function TopBar({
                 </>
               ) : mounted ? (
                 <>
-                  <button onClick={() => setModalContent("login")} className="px-2.5 py-1.5 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 rounded-full border border-gray-200 transition-all whitespace-nowrap">
+                  <button onClick={() => setModalContent("login")} className="px-2 lg:px-3 py-1 lg:py-1.5 text-xs lg:text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 rounded-full border border-gray-100 transition-all whitespace-nowrap">
                     Sign In
                   </button>
-                  <button onClick={() => setModalContent("register")} className="px-2.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-full transition-all whitespace-nowrap">
-                    Get Started
+                  <button onClick={() => setModalContent("register")} className="px-2 lg:px-3 py-1 lg:py-1.5 text-xs lg:text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-full border border-blue-400 transition-all whitespace-nowrap">
+                    Join
                   </button>
                 </>
               ) : (
-                <div className="w-16 h-8 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="w-8 h-7 bg-gray-100 rounded-lg animate-pulse" />
               )}
             </div>
-
-            {/* Category hamburger — mobile/tablet only */}
-            <button
-              className="lg:hidden p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
-              onClick={() => setCatMenuOpen(!catMenuOpen)}
-              aria-label="Categories"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {catMenuOpen
-                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                }
-              </svg>
-            </button>
 
           </div>
         </div>
       </header>
 
-      {/* Category dropdown — mobile/tablet only */}
-      {catMenuOpen && (
-        <div className="lg:hidden fixed top-14 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-lg px-4 py-3">
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => {
-              const isSelected = selectedCategories?.includes(cat.id);
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => { onCategoryToggle ? onCategoryToggle(cat.id) : handleCategoryClick(cat.id); setCatMenuOpen(false); }}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-sm font-semibold rounded-full transition-all ${
-                    isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.label}</span>
-                </button>
-              );
-            })}
-            {selectedCategories && selectedCategories.length > 0 && onClearCategories && (
-              <button onClick={() => { onClearCategories(); setCatMenuOpen(false); }} className="px-3 py-1.5 text-sm font-semibold text-red-500 bg-red-50 rounded-full border border-red-200 transition-all">
-                ✕ Clear
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Auth Modal */}
-      <Modal isOpen={!!modalContent} onClose={() => setModalContent(null)} closeOnOutsideClick={false} closeOnEscape={false}>
+      <Modal isOpen={!!modalContent} onClose={() => setModalContent(null)} closeOnOutsideClick={false} closeOnEscape={false} size={modalContent === 'register' ? 'lg' : 'md'}>
         {modalContent === "login" && (
           <LoginForm onSuccess={() => setModalContent(null)} onRegisterClick={() => setModalContent("register")} onCancel={() => setModalContent(null)} />
         )}

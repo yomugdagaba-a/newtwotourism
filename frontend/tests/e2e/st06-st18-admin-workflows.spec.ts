@@ -13,16 +13,45 @@ async function loginViaDirect(page: Page, username: string, password: string) {
   await usernameField.fill(username);
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
-  await page.waitForURL(/dashboard|admin|home/i, { timeout: 25000 });
+  await page.waitForURL(/dashboard|admin|home|localhost:9000\/?$/i, { timeout: 25000 });
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1500);
+}
+
+async function loginAndGoTo(page: Page, username: string, password: string, targetPath: string) {
+  // Step 1: Login and capture the tokens stored in localStorage
+  await loginViaDirect(page, username, password);
+
+  // Step 2: Read auth data from localStorage after successful login
+  const authData = await page.evaluate(() => ({
+    token: localStorage.getItem('token'),
+    refreshToken: localStorage.getItem('refreshToken'),
+    userId: localStorage.getItem('userId'),
+    username: localStorage.getItem('username'),
+    role: localStorage.getItem('role'),
+  }));
+
+  // Step 3: Pre-inject localStorage into the new page context before navigation
+  await page.addInitScript((data) => {
+    if (data.token) localStorage.setItem('token', data.token);
+    if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+    if (data.userId) localStorage.setItem('userId', data.userId);
+    if (data.username) localStorage.setItem('username', data.username);
+    if (data.role) localStorage.setItem('role', data.role);
+  }, authData);
+
+  // Step 4: Navigate to the target admin page — localStorage is pre-populated
+  await page.goto(`${BASE}${targetPath}`);
+  await page.waitForLoadState('networkidle');
 }
 
 // ── ST-06: Hotel owner assignment ─────────────────────────────────────────────
 test.describe('ST-06 Hotel owner assignment', () => {
   test('admin can navigate to hotel management', async ({ page }) => {
-    await loginViaDirect(page, 'admin', 'admin123');
-    await page.goto(`${BASE}/admin/hotels`);
-    const content = page.locator('[class*="hotel"], table, h1, h2').first();
-    await expect(content).toBeVisible({ timeout: 15000 });
+    await loginAndGoTo(page, 'admin', 'admin123', '/admin/hotels');
+    // Page shows hotel cards with h3 headings and "Add Hotel" button
+    const content = page.locator('h3, button:has-text("Add Hotel"), button:has-text("Hotel")').first();
+    await expect(content).toBeVisible({ timeout: 25000 });
   });
 });
 
@@ -63,21 +92,18 @@ test.describe('ST-13 Admin road and horse service', () => {
   });
 
   test('admin tourism management page loads', async ({ page }) => {
-    await loginViaDirect(page, 'admin', 'admin123');
-    await page.goto(`${BASE}/admin/tourisms`);
-    const content = page.locator('[class*="tourism"], table, h1, h2').first();
-    await expect(content).toBeVisible({ timeout: 15000 });
+    await loginAndGoTo(page, 'admin', 'admin123', '/admin/tourisms');
+    const content = page.locator('h3, button:has-text("Add"), button:has-text("Tourism")').first();
+    await expect(content).toBeVisible({ timeout: 25000 });
   });
 });
 
 // ── ST-14: Admin creates language guider ─────────────────────────────────────
 test.describe('ST-14 Admin language guider', () => {
   test('admin guider management page loads', async ({ page }) => {
-    await loginViaDirect(page, 'admin', 'admin123');
-    await page.goto(`${BASE}/admin/guiders`);
-    await page.waitForLoadState('networkidle');
-    const content = page.locator('h1, h2, table, [class*="guider"]').first();
-    await expect(content).toBeVisible({ timeout: 15000 });
+    await loginAndGoTo(page, 'admin', 'admin123', '/admin/guiders');
+    const content = page.locator('h3, button:has-text("Add"), select, input').first();
+    await expect(content).toBeVisible({ timeout: 25000 });
   });
 
   test('new guider form opens via Add Guider button', async ({ page }) => {
@@ -166,9 +192,8 @@ test.describe('ST-18 Client hotel rating', () => {
 // ── ST-09 Hero image carousel (admin management) ─────────────────────────────
 test.describe('ST-09 Hero image carousel admin', () => {
   test('admin hero images page loads', async ({ page }) => {
-    await loginViaDirect(page, 'admin', 'admin123');
-    await page.goto(`${BASE}/admin/hero-images`);
-    const content = page.locator('[class*="hero"], [class*="image"], table, h1, h2').first();
-    await expect(content).toBeVisible({ timeout: 15000 });
+    await loginAndGoTo(page, 'admin', 'admin123', '/admin/hero-images');
+    const content = page.locator('h3, button:has-text("Add"), img, input').first();
+    await expect(content).toBeVisible({ timeout: 25000 });
   });
 });

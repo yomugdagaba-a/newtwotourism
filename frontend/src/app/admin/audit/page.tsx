@@ -5,6 +5,7 @@ import { AuditService } from '../../../services/audit.service';
 import { AuditLogEntry, AuditLogSearchParams, AUDIT_CATEGORIES, AUDIT_SEVERITY_LEVELS } from '../../../types/audit';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useRouter } from 'next/navigation';
+import TopBar from '@/components/layout/TopBar';
 
 const AuditLogsPage = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
@@ -16,6 +17,7 @@ const AuditLogsPage = () => {
   const [pageSize, setPageSize] = useState(20);
   const [searchParams, setSearchParams] = useState<AuditLogSearchParams>({});
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const { role, isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -95,7 +97,7 @@ const AuditLogsPage = () => {
     loadAuditLogs();
   };
 
-  const handleClearSearch = () => {
+  const handleClear = () => {
     setSearchParams({});
     setCurrentPage(0);
     // Remove URL params
@@ -105,6 +107,7 @@ const AuditLogsPage = () => {
 
   const handleExportCsv = async () => {
     try {
+      setExportLoading(true);
       // Export all logs matching current search (up to 1000)
       let allLogs: AuditLogEntry[] = [];
       const hasSearchParams = Object.entries(searchParams).some(([, value]) =>
@@ -120,6 +123,8 @@ const AuditLogsPage = () => {
       AuditService.exportToCsv(allLogs, `audit-logs-export-${new Date().toISOString().split('T')[0]}.csv`);
     } catch {
       AuditService.exportToCsv(auditLogs, `audit-logs-export-${new Date().toISOString().split('T')[0]}.csv`);
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -181,45 +186,95 @@ const AuditLogsPage = () => {
 
   return (
     <div className="min-h-screen bg-white admin-page">
+      <TopBar 
+        showCategories={false} 
+        showBackButton={false} 
+        pageTitle="Audit Logs" 
+        showAdminMenu={true}
+        actionButtons={
+          <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+            {/* Search filters — visible on desktop, pushed right */}
+            <div className="hidden md:flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Username"
+                value={searchParams.username || ''}
+                onChange={(e) => setSearchParams({ ...searchParams, username: e.target.value })}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                style={{ fontSize: '13px' }}
+                className="rounded px-2 py-1 w-20 lg:w-24 bg-gray-50 border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white outline-none transition-colors"
+              />
+              <select
+                value={searchParams.action || ''}
+                onChange={(e) => setSearchParams({ ...searchParams, action: e.target.value })}
+                style={{ fontSize: '13px', padding: '4px 2px' }}
+                className="bg-gray-50 text-gray-900 font-medium outline-none cursor-pointer w-24 lg:w-28 rounded border border-transparent hover:border-gray-300 focus:border-gray-400 transition-colors"
+              >
+                <option value="">All Actions</option>
+                <option value="LOGIN">LOGIN</option>
+                <option value="LOGOUT">LOGOUT</option>
+                <option value="CREATE">CREATE</option>
+                <option value="UPDATE">UPDATE</option>
+                <option value="DELETE">DELETE</option>
+                <option value="REGISTER">REGISTER</option>
+                <option value="TOKEN_REFRESH">TOKEN_REFRESH</option>
+                <option value="PASSWORD_RESET_REQUEST">PASSWORD_RESET_REQUEST</option>
+                <option value="PASSWORD_RESET_CONFIRM">PASSWORD_RESET_CONFIRM</option>
+                <option value="EMAIL_VERIFICATION_SEND">EMAIL_VERIFICATION_SEND</option>
+                <option value="EMAIL_VERIFICATION_CONFIRM">EMAIL_VERIFICATION_CONFIRM</option>
+                <option value="ACCOUNT_LOCKED">ACCOUNT_LOCKED</option>
+                <option value="ACCOUNT_UNLOCKED">ACCOUNT_UNLOCKED</option>
+                <option value="AUTHORIZATION_CHECK">AUTHORIZATION_CHECK</option>
+                <option value="SESSION_EXPIRED">SESSION_EXPIRED</option>
+              </select>
+              <input
+                type="text"
+                placeholder="IP Address"
+                value={searchParams.ipAddress || ''}
+                onChange={(e) => setSearchParams({ ...searchParams, ipAddress: e.target.value })}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                style={{ fontSize: '13px' }}
+                className="rounded px-2 py-1 w-20 lg:w-24 bg-gray-50 border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white outline-none transition-colors"
+              />
+              <button onClick={handleSearch} style={{ fontSize: '13px' }} className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded font-bold whitespace-nowrap transition-colors">Search</button>
+              <button onClick={handleClear} style={{ fontSize: '13px' }} className="text-gray-600 hover:text-gray-900 px-2 py-1 rounded font-bold whitespace-nowrap border border-transparent hover:border-gray-300 transition-colors">Clear</button>
+            </div>
+
+            {/* Advanced + Export CSV — always visible */}
+            <button
+              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+              style={{ fontSize: '14px' }}
+              className="shrink-0 text-gray-700 hover:text-gray-900 px-2 py-1 rounded font-bold whitespace-nowrap border border-transparent hover:border-gray-300 transition-colors"
+            >
+              {showAdvancedSearch ? 'Hide' : 'Advanced'}
+            </button>
+            <button
+              onClick={handleExportCsv}
+              disabled={exportLoading}
+              style={{ fontSize: '14px' }}
+              className="shrink-0 bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded font-bold whitespace-nowrap transition-colors disabled:opacity-40"
+            >
+              {exportLoading ? '...' : 'Export CSV'}
+            </button>
+          </div>
+        }
+      />
       <div className="container mx-auto px-4 pt-4 pb-8">
-      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
-        <button
-          onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span className="font-bold">Back to Dashboard</span>
-        </button>
-        <h1 className="text-lg font-black text-gray-900 mb-0.5">Audit Logs</h1>
-        <p className="text-gray-600 text-sm">Monitor and review system activities and security events</p>
-      </div>
 
-      {/* Search and Filters */}
-      <div className="bg-slate-100 rounded-xl shadow-xl p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-black text-gray-900">Search & Filter</h2>
-          <button
-            onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-            className="text-blue-700 hover:text-blue-900 font-black"
-          >
-            {showAdvancedSearch ? 'Hide' : 'Show'} Advanced Search
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      {/* Compact Search Filters — mobile only (desktop filters are in TopBar) */}
+      <div className="mb-2 md:hidden">
+        <div className="flex items-center gap-2 flex-wrap">
           <input
             type="text"
             placeholder="Username"
             value={searchParams.username || ''}
             onChange={(e) => setSearchParams({ ...searchParams, username: e.target.value })}
-            className="border-2 border-slate-300 rounded-lg px-3 py-2 font-bold bg-white shadow-sm"
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs w-24 sm:w-32"
           />
           <select
             value={searchParams.action || ''}
             onChange={(e) => setSearchParams({ ...searchParams, action: e.target.value })}
-            className="border-2 border-slate-300 rounded-lg px-3 py-2 font-bold bg-white shadow-sm"
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs flex-1 min-w-0"
           >
             <option value="">All Actions</option>
             <option value="LOGIN">LOGIN</option>
@@ -243,90 +298,54 @@ const AuditLogsPage = () => {
             placeholder="IP Address"
             value={searchParams.ipAddress || ''}
             onChange={(e) => setSearchParams({ ...searchParams, ipAddress: e.target.value })}
-            className="border-2 border-slate-300 rounded-lg px-3 py-2 font-bold bg-white shadow-sm"
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs w-24 sm:w-32"
           />
-        </div>
-
-        {showAdvancedSearch && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <select
-              value={searchParams.category || ''}
-              onChange={(e) => setSearchParams({ ...searchParams, category: e.target.value })}
-              className="border-2 border-slate-300 rounded-lg px-3 py-2 font-black bg-white shadow-sm"
-            >
-              <option value="">All Categories</option>
-              {Object.values(AUDIT_CATEGORIES).map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-            <select
-              value={searchParams.severity || ''}
-              onChange={(e) => setSearchParams({ ...searchParams, severity: e.target.value })}
-              className="border-2 border-slate-300 rounded-lg px-3 py-2 font-black bg-white shadow-sm"
-            >
-              <option value="">All Severities</option>
-              {Object.values(AUDIT_SEVERITY_LEVELS).map(severity => (
-                <option key={severity} value={severity}>{severity}</option>
-              ))}
-            </select>
-            <input
-              type="datetime-local"
-              placeholder="Start Time"
-              value={searchParams.startTime || ''}
-              onChange={(e) => setSearchParams({ ...searchParams, startTime: e.target.value })}
-              className="border-2 border-slate-300 rounded-lg px-3 py-2 font-bold bg-white shadow-sm"
-            />
-            <input
-              type="datetime-local"
-              placeholder="End Time"
-              value={searchParams.endTime || ''}
-              onChange={(e) => setSearchParams({ ...searchParams, endTime: e.target.value })}
-              className="border-2 border-slate-300 rounded-lg px-3 py-2 font-bold bg-white shadow-sm"
-            />
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={handleSearch}
-            className="bg-blue-200 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-300 font-black shadow-md"
-          >
-            Search
-          </button>
-          <button
-            onClick={handleClearSearch}
-            className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 font-black shadow-md"
-          >
-            Clear
-          </button>
-          <button
-            onClick={handleExportCsv}
-            className="bg-green-200 text-green-800 px-4 py-2 rounded-lg hover:bg-green-300 font-black shadow-md"
-          >
-            Export CSV
-          </button>
+          <button onClick={handleSearch} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-bold text-xs">Search</button>
+          <button onClick={handleClear} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-bold text-xs border border-gray-300">Clear</button>
         </div>
       </div>
 
+      {/* Advanced Search Panel — shown on ALL screen sizes when toggled */}
+      {showAdvancedSearch && (
+        <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <select value={searchParams.category || ''} onChange={(e) => setSearchParams({ ...searchParams, category: e.target.value })}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs">
+            <option value="">All Categories</option>
+            {Object.values(AUDIT_CATEGORIES).map(category => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+          <select value={searchParams.severity || ''} onChange={(e) => setSearchParams({ ...searchParams, severity: e.target.value })}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs">
+            <option value="">All Severities</option>
+            {Object.values(AUDIT_SEVERITY_LEVELS).map(severity => (
+              <option key={severity} value={severity}>{severity}</option>
+            ))}
+          </select>
+          <input type="datetime-local" value={searchParams.startTime || ''} onChange={(e) => setSearchParams({ ...searchParams, startTime: e.target.value })}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+          <input type="datetime-local" value={searchParams.endTime || ''} onChange={(e) => setSearchParams({ ...searchParams, endTime: e.target.value })}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+        </div>
+      )}
+
       {/* Results Summary */}
-      <div className="bg-slate-100 rounded-xl shadow-xl p-4 mb-6">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-900 font-bold">
-            Showing {auditLogs.length} of {totalElements} audit logs
-          </span>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-800 font-black">Page size:</label>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="border-2 border-slate-300 rounded-lg px-2 py-1 font-black bg-white shadow-sm"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
+      <div className="mb-4 flex justify-between items-center">
+        <span className="text-gray-700 font-medium text-sm">
+          Showing {auditLogs.length} of {totalElements} audit logs
+        </span>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-800 font-black">Page size:</label>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="border-2 border-slate-300 rounded-lg px-2 py-1 font-black bg-white shadow-sm"
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
         </div>
       </div>
 
@@ -390,31 +409,31 @@ const AuditLogsPage = () => {
                     || (log.userId ? `User#${log.userId}` : 'System');
                   return (
                   <tr key={log.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 font-medium">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-black">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 font-bold">
                       {displayUser}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-black">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 font-bold">
                       {log.action}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 font-medium">
                       {log.entityType ? `${log.entityType}${log.entityId ? `:${log.entityId}` : ''}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-black rounded-full ${getCategoryBadgeClass(derivedCategory)}`}>
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded-full ${getCategoryBadgeClass(derivedCategory)}`}>
                         {derivedCategory}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 text-xs font-black rounded-full shadow-sm ${
+                      <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full shadow-sm ${
                         derivedSeverity === 'WARN' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
                       }`}>
                         {derivedSeverity}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 font-medium">
                       {log.ipAddress}
                     </td>
                   </tr>

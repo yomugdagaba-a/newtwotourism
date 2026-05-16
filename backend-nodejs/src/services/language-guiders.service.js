@@ -1,44 +1,46 @@
 const prisma = require('../lib/prisma');
 
-async function create(data) {
-  return prisma.languageGuider.create({ data });
+class LanguageGuidersService {
+  async create(data) {
+    return prisma.languageGuider.create({ data });
+  }
+
+  async findAll(skip = 0, take = 10) {
+    const [guiders, total] = await Promise.all([
+      prisma.languageGuider.findMany({ skip: parseInt(skip), take: parseInt(take) }),
+      prisma.languageGuider.count(),
+    ]);
+    return { guiders, total };
+  }
+
+  async findById(id) {
+    const g = await prisma.languageGuider.findUnique({ where: { id } });
+    if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
+    return g;
+  }
+
+  async update(id, data) {
+    const g = await prisma.languageGuider.findUnique({ where: { id } });
+    if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
+    return prisma.languageGuider.update({ where: { id }, data });
+  }
+
+  async remove(id) {
+    const g = await prisma.languageGuider.findUnique({ where: { id } });
+    if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
+    return prisma.languageGuider.delete({ where: { id } });
+  }
+
+  async findByLanguage(language) {
+    return prisma.languageGuider.findMany({ where: { languages: { has: language } } });
+  }
+
+  async findByTourismPlace(tourismPlaceId) {
+    return prisma.languageGuider.findMany({
+      where: { tourismPlaceId: parseInt(tourismPlaceId), active: true },
+      orderBy: { name: 'asc' },
+    });
+  }
 }
 
-async function findAll(skip = 0, take = 10) {
-  const [guiders, total] = await Promise.all([
-    prisma.languageGuider.findMany({ skip: parseInt(skip), take: parseInt(take) }),
-    prisma.languageGuider.count(),
-  ]);
-  return { guiders, total };
-}
-
-async function findById(id) {
-  const g = await prisma.languageGuider.findUnique({ where: { id } });
-  if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
-  return g;
-}
-
-async function update(id, data) {
-  const g = await prisma.languageGuider.findUnique({ where: { id } });
-  if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
-  return prisma.languageGuider.update({ where: { id }, data });
-}
-
-async function remove(id) {
-  const g = await prisma.languageGuider.findUnique({ where: { id } });
-  if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
-  return prisma.languageGuider.delete({ where: { id } });
-}
-
-async function findByLanguage(language) {
-  return prisma.languageGuider.findMany({ where: { languages: { has: language } } });
-}
-
-async function findByTourismPlace(tourismPlaceId) {
-  return prisma.languageGuider.findMany({
-    where: { tourismPlaceId: parseInt(tourismPlaceId), active: true },
-    orderBy: { name: 'asc' },
-  });
-}
-
-module.exports = { create, findAll, findById, update, remove, findByLanguage, findByTourismPlace };
+module.exports = new LanguageGuidersService();

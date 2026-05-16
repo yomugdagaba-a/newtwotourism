@@ -24,7 +24,7 @@ const Navbar: React.FC = () => {
       case 'ADMIN':
         return '/admin';
       case 'HOTEL_OWNER':
-        return '/hotel-owner';
+        return '/owner/bookings';
       default:
         return '/profile';
     }
@@ -121,3 +121,4 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
+

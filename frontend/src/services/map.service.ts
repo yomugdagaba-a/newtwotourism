@@ -2,6 +2,7 @@ import { LocationCoordinates, RouteInfo } from "@/types/map";
 
 /**
  * Get user's current location using browser Geolocation API
+ * Optimized for faster response with reasonable accuracy
  */
 export const getUserLocation = (): Promise<LocationCoordinates> => {
   return new Promise((resolve, reject) => {
@@ -33,9 +34,9 @@ export const getUserLocation = (): Promise<LocationCoordinates> => {
         reject(new Error(errorMessage));
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        enableHighAccuracy: false, // Use network/WiFi location for faster response
+        timeout: 5000, // Reduced from 10s to 5s
+        maximumAge: 300000, // Cache location for 5 minutes (300000ms)
       }
     );
   });

@@ -19,6 +19,7 @@ import {
 } from '../../../utils/ethiopianValidation';
 import { useToast } from '@/components/common/Toast';
 import { useConfirm } from '@/components/common/ConfirmDialog';
+import TopBar from '@/components/layout/TopBar';
 
 const HorseServicesManagementPage = () => {
   const toast = useToast();
@@ -32,6 +33,10 @@ const HorseServicesManagementPage = () => {
   const [selectedTourismId, setSelectedTourismId] = useState<number | null>(null);
   const [selectedRoadId, setSelectedRoadId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [tourismSearch, setTourismSearch] = useState('');
+  const [showTourismDrop, setShowTourismDrop] = useState(false);
+  const [roadSearch, setRoadSearch] = useState('');
+  const [showRoadDrop, setShowRoadDrop] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState<HorseService | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -52,11 +57,22 @@ const HorseServicesManagementPage = () => {
   }, [isAuthenticated, role]);
 
   useEffect(() => {
+    const close = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest('.tourism-drop-horse')) setShowTourismDrop(false);
+      if (!t.closest('.road-drop-horse')) setShowRoadDrop(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  useEffect(() => {
     if (selectedTourismId) {
       loadRoads(selectedTourismId);
     } else {
       setRoads([]);
       setSelectedRoadId(null);
+      setRoadSearch('');
     }
   }, [selectedTourismId]);
 
@@ -72,7 +88,8 @@ const HorseServicesManagementPage = () => {
     if (!token) return;
     try {
       const response = await AdminTourismService.getAllTourism(token, 0, 100);
-      setTourisms(response.content || []);
+      const sorted = (response.content || []).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      setTourisms(sorted);
       setLoading(false);
     } catch (err) {
       console.error('Failed to load tourisms:', err);
@@ -90,11 +107,14 @@ const HorseServicesManagementPage = () => {
       console.log('Loading roads for tourism ID:', tourismId);
       const roadsList = await AdminRoadService.getRoadsByTourism(token, tourismId);
       console.log('Roads loaded:', roadsList);
-      setRoads(roadsList || []);
-      if (roadsList && roadsList.length > 0) {
-        setSelectedRoadId(roadsList[0].id);
+      const sortedRoads = (roadsList || []).sort((a, b) => (a.initialPlace || '').localeCompare(b.initialPlace || ''));
+      setRoads(sortedRoads);
+      if (sortedRoads && sortedRoads.length > 0) {
+        setSelectedRoadId(sortedRoads[0].id);
+        setRoadSearch(`${sortedRoads[0].initialPlace} (${sortedRoads[0].roadType})`);
       } else {
         setSelectedRoadId(null);
+        setRoadSearch('');
         console.log('No roads found for this tourism place');
       }
     } catch (err) {
@@ -164,7 +184,7 @@ const HorseServicesManagementPage = () => {
 
   const handleDelete = async (serviceId: number) => {
     if (!token || !selectedRoadId) return;
-    const ok = await confirm({ message: 'Are you sure you want to delete this horse service?', variant: 'danger', title: 'Delete Horse Service', confirmLabel: 'Delete' });
+    const ok = await confirm({ message: 'Are you sure you want to delete this horse service?', variant: 'danger', title: 'Delete Horse Service', confirmLabel: 'Yes', cancelLabel: 'No' });
     if (!ok) return;
     try {
       setActionLoading(serviceId);
@@ -256,137 +276,156 @@ const HorseServicesManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-white admin-page">
-      <div className="container mx-auto px-4 pt-4 pb-8">
-      <div className="mb-8 bg-white border border-gray-200 p-3 rounded-xl shadow-lg">
-        <div className="flex justify-between items-center">
-          <div>
+      <TopBar 
+        showCategories={false} 
+        showBackButton={false} 
+        pageTitle="Horse Services" 
+        showAdminMenu={true}
+        keyword={searchTerm}
+        onSearch={(value) => setSearchTerm(value)}
+        liveSearch={true}
+        actionButtons={
+          <div className="flex items-center flex-1 justify-end">
             <button
-              onClick={() => router.push('/admin')}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-1 transition-colors font-bold text-sm"
+              onClick={() => { resetForm(); setShowModal(true); }}
+              disabled={!selectedRoadId}
+              style={{ fontSize: '14px' }}
+              className="text-gray-900 font-black hover:text-black transition-all whitespace-nowrap px-1 disabled:opacity-40"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span className="font-bold">Back to Dashboard</span>
+              + Add Horse Service
             </button>
-            <h1 className="text-lg font-black text-gray-900 mb-0.5">Horse Services Management</h1>
-            <p className="text-gray-600 text-sm">Manage horse rental and transportation services</p>
           </div>
-          <button
-            onClick={() => { resetForm(); setShowModal(true); }}
-            disabled={!selectedRoadId}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-black shadow-lg"
-          >+ Add Horse Service</button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Filters */}
-      <div className="bg-amber-100 rounded-xl shadow-xl p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">Tourism Place</label>
-            <select
-              value={selectedTourismId || ''}
-              onChange={(e) => setSelectedTourismId(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full border-2 border-amber-300 rounded-lg px-4 py-2 font-bold bg-white shadow-sm"
-            >
-              <option value="">-- Select tourism place --</option>
-              {tourisms.map(tourism => (
-                <option key={tourism.id} value={tourism.id}>{tourism.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">Road</label>
-            <div className="relative">
-              <select
-                value={selectedRoadId || ''}
-                onChange={(e) => setSelectedRoadId(e.target.value ? parseInt(e.target.value) : null)}
-                disabled={!selectedTourismId || roadsLoading}
-                className="w-full border-2 border-amber-300 rounded-lg px-4 py-2 disabled:opacity-50 font-bold bg-white shadow-sm"
-              >
-                {roadsLoading ? (
-                  <option value="">Loading roads...</option>
-                ) : roads.length === 0 ? (
-                  <option value="">-- No roads available --</option>
-                ) : (
-                  <>
-                    <option value="">-- Select road --</option>
-                    {roads.map(road => (
-                      <option key={road.id} value={road.id}>{road.initialPlace} ({road.roadType})</option>
-                    ))}
-                  </>
-                )}
-              </select>
-              {roadsLoading && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin h-4 w-4 border-2 border-amber-600 border-t-transparent rounded-full"></div>
-                </div>
-              )}
-            </div>
-            {selectedTourismId && !roadsLoading && roads.length === 0 && (
-              <p className="text-sm text-orange-700 mt-1 font-bold">
-                No roads found for this tourism place. <a href="/admin/roads" className="underline text-blue-700 hover:text-blue-900">Create roads first</a>.
-              </p>
+      <div className="container mx-auto px-4 pt-4 pb-8">
+
+      {/* Filters - searchable dropdowns */}
+      <div className="mb-6 flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Tourism Place:</label>
+          <div className="relative tourism-drop-horse">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input type="text" placeholder="Filter tourism..." value={tourismSearch}
+              onChange={(e) => setTourismSearch(e.target.value)} onFocus={() => setShowTourismDrop(true)}
+              className="border-0 rounded-lg pl-8 pr-3 py-1.5 text-sm w-52 focus:outline-none focus:ring-1 focus:ring-gray-200 bg-gray-50" />
+            {showTourismDrop && (
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                {tourisms.filter(t => t.name?.toLowerCase().includes(tourismSearch.toLowerCase())).length === 0
+                  ? <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+                  : tourisms.filter(t => t.name?.toLowerCase().includes(tourismSearch.toLowerCase())).map(t => (
+                    <div key={t.id} onClick={() => { setSelectedTourismId(t.id); setTourismSearch(t.name); setShowTourismDrop(false); }}
+                      className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 ${selectedTourismId === t.id ? 'bg-blue-100 font-semibold' : ''}`}>
+                      {t.name}
+                    </div>
+                  ))}
+              </div>
             )}
           </div>
-          <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">Search</label>
-            <input
-              type="text"
-              placeholder="Search by owner, location..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full border-2 border-amber-300 rounded-lg px-4 py-2 font-bold bg-white shadow-sm"
-            />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Road:</label>
+          <div className="relative road-drop-horse">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input type="text" placeholder={!selectedTourismId ? 'Select tourism first' : roadsLoading ? 'Loading...' : 'Filter road...'}
+              value={roadSearch} onChange={(e) => setRoadSearch(e.target.value)}
+              onFocus={() => selectedTourismId && !roadsLoading && setShowRoadDrop(true)}
+              disabled={!selectedTourismId || roadsLoading}
+              className="border-0 bg-gray-50 rounded-lg pl-8 pr-3 py-1.5 text-sm w-52 focus:outline-none focus:ring-1 focus:ring-gray-200 disabled:opacity-50 disabled:bg-gray-100" />
+            {showRoadDrop && roads.length > 0 && (
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                {roads.filter(r => r.initialPlace?.toLowerCase().includes(roadSearch.toLowerCase()) || r.roadType?.toLowerCase().includes(roadSearch.toLowerCase())).length === 0
+                  ? <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+                  : roads.filter(r => r.initialPlace?.toLowerCase().includes(roadSearch.toLowerCase()) || r.roadType?.toLowerCase().includes(roadSearch.toLowerCase())).map(r => (
+                    <div key={r.id} onClick={() => { setSelectedRoadId(r.id); setRoadSearch(`${r.initialPlace} (${r.roadType})`); setShowRoadDrop(false); }}
+                      className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 ${selectedRoadId === r.id ? 'bg-blue-100 font-semibold' : ''}`}>
+                      {r.initialPlace} ({r.roadType})
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Horse Services Grid */}
-      <div className="bg-amber-100 rounded-xl shadow-xl overflow-hidden">
+      {/* Horse Services Table */}
+      <div className="bg-white rounded-xl overflow-hidden">
         {!selectedRoadId ? (
           <div className="p-8 text-center text-gray-800 font-bold bg-white">
-            <p className="font-black">Please select a tourism place and road to view horse services</p>
+            <p className="text-lg font-black">Please select a tourism place and road to view horse services or to add a new horse service</p>
           </div>
         ) : loading ? (
           <div className="p-8 text-center bg-white">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-800 font-bold">Loading horse services...</p>
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-700 font-bold bg-white">
-            <p>Error: {error}</p>
-            <button onClick={() => selectedRoadId && loadHorseServices(selectedRoadId)} className="mt-4 bg-amber-200 text-amber-800 px-4 py-2 rounded-lg font-black shadow-md">Retry</button>
+          <div className="p-8 text-center bg-white">
+            <p className="text-red-700 font-bold">Error: {error}</p>
+            <button onClick={() => selectedRoadId && loadHorseServices(selectedRoadId)} className="mt-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-bold border border-gray-300">Retry</button>
           </div>
         ) : filteredServices.length === 0 ? (
           <div className="p-8 text-center text-gray-800 bg-white">
-            <p className="font-black">No horse services found for {getSelectedRoadName()}</p>
-            <button onClick={() => { resetForm(); setShowModal(true); }} className="mt-4 bg-amber-200 text-amber-800 px-4 py-2 rounded-lg font-black shadow-md">Add First Horse Service</button>
+            <p className="text-lg mb-4 font-black">No horse services found for {getSelectedRoadName()}</p>
+            <button onClick={() => { resetForm(); setShowModal(true); }} className="bg-white text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-50 font-bold border border-gray-300">Add First Horse Service</button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-            {filteredServices.map((service) => (
-              <div key={service.id} className="rounded-xl overflow-hidden hover:shadow-xl transition-shadow bg-white shadow-lg">
-                <div className="h-32 bg-gradient-to-r from-amber-200 to-orange-200 flex items-center justify-center">
-                  <span className="text-2xl font-black text-amber-800">Horse Service</span>
-                </div>
-                <div className="p-4 bg-amber-50 shadow-inner">
-                  <h3 className="text-lg font-black text-gray-900">{service.ownerName}</h3>
-                  <div className="mt-2 space-y-1 text-sm text-gray-800 font-bold">
-                    <p>{service.initialPlace}</p>
-                    <p>{service.contactInfo}</p>
-                  </div>
-                  <div className="mt-3">
-                    <span className="inline-block px-3 py-1 text-lg font-black text-green-800 bg-green-200 rounded-full shadow-sm">{service.cost} ETB</span>
-                  </div>
-                  <div className="mt-4 flex justify-end space-x-2">
-                    <button onClick={() => openEditModal(service)} className="bg-blue-200 text-blue-800 px-3 py-1 rounded-lg text-sm font-black hover:bg-blue-300 shadow-md">Edit</button>
-                    <button onClick={() => handleDelete(service.id)} disabled={actionLoading === service.id} className="bg-red-200 text-red-800 px-3 py-1 rounded-lg text-sm font-black hover:bg-red-300 shadow-md disabled:opacity-50">Delete</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Owner Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Initial Place</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cost</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {filteredServices.map((service) => (
+                  <tr key={service.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-black text-gray-900">#{service.id}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-black text-gray-900">{service.ownerName}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 font-bold flex items-center gap-1">
+                        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        {service.contactInfo}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center text-sm text-green-800 font-black">
+                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                        {service.initialPlace}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full font-bold border border-green-300">{service.cost} ETB</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-3">
+                        <button onClick={() => openEditModal(service)} className="bg-blue-200 text-blue-800 px-3 py-1 rounded-lg font-black hover:bg-blue-300 shadow-md">Edit</button>
+                        <button onClick={() => handleDelete(service.id)} disabled={actionLoading === service.id}
+                          className="bg-red-200 text-red-800 px-3 py-1 rounded-lg font-black hover:bg-red-300 shadow-md disabled:opacity-50">
+                          {actionLoading === service.id ? '...' : 'Delete'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -394,10 +433,9 @@ const HorseServicesManagementPage = () => {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto border-2 border-gray-300 shadow-2xl">
-            <div className="sticky top-0 bg-gray-100 border-b-2 border-gray-300 px-6 py-4">
+          <div className="bg-white shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+            <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-4 py-3 z-10">
               <h3 className="text-lg font-black">{editingService ? 'Edit Horse Service' : 'Add New Horse Service'}</h3>
-              <p className="text-sm text-gray-600 font-bold mt-1">Road: {getSelectedRoadName()}</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -407,12 +445,11 @@ const HorseServicesManagementPage = () => {
                   value={formData.ownerName} 
                   onChange={(e) => handleInputChange('ownerName', e.target.value)}
                   onKeyDown={handleNameKeyDown}
-                  className={`w-full border-2 rounded-lg px-3 py-2 font-semibold ${formErrors.ownerName ? 'border-red-500 bg-red-50' : 'border-gray-400'}`}
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-300 ${formErrors.ownerName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   placeholder="e.g., Abebe Kebede"
                   required 
                 />
                 {formErrors.ownerName && <p className="text-red-500 text-xs mt-1 font-bold">{formErrors.ownerName}</p>}
-                <p className="text-gray-500 text-xs mt-1 font-semibold">Enter first and last name (at least 2 words, each 2+ letters)</p>
               </div>
               <div>
                 <label className="block text-sm font-black text-gray-800 mb-1">Contact Phone *</label>
@@ -421,12 +458,11 @@ const HorseServicesManagementPage = () => {
                   value={formData.contactInfo} 
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   onKeyDown={handlePhoneKeyDown}
-                  className={`w-full border-2 rounded-lg px-3 py-2 font-semibold ${formErrors.contactInfo ? 'border-red-500 bg-red-50' : 'border-gray-400'}`}
-                  placeholder="09XXXXXXXX or 07XXXXXXXX"
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-300 ${formErrors.contactInfo ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                  placeholder="Phone number"
                   required 
                 />
                 {formErrors.contactInfo && <p className="text-red-500 text-xs mt-1 font-bold">{formErrors.contactInfo}</p>}
-                <p className="text-gray-500 text-xs mt-1 font-semibold">Ethiopian phone: Ethio Telecom (09X) or Safaricom (07X)</p>
               </div>
               <div>
                 <label className="block text-sm font-black text-gray-800 mb-1">Initial Place *</label>
@@ -434,7 +470,7 @@ const HorseServicesManagementPage = () => {
                   type="text" 
                   value={formData.initialPlace} 
                   onChange={(e) => handleInputChange('initialPlace', e.target.value)}
-                  className={`w-full border-2 rounded-lg px-3 py-2 font-semibold ${formErrors.initialPlace ? 'border-red-500 bg-red-50' : 'border-gray-400'}`}
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-300 ${formErrors.initialPlace ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   placeholder="Starting location"
                   required 
                 />
@@ -448,21 +484,26 @@ const HorseServicesManagementPage = () => {
                   value={formData.cost || ''} 
                   onChange={(e) => handleCostChange(e.target.value)}
                   onKeyDown={(e) => handleNumericKeyDown(e, true)}
-                  className={`w-full border-2 rounded-lg px-3 py-2 font-semibold ${formErrors.cost ? 'border-red-500 bg-red-50' : 'border-gray-400'}`}
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-300 ${formErrors.cost ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   placeholder="Enter cost in ETB"
                   required 
                 />
                 {formErrors.cost && <p className="text-red-500 text-xs mt-1 font-bold">{formErrors.cost}</p>}
               </div>
             </div>
-            <div className="sticky bottom-0 bg-gray-100 border-t-2 border-gray-300 px-6 py-4 flex justify-end space-x-3">
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 text-gray-700 hover:text-gray-900 border-2 border-gray-400 rounded-lg font-bold">Cancel</button>
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-4 py-2.5 flex justify-end space-x-2 z-10">
+              <button
+                onClick={() => { setShowModal(false); resetForm(); }}
+                className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-semibold text-sm transition-all"
+              >
+                Cancel
+              </button>
               <button 
                 onClick={editingService ? handleUpdate : handleCreate} 
                 disabled={actionLoading !== null} 
-                className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 font-black border-2 border-blue-300"
+                className="px-3 py-1.5 bg-white text-gray-900 rounded hover:bg-gray-50 disabled:opacity-50 font-semibold text-sm transition-all border border-gray-300"
               >
-                {editingService ? 'Update' : 'Create'}
+                {actionLoading !== null ? 'Saving...' : editingService ? 'Update' : 'Create'}
               </button>
             </div>
           </div>

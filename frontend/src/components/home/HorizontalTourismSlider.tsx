@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getImageUrl } from "@/utils/imageUrl";
 
 interface TourismCard {
   id: number;
@@ -29,7 +30,7 @@ export default function HorizontalScroll() {
           className="min-w-[200px] md:min-w-[250px] flex-shrink-0 cursor-pointer hover:scale-105 transition"
         >
           <img
-            src={tourism.imageUrl}
+            src={getImageUrl(tourism.imageUrl)}
             alt={tourism.name}
             className="w-full h-44 md:h-56 object-cover rounded-lg shadow-md"
           />

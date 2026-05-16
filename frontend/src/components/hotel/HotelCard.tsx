@@ -5,6 +5,7 @@ import { HotelSummaryDto } from "@/types/hotel";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Button from "@/components/common/Button";
+import { getImageUrl } from "@/utils/imageUrl";
 
 interface Props {
   hotel: HotelSummaryDto;
@@ -17,7 +18,7 @@ const HotelCard: React.FC<Props> = ({ hotel }) => {
     <div className="border rounded shadow hover:shadow-lg transition p-4 flex flex-col">
       {hotel.imageUrl && (
         <div className="w-full h-48 relative mb-3">
-          <Image src={hotel.imageUrl} alt={hotel.name} fill className="object-cover rounded" />
+          <Image src={getImageUrl(hotel.imageUrl, 'https://images.unsplash.com/photo-1564507592333-cdd18562ea6f?w=400')} alt={hotel.name} fill className="object-cover rounded" />
         </div>
       )}
       <h3 className="font-bold text-lg mb-1">{hotel.name}</h3>

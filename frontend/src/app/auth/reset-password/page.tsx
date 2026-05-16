@@ -38,6 +38,7 @@ export default function ResetPasswordPage() {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [expiresIn, setExpiresIn] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [canResend, setCanResend] = useState(false);
@@ -151,7 +152,7 @@ export default function ResetPasswordPage() {
   const handleResendOtp = async () => {
     if (!canResend) return;
     setServerError("");
-    setLoading(true);
+    setResendLoading(true);
 
     try {
       const response = await initiatePasswordReset({ email });
@@ -168,7 +169,7 @@ export default function ResetPasswordPage() {
     } catch (err: any) {
       setServerError(err.message || "Failed to resend OTP");
     } finally {
-      setLoading(false);
+      setResendLoading(false);
     }
   };
 
@@ -222,27 +223,27 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Light background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-2000" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-400 rounded-full mix-blend-screen filter blur-[100px] opacity-10 animate-blob" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-300 rounded-full mix-blend-screen filter blur-[100px] opacity-10 animate-blob animation-delay-2000" />
       </div>
       
       <div className="max-w-md w-full">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto h-20 w-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-            <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="text-center mb-4">
+          <div className="mx-auto h-14 w-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-3 shadow-lg">
+            <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-gray-900">
             {step === 'email' && "Reset Password"}
             {step === 'otp' && "Enter OTP"}
             {step === 'success' && "Password Reset!"}
           </h2>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-1 text-sm text-gray-600">
             {step === 'email' && "Enter your email to receive a 6-digit OTP"}
             {step === 'otp' && `We sent a code to ${email}`}
             {step === 'success' && "Your password has been reset successfully"}
@@ -250,7 +251,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-xl p-5 border border-gray-200">
           {step === 'success' ? (
             <div className="text-center py-4">
               <div className="mx-auto h-20 w-20 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
@@ -261,13 +262,13 @@ export default function ResetPasswordPage() {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">All Done!</h3>
               <p className="text-gray-600 mb-6">You can now log in with your new password.</p>
               <Link href="/auth/login"
-                className="inline-block w-full py-3 px-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-xl hover:from-purple-600 hover:to-indigo-700 transition-all text-center shadow-lg">
+                className="inline-block w-auto mx-auto px-8 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all text-center shadow-sm text-sm">
                 Go to Sign In
               </Link>
             </div>
           ) : step === 'email' ? (
             // Step 1: Email input
-            <form onSubmit={handleSendOtp} className="space-y-5">
+            <form onSubmit={handleSendOtp} className="space-y-3">
               {serverError && <Alert type="error" message={serverError} onClose={() => setServerError("")} />}
 
               <FormInput
@@ -288,26 +289,28 @@ export default function ResetPasswordPage() {
                 }
               />
 
-              <FormButton type="submit" variant="primary" loading={loading} fullWidth
-                className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 py-3 shadow-lg">
-                Send OTP
-              </FormButton>
+              <div className="flex justify-center">
+                <FormButton type="submit" variant="primary" loading={loading}
+                  className="bg-blue-600 hover:bg-blue-700 py-2 text-sm shadow-sm px-10">
+                  Send OTP
+                </FormButton>
+              </div>
 
               <div className="text-center">
-                <Link href="/auth/login" className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors">
+                <Link href="/auth/login" className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
                   ← Back to Sign In
                 </Link>
               </div>
             </form>
           ) : (
             // Step 2: OTP and new password
-            <form onSubmit={handleResetPassword} className="space-y-6">
+            <form onSubmit={handleResetPassword} className="space-y-3">
               {serverError && <Alert type="error" message={serverError} onClose={() => setServerError("")} />}
 
               {/* OTP Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Enter 6-digit OTP</label>
-                <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                <label className="block text-xs font-medium text-gray-700 mb-2">Enter 6-digit OTP</label>
+                <div className="flex justify-center gap-1.5" onPaste={handleOtpPaste}>
                   {otp.map((digit, index) => (
                     <input
                       key={index}
@@ -318,20 +321,20 @@ export default function ResetPasswordPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className={`w-12 h-14 text-center text-2xl font-bold bg-gray-50 border-2 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-gray-900 ${
+                      className={`w-9 h-10 text-center text-lg font-bold bg-gray-50 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 ${
                         errors.otp ? 'border-red-500' : 'border-gray-300'
                       }`}
                       disabled={loading}
                     />
                   ))}
                 </div>
-                {errors.otp && <p className="mt-2 text-sm text-red-600 text-center">{errors.otp}</p>}
+                {errors.otp && <p className="mt-1 text-xs text-red-600 text-center">{errors.otp}</p>}
                 
                 {/* Timer and Resend */}
-                <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+                <div className="mt-2 flex items-center justify-center gap-3 text-xs">
                   {countdown > 0 ? (
                     <span className="text-gray-600">
-                      Code expires in <span className="font-mono font-bold text-purple-600">{formatTime(countdown)}</span>
+                      Code expires in <span className="font-mono font-bold text-blue-600">{formatTime(countdown)}</span>
                     </span>
                   ) : (
                     <span className="text-red-600 font-medium">Code expired</span>
@@ -339,10 +342,18 @@ export default function ResetPasswordPage() {
                   <button
                     type="button"
                     onClick={handleResendOtp}
-                    disabled={!canResend || loading}
-                    className={`font-medium ${canResend ? 'text-purple-600 hover:text-purple-700' : 'text-gray-400 cursor-not-allowed'}`}
+                    disabled={!canResend || resendLoading}
+                    className={`font-medium flex items-center gap-1 ${canResend && !resendLoading ? 'text-blue-600 hover:text-blue-700' : 'text-gray-400 cursor-not-allowed'}`}
                   >
-                    Resend OTP
+                    {resendLoading ? (
+                      <>
+                        <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Sending...
+                      </>
+                    ) : 'Resend OTP'}
                   </button>
                 </div>
               </div>
@@ -368,10 +379,10 @@ export default function ResetPasswordPage() {
                   }
                 />
                 {formData.newPassword && (
-                  <div className="mt-2">
-                    <div className="flex gap-1 mb-1">
+                  <div className="mt-1">
+                    <div className="flex gap-1 mb-0.5">
                       {[...Array(5)].map((_, i) => (
-                        <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i < passwordStrength ? strengthColors[passwordStrength - 1] : 'bg-gray-300'}`} />
+                        <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i < passwordStrength ? strengthColors[passwordStrength - 1] : 'bg-gray-300'}`} />
                       ))}
                     </div>
                     <p className={`text-xs ${passwordStrength >= 4 ? 'text-emerald-600' : passwordStrength >= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -401,16 +412,18 @@ export default function ResetPasswordPage() {
                 }
               />
 
-              <FormButton type="submit" variant="primary" loading={loading} fullWidth
-                className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 py-3 shadow-lg">
-                Reset Password
-              </FormButton>
+              <div className="flex justify-center">
+                <FormButton type="submit" variant="primary" loading={loading}
+                  className="bg-blue-600 hover:bg-blue-700 py-2 text-sm shadow-sm px-10">
+                  Reset Password
+                </FormButton>
+              </div>
 
               <div className="text-center">
                 <button
                   type="button"
                   onClick={() => { setStep('email'); setOtp(['', '', '', '', '', '']); setFormData({ otp: '', newPassword: '', confirmPassword: '' }); }}
-                  className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                 >
                   ← Change Email
                 </button>
@@ -420,9 +433,9 @@ export default function ResetPasswordPage() {
         </div>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-3 text-center text-sm text-gray-500">
           Remember your password?{" "}
-          <Link href="/auth/login" className="text-purple-600 hover:underline font-medium">Sign in</Link>
+          <Link href="/auth/login" className="text-blue-600 hover:underline font-medium">Sign in</Link>
         </p>
       </div>
     </div>

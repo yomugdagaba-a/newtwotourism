@@ -53,33 +53,33 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-2 sm:mx-4 max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-600 to-blue-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-lg">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gradient-to-r from-blue-600 to-blue-700">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg shrink-0">
               {username?.charAt(0).toUpperCase() || "U"}
             </div>
-            <div>
-              <p className="text-white font-semibold">{username}</p>
-              <p className="text-blue-200 text-xs">{role}</p>
+            <div className="min-w-0">
+              <p className="text-white font-semibold text-sm sm:text-base truncate">{username}</p>
+              <p className="text-blue-200 text-xs truncate">{role}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-white/70 hover:text-white transition-colors text-xl leading-none">✕</button>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition-colors text-xl leading-none shrink-0 ml-2">✕</button>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar — hidden on mobile, shown on sm+ */}
-          <nav className="hidden sm:block w-52 shrink-0 border-r border-gray-100 py-3 bg-gray-50">
+          {/* Sidebar — completely hidden on mobile (< 640px) */}
+          <nav className="hidden sm:flex sm:flex-col w-48 lg:w-52 shrink-0 border-r border-gray-100 py-3 bg-gray-50 overflow-y-auto">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center px-4 py-2.5 text-sm font-medium transition-all text-left ${
+                className={`w-full flex items-center px-3 lg:px-4 py-2.5 text-xs lg:text-sm font-medium transition-all text-left ${
                   activeTab === tab.id
                     ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -91,13 +91,13 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
           </nav>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            {/* Mobile tab selector */}
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6">
+            {/* Mobile tab selector - only visible on mobile */}
             <div className="sm:hidden mb-4">
               <select
                 value={activeTab}
                 onChange={(e) => setActiveTab(e.target.value as Tab)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {TABS.map((tab) => (
                   <option key={tab.id} value={tab.id}>{tab.label}</option>
@@ -127,18 +127,18 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
 function ProfileInfo({ profile, role }: { profile: UserProfile | null; role: string | null }) {
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Profile Information</h2>
-      <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-xl">
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+      <h2 className="text-base sm:text-lg font-semibold text-gray-900">Profile Information</h2>
+      <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-blue-50 rounded-xl">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xl sm:text-2xl font-bold shrink-0">
           {profile?.username?.charAt(0).toUpperCase() || "U"}
         </div>
-        <div>
-          <p className="text-xl font-bold text-gray-900">{profile?.fullName || "—"}</p>
-          <p className="text-sm text-gray-500">@{profile?.username || "—"}</p>
+        <div className="min-w-0">
+          <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{profile?.fullName || "—"}</p>
+          <p className="text-xs sm:text-sm text-gray-500 truncate">@{profile?.username || "—"}</p>
           <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">{role}</span>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         <InfoCard label="Username" value={profile?.username || "—"} />
         <InfoCard label="Full Name" value={profile?.fullName || "—"} />
         <InfoCard label="Email" value={profile?.email || "—"} />
@@ -154,9 +154,9 @@ function ProfileInfo({ profile, role }: { profile: UserProfile | null; role: str
 
 function InfoCard({ label, value, valueClass = "text-gray-900" }: { label: string; value: string; valueClass?: string }) {
   return (
-    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className={`text-sm font-semibold truncate ${valueClass}`}>{value}</p>
+    <div className="p-2.5 sm:p-3 bg-gray-50 rounded-lg border border-gray-100">
+      <p className="text-xs text-gray-500 mb-0.5 sm:mb-1">{label}</p>
+      <p className={`text-xs sm:text-sm font-semibold truncate ${valueClass}`} title={value}>{value}</p>
     </div>
   );
 }

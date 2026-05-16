@@ -5,104 +5,81 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { login } from "@/services/auth.service";
 import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
-import FormInput, { FormButton, Alert } from "@/components/common/FormInput";
 import { validateForm, hasErrors, schemas, ValidationErrors } from "@/utils/validation";
 import BlockedBanner from "@/components/common/BlockedBanner";
 
 function LoginFormContent() {
-  const [formData, setFormData] = useState({
-    usernameOrEmail: "",
-    password: ""
-  });
+  const [formData, setFormData] = useState({ usernameOrEmail: "", password: "" });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const auth = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Check for registration success message
-  useEffect(() => {
-    if (searchParams.get('registered') === 'true') {
-      setSuccessMessage("Registration successful! Please sign in with your credentials.");
-    }
-  }, [searchParams]);
-
-  // Wait for hydration and check authentication
-  useEffect(() => {
-    // Wait for store to hydrate
-    if (!auth.isHydrated) {
-      return;
-    }
-
-    setIsChecking(false);
-
-    // If already authenticated, redirect
-    if (auth.isAuthenticated && auth.token) {
-      const redirectTo = searchParams.get('redirect') || getDefaultRedirect(auth.role);
-      router.replace(redirectTo);
-    }
-  }, [auth.isHydrated, auth.isAuthenticated, auth.token, auth.role, searchParams, router]);
-
-  // Show loading while checking authentication
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   const getDefaultRedirect = (role: string | null) => {
     switch (role) {
       case 'ADMIN': return '/admin';
-      case 'HOTEL_OWNER': return '/hotel-owner';
+      case 'HOTEL_OWNER': return '/owner/bookings';
       default: return '/';
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setSuccessMessage("Registration successful! Please sign in.");
+    }
+    if (searchParams.get('reason') === 'inactivity') {
+      setServerError("You were logged out due to inactivity. Please sign in again.");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!auth.isHydrated) return;
+    setIsChecking(false);
+    if (auth.isAuthenticated && auth.token) {
+      router.replace(searchParams.get('redirect') || getDefaultRedirect(auth.role));
+    }
+  }, [auth.isHydrated, auth.isAuthenticated, auth.token, auth.role]);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f0f2f5' }}>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear field error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
     setServerError("");
-  };
-
-  const validateFormData = (): boolean => {
-    const validationErrors = validateForm(formData, schemas.login);
-    setErrors(validationErrors);
-    return !hasErrors(validationErrors);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError("");
-    
-    if (!validateFormData()) {
-      return;
-    }
-
+    const validationErrors = validateForm(formData, schemas.login);
+    setErrors(validationErrors);
+    if (hasErrors(validationErrors)) return;
     setLoading(true);
-    
     try {
       const res = await login({ username: formData.usernameOrEmail, password: formData.password });
-      
       if (res?.token) {
         auth.login(res.token, res.refreshToken, res.userId);
-        
-        // Use router.replace for smooth navigation
-        const redirectTo = searchParams.get('redirect') || getDefaultRedirect(auth.role);
-        router.replace(redirectTo);
+        const decoded = JSON.parse(atob(res.token.split('.')[1]));
+        const roles = decoded.roles || [];
+        const role = roles.includes('ROLE_ADMIN') ? 'ADMIN'
+          : roles.includes('ROLE_HOTEL_OWNER') ? 'HOTEL_OWNER' : 'CLIENT';
+        router.push(searchParams.get('redirect') || getDefaultRedirect(role));
       } else {
-        throw new Error("Invalid login response - no token received");
+        throw new Error("Invalid login response");
       }
     } catch (err: any) {
-      console.error("❌ Login failed:", err);
       setServerError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
@@ -110,151 +87,155 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-4 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Light background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gray-200 rounded-full mix-blend-screen filter blur-[100px] opacity-10 animate-blob" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gray-200 rounded-full mix-blend-screen filter blur-[100px] opacity-10 animate-blob animation-delay-2000" />
-      </div>
-      
-      {/* Back Button */}
-      <button
-        onClick={() => router.push('/')}
-        className="absolute top-6 left-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-      >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        <span className="font-medium">Back</span>
-      </button>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8" style={{ backgroundColor: '#f0f2f5' }}>
 
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-4">
-          <div className="mx-auto h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mb-2 shadow-lg border-2 border-blue-400">
-            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-black text-gray-900">Welcome Back</h2>
-          <p className="mt-2 text-gray-600 font-semibold">Sign in to North Wollo Tourism</p>
+      {/* Icon + Title */}
+      <div className="flex flex-col items-center mb-5">
+        <div className="w-14 h-14 bg-white rounded-2xl shadow-md flex items-center justify-center mb-3">
+          <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-black text-gray-900">Welcome Back</h1>
+        <p className="text-sm text-gray-500 mt-1 font-medium">Sign in to North Wollo Tourism</p>
+      </div>
+
+      {/* Main card — same width as reset password */}
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+
+        {/* Sign In header row */}
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+          <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+          </svg>
+          <span className="font-black text-gray-900 text-sm">Sign In</span>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-5 border border-gray-200">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {successMessage && (
-              <Alert type="success" message={successMessage} onClose={() => setSuccessMessage("")} />
-            )}
-            {serverError && (
-              <BlockedBanner message={serverError} onClose={() => setServerError("")} />
-            )}
+        {successMessage && (
+          <div className="mb-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm font-semibold">
+            {successMessage}
+          </div>
+        )}
+        {serverError && (
+          <div className="mb-3">
+            <BlockedBanner message={serverError} onClose={() => setServerError("")} />
+          </div>
+        )}
 
-            <FormInput
-              label="Username or Email"
-              name="usernameOrEmail"
-              type="text"
-              value={formData.usernameOrEmail}
-              onChange={handleChange}
-              error={errors.usernameOrEmail}
-              placeholder="Enter your username or email"
-              required
-              autoComplete="username email"
-              disabled={loading}
-              icon={
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              }
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-            <FormInput
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              placeholder="Enter your password"
-              required
-              autoComplete="current-password"
-              disabled={loading}
-              showPasswordToggle
-              icon={
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              }
-            />
-
-            <div className="flex items-center justify-between">
-              <Link
-                href="/auth/reset-password"
-                className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
-              >
-                Forgot your password?
-              </Link>
+          {/* Username / Email */}
+          <div>
+            <label className="block text-sm font-black text-gray-800 mb-1">
+              Username or Email <span className="text-red-500">*</span>
+            </label>
+            <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg shadow-sm bg-gray-100/20 ${errors.usernameOrEmail ? 'ring-1 ring-red-300' : ''}`}>
+              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <input
+                type="text"
+                name="usernameOrEmail"
+                value={formData.usernameOrEmail}
+                onChange={handleChange}
+                placeholder="Enter your username or email"
+                autoComplete="username email"
+                disabled={loading}
+                className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+              />
             </div>
+            {errors.usernameOrEmail && <p className="mt-1 text-xs text-red-600 font-semibold">{errors.usernameOrEmail}</p>}
+          </div>
 
-            <FormButton
-              type="submit"
-              variant="primary"
-              loading={loading}
-              disabled={!formData.usernameOrEmail.trim() || !formData.password.trim()}
-              fullWidth
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500 py-3 font-black"
-            >
-              Sign In
-            </FormButton>
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-black text-gray-800 mb-1">
+              Password <span className="text-red-500">*</span>
+            </label>
+            <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg shadow-sm bg-gray-100/20 ${errors.password ? 'ring-1 ring-red-300' : ''}`}>
+              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                disabled={loading}
+                className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+              />
+              <button type="button" onClick={() => setShowPassword(p => !p)} className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+                {showPassword ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {errors.password && <p className="mt-1 text-xs text-red-600 font-semibold">{errors.password}</p>}
+          </div>
 
-            {/* Cancel Button */}
+          {/* Forgot password */}
+          <div className="flex justify-end">
+            <Link href="/auth/reset-password" className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">
+              Forgot Password?
+            </Link>
+          </div>
+
+          {/* Sign In button */}
+          <div className="flex justify-center">
             <button
-              type="button"
-              onClick={() => router.push('/')}
-              className="w-full py-3 px-4 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition-colors"
+              type="submit"
+              disabled={loading || !formData.usernameOrEmail.trim() || !formData.password.trim()}
+              className="px-10 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm transition-colors shadow-sm"
             >
-              Cancel
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Signing in...
+                </span>
+              ) : 'Sign In'}
             </button>
-          </form>
-
-          {/* Divider */}
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t-2 border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-700 font-bold">New to North Wollo Tourism?</span>
-              </div>
-            </div>
           </div>
-
-          {/* Register Link */}
-          <div className="mt-6 text-center">
-              <Link
-                href="/auth/register"
-                className="block w-full py-3 px-4 border border-blue-500 text-blue-600 font-black rounded-lg hover:bg-blue-50 transition-colors text-center"
-              >
-                Create an Account
-              </Link>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <p className="mt-6 text-center text-sm text-gray-700 font-bold">
-          By signing in, you agree to our{" "}
-          <a href="#" className="text-blue-600 hover:underline font-black">Terms of Service</a>
-          {" "}and{" "}
-          <a href="#" className="text-blue-600 hover:underline font-black">Privacy Policy</a>
-        </p>
+        </form>
       </div>
+
+      {/* Register card */}
+      <div className="w-full max-w-lg mt-3 bg-white rounded-2xl shadow-sm px-6 py-4 flex items-center justify-center gap-1">
+        <span className="text-sm text-gray-500 font-medium">Don&apos;t have an account? </span>
+        <Link href="/auth/register" className="text-sm font-black text-blue-600 hover:text-blue-700 transition-colors">
+          Sign Up
+        </Link>
+      </div>
+
+      {/* Footer */}
+      <p className="mt-4 text-center text-xs text-gray-400 font-medium">
+        By signing in, you agree to our{" "}
+        <a href="#" className="text-blue-500 hover:underline">Terms of Service</a>
+        {" "}and{" "}
+        <a href="#" className="text-blue-500 hover:underline">Privacy Policy</a>
+      </p>
     </div>
   );
 }
 
-export default function LoginForm() {
+export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f0f2f5' }}>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      </div>
+    }>
       <LoginFormContent />
     </Suspense>
   );

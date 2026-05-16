@@ -4,6 +4,7 @@ import "./globals.css";
 import AuthProvider from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/common/Toast";
 import { ConfirmDialogProvider } from "@/components/common/ConfirmDialog";
+import InactivityMonitor from "@/components/common/InactivityMonitor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
         <ToastProvider>
           <ConfirmDialogProvider>
             <AuthProvider>
+              <InactivityMonitor />
               {children}
             </AuthProvider>
           </ConfirmDialogProvider>

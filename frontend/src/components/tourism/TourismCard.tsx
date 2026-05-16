@@ -2,6 +2,7 @@
 
 import React from "react";
 import { TourismPublicCard } from "@/types/tourism";
+import { getImageUrl } from "@/utils/imageUrl";
 
 interface Props {
   tourism: TourismPublicCard;
@@ -36,7 +37,7 @@ const TourismCard: React.FC<Props> = ({ tourism, onClick }) => {
       <div className="relative h-64 flex-shrink-0 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 group-hover:brightness-105 transition-all duration-500">
         {tourism.imageUrl ? (
           <img
-            src={tourism.imageUrl}
+            src={getImageUrl(tourism.imageUrl)}
             alt={`${tourism.name} (${tourism.category || "Tourism Place"})`}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             onError={(e) => {

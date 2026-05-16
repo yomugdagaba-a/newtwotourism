@@ -206,6 +206,7 @@ model TourismPlace {
   mapPoints     MapPoint[]
   roadInfos     RoadInfo[]
   languageGuiders LanguageGuider[]
+  views         TourismView[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -328,6 +329,7 @@ model HotelBooking {
   rejectionReason   String?
   problemReport     String?
   problemReported   Boolean @default(false)
+  hiddenFromClient  Boolean @default(false) // Client can hide booking from their view
   statusId          Int
   status            BookingStatusEntity @relation(fields: [statusId], references: [id])
 
@@ -470,4 +472,19 @@ model AuditLogEntry {
   createdAt DateTime @default(now())
 
   @@map("audit_log_entries")
+}
+
+// ==================== VIEW TRACKING ====================
+
+model TourismView {
+  id              Int     @id @default(autoincrement())
+  tourismPlaceId  Int
+  tourismPlace    TourismPlace @relation(fields: [tourismPlaceId], references: [id], onDelete: Cascade)
+  sessionId       String  // Browser fingerprint or session ID
+  ipAddress       String?
+  userAgent       String?
+  viewedAt        DateTime @default(now())
+
+  @@index([tourismPlaceId, sessionId, viewedAt])
+  @@map("tourism_views")
 }

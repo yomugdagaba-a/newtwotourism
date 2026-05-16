@@ -4,75 +4,87 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/services/auth.service";
 import Link from "next/link";
-import FormInput, { FormButton, Alert } from "@/components/common/FormInput";
 import BlockedBanner from "@/components/common/BlockedBanner";
+import {
+  sanitizeFullName,
+  sanitizeUsername,
+  sanitizeEmail,
+  validateFullName,
+  validateUsername,
+  validateEmail,
+  validatePassword,
+  validatePasswordConfirm,
+  getPasswordStrength,
+  hasValidationErrors as checkValidationErrors
+} from "@/utils/formValidation";
 
+const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
 
-// Validation helpers
-const validateFullName = (name: string): string | null => {
-  if (!name.trim()) return "Required";
-  if (name.trim().length < 2) return "Min 2 characters";
-  if (!/^[a-zA-Z\s]+$/.test(name.trim())) return "Letters only";
-  return null;
-};
+function PasswordInput({ name, value, onChange, placeholder, disabled }: { name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; disabled: boolean }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg shadow-sm bg-gray-100/20 overflow-hidden">
+      <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+      <input type={show ? 'text' : 'password'} name={name} value={value} onChange={onChange} placeholder={placeholder} disabled={disabled}
+        className="flex-1 min-w-0 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
+      <button type="button" onClick={() => setShow(s => !s)} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+        {show ? (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+        )}
+      </button>
+    </div>
+  );
+}
 
-const validateUsername = (username: string): string | null => {
-  if (!username.trim()) return "Required";
-  if (username.length < 4) return "Min 4 characters";
-  if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(username)) return "Start with letter, use letters/numbers/_";
-  return null;
-};
-
-const validateEmail = (email: string): string | null => {
-  if (!email.trim()) return "Required";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Invalid email";
-  return null;
-};
-
-const validatePassword = (password: string): string | null => {
-  if (!password) return "Required";
-  if (password.length < 8) return "Min 8 characters";
-  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) 
-    return "Need uppercase, lowercase & number";
-  return null;
-};
-
-const validateConfirmPassword = (password: string, confirmPassword: string): string | null => {
-  if (!confirmPassword) return "Required";
-  if (password !== confirmPassword) return "Passwords don't match";
-  return null;
-};
-
-export default function RegisterForm() {
+export default function RegisterPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    username: "", fullName: "", email: "", password: "", confirmPassword: ""
-  });
+  const [formData, setFormData] = useState({ username: "", fullName: "", email: "", password: "", confirmPassword: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Real-time sanitization based on field type
+    let sanitizedValue = value;
+    if (name === 'fullName') {
+      sanitizedValue = sanitizeFullName(value);
+    } else if (name === 'username') {
+      sanitizedValue = sanitizeUsername(value);
+    } else if (name === 'email') {
+      sanitizedValue = sanitizeEmail(value);
+    }
+    
+    setFormData(prev => ({ ...prev, [name]: sanitizedValue }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
     setServerError("");
   };
 
-  const validateAll = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    const fullNameError = validateFullName(formData.fullName);
-    if (fullNameError) newErrors.fullName = fullNameError;
-    const usernameError = validateUsername(formData.username);
-    if (usernameError) newErrors.username = usernameError;
-    const emailError = validateEmail(formData.email);
-    if (emailError) newErrors.email = emailError;
-    const passwordError = validatePassword(formData.password);
-    if (passwordError) newErrors.password = passwordError;
-    const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword);
-    if (confirmPasswordError) newErrors.confirmPassword = confirmPasswordError;
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validateAll = () => {
+    const e: Record<string, string> = {};
+    
+    const fnResult = validateFullName(formData.fullName);
+    if (!fnResult.valid) e.fullName = fnResult.error!;
+    
+    const unResult = validateUsername(formData.username);
+    if (!unResult.valid) e.username = unResult.error!;
+    
+    const emResult = validateEmail(formData.email);
+    if (!emResult.valid) e.email = emResult.error!;
+    
+    const pwResult = validatePassword(formData.password);
+    if (!pwResult.valid) e.password = pwResult.error!;
+    
+    const cpResult = validatePasswordConfirm(formData.password, formData.confirmPassword);
+    if (!cpResult.valid) e.confirmPassword = cpResult.error!;
+    
+    setErrors(e);
+    return !checkValidationErrors(e);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,176 +93,133 @@ export default function RegisterForm() {
     if (!validateAll()) return;
     setLoading(true);
     try {
-      const { confirmPassword, ...registerData } = formData;
-      console.log('📝 Registering user:', registerData.email);
-      const response = await register(registerData);
-      console.log('✅ Registration successful:', response);
-      
-      // Always redirect to email verification page
-      console.log('🔄 Redirecting to verify-email page with email:', formData.email);
-      
-      // Registration successful - redirect to verify email
-      
-      // Then redirect to verify-email page
-      setTimeout(() => {
-        router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}&from=register`);
-      }, 100);
+      const { confirmPassword, ...data } = formData;
+      await register(data);
+      setTimeout(() => router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}&from=register`), 100);
     } catch (err: any) {
-      console.error('❌ Registration error:', err);
       setServerError(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    router.push('/');
-  };
-
-  const getPasswordStrength = (password: string) => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/\d/.test(password)) strength++;
-    if (/[^a-zA-Z0-9]/.test(password)) strength++;
-    return strength;
-  };
-
-  const passwordStrength = getPasswordStrength(formData.password);
-  const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
+  const strength = getPasswordStrength(formData.password);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-3 px-4 relative overflow-hidden">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gray-200 rounded-full mix-blend-screen filter blur-[100px] opacity-10" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gray-200 rounded-full mix-blend-screen filter blur-[100px] opacity-10" />
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8" style={{ backgroundColor: '#f0f2f5' }}>
+
+      {/* Icon + Title */}
+      <div className="flex flex-col items-center mb-4">
+        <div className="w-16 h-16 bg-white rounded-2xl shadow-md flex items-center justify-center mb-3">
+          <svg className="w-9 h-9 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-black text-gray-900">Create Account</h1>
       </div>
 
-      <div className="w-full max-w-md">
-        {/* Header - Compact */}
-        <div className="text-center mb-4">
-          <div className="mx-auto h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mb-2 shadow-lg border-2 border-blue-400">
-            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
+      {/* Card */}
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-sm p-5 sm:p-7">
+
+        {serverError && (
+          <div className="mb-4">
+            <BlockedBanner message={serverError} onClose={() => setServerError("")} />
           </div>
-          <h2 className="text-2xl font-black text-gray-900">Create Account</h2>
-        </div>
+        )}
 
-        {/* Form Card - Compact */}
-        <div className="bg-white rounded-xl shadow-lg p-5 border border-gray-200">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {serverError && <BlockedBanner message={serverError} onClose={() => setServerError("")} />}
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-            {/* Two columns for name fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormInput 
-                label="Full Name" 
-                name="fullName" 
-                type="text" 
-                value={formData.fullName} 
-                onChange={handleChange}
-                error={errors.fullName} 
-                placeholder="John Doe" 
-                required
-                disabled={loading}
-              />
-              <FormInput 
-                label="Username" 
-                name="username" 
-                type="text" 
-                value={formData.username} 
-                onChange={handleChange}
-                error={errors.username} 
-                placeholder="john_doe" 
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <FormInput 
-              label="Email" 
-              name="email" 
-              type="email" 
-              value={formData.email} 
-              onChange={handleChange}
-              error={errors.email} 
-              placeholder="user@example.com" 
-              required
-              disabled={loading}
-            />
-
-            {/* Two columns for password fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <FormInput 
-                  label="Password" 
-                  name="password" 
-                  type="password" 
-                  value={formData.password} 
-                  onChange={handleChange}
-                  error={errors.password} 
-                  placeholder="••••••••" 
-                  required
-                  disabled={loading} 
-                  showPasswordToggle
-                />
-                {formData.password && (
-                  <div className="flex gap-0.5 mt-1">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className={`h-1 flex-1 rounded-full ${i < passwordStrength ? strengthColors[passwordStrength - 1] : 'bg-gray-300'}`} />
-                    ))}
-                  </div>
-                )}
+          {/* Full Name + Username */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-black text-gray-800 mb-1">Full Name <span className="text-red-500">*</span></label>
+              <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg shadow-sm bg-gray-100/20 ${errors.fullName ? 'ring-1 ring-red-300' : ''}`}>
+                <input type="text" name="fullName" value={formData.fullName} onChange={handleChange}
+                  placeholder="John Doe" disabled={loading}
+                  className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
               </div>
-              <FormInput 
-                label="Confirm" 
-                name="confirmPassword" 
-                type="password" 
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                error={errors.confirmPassword}
-                placeholder="••••••••" 
-                required
-                disabled={loading} 
-                showPasswordToggle
-              />
+              {errors.fullName && <p className="mt-0.5 text-xs text-red-600">{errors.fullName}</p>}
             </div>
-
-            {/* Info - Compact */}
-            <p className="text-xs text-gray-600 text-center font-semibold">
-              You'll receive a verification code via email after registration.
-            </p>
-
-            {/* Buttons */}
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <FormButton 
-                type="submit" 
-                variant="primary" 
-                loading={loading} 
-                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 py-2.5 font-black"
-              >
-                Register
-              </FormButton>
+            <div>
+              <label className="block text-sm font-black text-gray-800 mb-1">Username <span className="text-red-500">*</span></label>
+              <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg shadow-sm bg-gray-100/20 ${errors.username ? 'ring-1 ring-red-300' : ''}`}>
+                <input type="text" name="username" value={formData.username} onChange={handleChange}
+                  placeholder="john_doe" disabled={loading}
+                  className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
+              </div>
+              {errors.username && <p className="mt-0.5 text-xs text-red-600">{errors.username}</p>}
             </div>
-          </form>
-
-          {/* Sign In Link */}
-          <div className="mt-4 text-center text-sm">
-            <span className="text-gray-600 font-semibold">Already have an account? </span>
-            <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-black">
-              Sign In
-            </Link>
           </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-black text-gray-800 mb-1">Email <span className="text-red-500">*</span></label>
+            <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg shadow-sm bg-gray-100/20 ${errors.email ? 'ring-1 ring-red-300' : ''}`}>
+              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <input type="email" name="email" value={formData.email} onChange={handleChange}
+                placeholder="user@example.com" disabled={loading}
+                className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
+            </div>
+            {errors.email && <p className="mt-0.5 text-xs text-red-600">{errors.email}</p>}
+          </div>
+
+          {/* Password + Confirm */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-black text-gray-800 mb-1">Password <span className="text-red-500">*</span></label>
+              <div className={errors.password ? 'ring-1 ring-red-300 rounded-lg' : ''}>
+                <PasswordInput name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" disabled={loading} />
+              </div>
+              {errors.password && <p className="mt-0.5 text-xs text-red-600">{errors.password}</p>}
+              {formData.password && (
+                <div className="flex gap-0.5 mt-1.5">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i < strength ? strengthColors[strength - 1] : 'bg-gray-200'}`} />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-black text-gray-800 mb-1">Confirm <span className="text-red-500">*</span></label>
+              <div className={errors.confirmPassword ? 'ring-1 ring-red-300 rounded-lg' : ''}>
+                <PasswordInput name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" disabled={loading} />
+              </div>
+              {errors.confirmPassword && <p className="mt-0.5 text-xs text-red-600">{errors.confirmPassword}</p>}
+            </div>
+          </div>
+
+          {/* Info */}
+          <p className="text-xs text-gray-500 text-center font-medium">
+            You&apos;ll receive a verification code via email after registration.
+          </p>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => router.push('/')}
+              className="flex-1 py-2.5 border border-gray-200 shadow-sm text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors text-sm bg-white">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black rounded-xl transition-colors text-sm shadow-sm">
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Registering...
+                </span>
+              ) : 'Register'}
+            </button>
+          </div>
+        </form>
+
+        {/* Sign In link */}
+        <div className="mt-4 text-center text-sm">
+          <span className="text-gray-500 font-medium">Already have an account? </span>
+          <Link href="/auth/login" className="font-black text-blue-600 hover:text-blue-700 transition-colors">Sign In</Link>
         </div>
       </div>
     </div>

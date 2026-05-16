@@ -8,6 +8,7 @@ import TopBar from "@/components/layout/TopBar";
 import LoginForm from "@/components/auth/LoginFormModal";
 import RegisterForm from "@/components/auth/RegisterFormModal";
 import Modal from "@/components/common/Modal";
+import { getImageUrl } from "@/utils/imageUrl";
 import Pagination from "@/components/common/Pagination";
 import { fetchTourismPlaces } from "@/services/tourism.service";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -79,7 +80,12 @@ function TourismListingContent() {
       const formattedPlaces = (response?.content || []).map((place: any) => ({
         id: place.id ?? 0,
         name: place.name ?? "Unknown",
-        imageUrl: place.imageUrl ?? "/images/placeholder.jpg",
+        imageUrl: (() => {
+          const url = place.imageUrl || (place.images && place.images.length > 0 ? (place.images[0] as any).imageUrl : null);
+          // Discard blob: URLs that were accidentally stored in the DB
+          if (!url || url.startsWith('blob:')) return undefined;
+          return url;
+        })(),
         viewersCount: place.viewersCount ?? 0,
         category: place.category,
         wereda: place.wereda,
@@ -112,7 +118,7 @@ function TourismListingContent() {
     });
   }, []);
 
-  // Update URL when filters change — use native history API to avoid interfering with navigation
+  // Update URL when filters change � use native history API to avoid interfering with navigation
   useEffect(() => {
     const params = new URLSearchParams();
     if (categories.length > 0) {
@@ -185,34 +191,25 @@ function TourismListingContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 relative overflow-hidden shadow-[inset_0_0_100px_rgba(0,0,0,0.2)]">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-200/10 via-transparent to-transparent"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-gray-300/10 via-transparent to-transparent"></div>
-
-      <TopBar 
+    <div className="min-h-screen bg-white">
+            <TopBar 
         keyword={currentKeyword} 
         onSearch={handleSearch}
-        showCategories={false}
+        showCategories={true}
         liveSearch={true}
         categories={categories}
         onCategoryToggle={handleCategoryToggle}
         onClearCategories={() => setCategories([])}
+        showBackButton={true}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {/* Back Button */}
-        <a
-          href="/"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#374151', fontWeight: 700, marginBottom: '16px', textDecoration: 'none', cursor: 'pointer', zIndex: 50, position: 'relative' }}
-        >
-          ← Back to Home
-        </a>
 
         {error && (
           <div className="mb-4 px-4 py-3 bg-red-50 border border-red-300 rounded-xl flex items-center justify-between shadow-md">
             <p className="text-xs font-black text-red-700">{error}</p>
             <button onClick={() => setError(null)} className="text-red-600 hover:text-red-700 font-black text-xs px-2 py-1 rounded-lg hover:bg-red-100 transition-all">
-              ✕
+              ?
             </button>
           </div>
         )}
@@ -338,7 +335,7 @@ function TourismCard({
       case 'HIGHLAND': return 'bg-gradient-to-br from-green-100 via-emerald-100 to-green-200';
       case 'CAVERN': return 'bg-gradient-to-br from-gray-200 via-gray-300 to-gray-400';
       case 'AQUATICS': return 'bg-gradient-to-br from-blue-100 via-cyan-100 to-blue-200';
-      case 'CULTURE': return 'bg-gradient-to-br from-purple-100 via-violet-100 to-purple-200';
+      case 'CULTURE': return 'bg-gradient-to-br from-blue-100 via-blue-50 to-blue-200';
       case 'MODERN': return 'bg-gradient-to-br from-indigo-100 via-blue-100 to-indigo-200';
       default: return 'bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300';
     }
@@ -361,7 +358,7 @@ function TourismCard({
       {/* Image Section */}
       <div className={`relative h-44 overflow-hidden ${getCategoryBg(tourism.category)}`}>
         <img
-          src={tourism.imageUrl}
+          src={getImageUrl(tourism.imageUrl)}
           alt={tourism.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -395,7 +392,7 @@ function TourismCard({
             </p>
           )}
           <div className="flex items-center gap-2 ml-auto">
-            {/* Views — now in the white card, not over the image */}
+            {/* Views � now in the white card, not over the image */}
             <span className="text-xs font-black text-gray-500 flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -403,8 +400,7 @@ function TourismCard({
               </svg>
               {tourism.viewersCount.toLocaleString()}
             </span>
-            <span className="px-2 py-0.5 text-white rounded-md font-black"
-              style={{ fontSize: "0.65rem", background: "linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow: "0 2px 8px rgba(109,40,217,0.4)" }}>
+            <span className="text-blue-600 font-black text-xs">
               View →
             </span>
           </div>

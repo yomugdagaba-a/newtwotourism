@@ -61,12 +61,12 @@ export default function FormInput({
   const showError = touched && error;
 
   const baseInputClasses = `
-    w-full px-3 py-2 border-2 rounded-lg transition-all duration-200 font-semibold
-    focus:outline-none focus:ring-2 focus:ring-offset-0
+    w-full px-3 py-2 border rounded-lg transition-all duration-200
+    focus:outline-none focus:ring-1 focus:ring-offset-0
     disabled:bg-gray-100 disabled:cursor-not-allowed
     ${showError 
-      ? 'border-red-500 focus:ring-red-200 focus:border-red-500 bg-red-50' 
-      : 'border-gray-400 focus:ring-blue-200 focus:border-blue-500 hover:border-gray-500 bg-gray-50'
+      ? 'border-red-400 focus:ring-red-300 focus:border-red-500 bg-red-50' 
+      : 'border-gray-300 focus:ring-blue-200 focus:border-blue-300 hover:border-gray-400 bg-white'
     }
     ${icon ? 'pl-10' : ''}
     ${type === 'password' && showPasswordToggle ? 'pr-10' : ''}
@@ -135,9 +135,9 @@ export default function FormInput({
 
   return (
     <div className={`mb-4 ${className}`}>
-      <label htmlFor={name} className="block text-sm font-bold text-gray-800 mb-1">
+      <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-1">
         {label}
-        {required && <span className="text-red-500 ml-1 font-black">*</span>}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       
       <div className="relative">
@@ -171,7 +171,7 @@ export default function FormInput({
       </div>
       
       {showError && (
-        <p className="mt-1 text-sm text-red-600 font-semibold flex items-center">
+        <p className="mt-1 text-sm text-red-600 flex items-center">
           <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
@@ -180,7 +180,7 @@ export default function FormInput({
       )}
       
       {helpText && !showError && (
-        <p className="mt-1 text-sm text-gray-600 font-medium">{helpText}</p>
+        <p className="mt-1 text-sm text-gray-500 hidden">{helpText}</p>
       )}
     </div>
   );
@@ -209,17 +209,17 @@ export function FormButton({
   fullWidth = false
 }: FormButtonProps) {
   const baseClasses = `
-    inline-flex items-center justify-center px-4 py-2 rounded-lg font-bold
+    inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold
     transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
-    disabled:opacity-50 disabled:cursor-not-allowed border-2
+    disabled:opacity-50 disabled:cursor-not-allowed border
     ${fullWidth ? 'w-full' : ''}
   `;
 
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 border-blue-700',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500 border-gray-400',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border-red-700',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 border-green-700'
+    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 border-blue-600',
+    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500 border-gray-300',
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border-red-600',
+    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 border-green-600'
   };
 
   return (
@@ -266,7 +266,7 @@ export function Alert({ type, title, message, onClose }: AlertProps) {
   const s = styles[type];
 
   return (
-    <div className={`rounded-lg p-4 ${s.bg} border-2 ${s.border}`}>
+    <div className={`rounded-lg p-4 ${s.bg} border ${s.border}`}>
       <div className="flex">
         <div className="flex-shrink-0">
           <svg className={`h-5 w-5 ${s.icon}`} viewBox="0 0 20 20" fill="currentColor">

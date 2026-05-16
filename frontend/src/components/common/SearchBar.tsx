@@ -48,7 +48,7 @@ const SearchBar: FC<SearchBarProps> = ({ initialValue = "", placeholder = "Searc
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="flex-1 px-4 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-700"
+        className="flex-1 px-4 py-2 border-0 bg-gray-50 rounded-l-md focus:outline-none focus:ring-1 focus:ring-gray-200"
       />
       <Button type="submit" variant="primary">
         Search

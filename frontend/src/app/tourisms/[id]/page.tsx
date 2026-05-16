@@ -2,18 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import TopBar from "@/components/layout/TopBar";
 import { useAuthStore } from "@/store/useAuthStore";
-import { fetchTourismDetail } from "@/services/tourism.service";
+import AvatarDropdown from "@/components/common/AvatarDropdown";
+import { fetchTourismDetail, incrementTourismView } from "@/services/tourism.service";
 import { submitTourismRating, submitHotelRating } from "@/services/rating.service";
 import { getHotelsByTourism } from "@/services/hotel.service";
 import { getRoadsByTourism } from "@/services/road.service";
-import { getHorseServicesByRoad } from "@/services/horse.service";
 import { TourismFullDetailDto } from "@/types/tourism";
 import { HotelSummaryDto } from "@/types/hotel";
 import { RoadInfoDto } from "@/types/road";
-import { HorseServiceSummaryDto } from "@/types/horse";
 import { LanguageGuiderDto } from "@/types/guider";
 import { getGuidersByTourism } from "@/services/guider.service";
+import { getImageUrl } from "@/utils/imageUrl";
 import LoginForm from "@/components/auth/LoginFormModal";
 import RegisterForm from "@/components/auth/RegisterFormModal";
 import Modal from "@/components/common/Modal";
@@ -31,6 +32,76 @@ const RoadMapModal = dynamic(() => import("@/components/map/RoadMapModal"), { ss
 const TourismMapModal = dynamic(() => import("@/components/map/TourismMapModal"), { ssr: false });
 
 type TabType = 'overview' | 'nearby' | 'hotels' | 'roads' | 'guiders';
+
+// Generate or retrieve session ID from localStorage
+function getOrCreateSessionId(): string {
+  const SESSION_KEY = 'tourism_session_id';
+  let sessionId = localStorage.getItem(SESSION_KEY);
+  
+  if (!sessionId) {
+    // Generate a unique session ID using browser fingerprint
+    const nav = navigator;
+    const screen = window.screen;
+    const fingerprint = [
+      nav.userAgent,
+      nav.language,
+      screen.colorDepth,
+      screen.width,
+      screen.height,
+      new Date().getTimezoneOffset(),
+      !!window.sessionStorage,
+      !!window.localStorage,
+    ].join('|');
+    
+    // Create a simple hash
+    let hash = 0;
+    for (let i = 0; i < fingerprint.length; i++) {
+      const char = fingerprint.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    
+    sessionId = `session_${Math.abs(hash)}_${Date.now()}`;
+    localStorage.setItem(SESSION_KEY, sessionId);
+  }
+  
+  return sessionId;
+}
+
+// Check if this place was recently viewed
+function wasRecentlyViewed(tourismId: number): boolean {
+  const VIEWED_KEY = 'tourism_viewed_places';
+  const EXPIRY_HOURS = 24;
+  
+  try {
+    const viewedData = localStorage.getItem(VIEWED_KEY);
+    if (!viewedData) return false;
+    
+    const viewed = JSON.parse(viewedData) as Record<string, number>;
+    const lastViewTime = viewed[tourismId.toString()];
+    
+    if (!lastViewTime) return false;
+    
+    const hoursSinceView = (Date.now() - lastViewTime) / (1000 * 60 * 60);
+    return hoursSinceView < EXPIRY_HOURS;
+  } catch {
+    return false;
+  }
+}
+
+// Mark place as viewed
+function markAsViewed(tourismId: number): void {
+  const VIEWED_KEY = 'tourism_viewed_places';
+  
+  try {
+    const viewedData = localStorage.getItem(VIEWED_KEY);
+    const viewed = viewedData ? JSON.parse(viewedData) : {};
+    viewed[tourismId.toString()] = Date.now();
+    localStorage.setItem(VIEWED_KEY, JSON.stringify(viewed));
+  } catch (err) {
+    console.error('Failed to mark as viewed:', err);
+  }
+}
 
 // Format visitTime — now stored as plain descriptive text
 function formatVisitTime(visitTime: string | number | undefined | null): string {
@@ -66,9 +137,6 @@ export default function TourismDetailPage() {
   const [hotelsLoading, setHotelsLoading] = useState(false);
   const [roads, setRoads] = useState<RoadInfoDto[]>([]);
   const [roadsLoading, setRoadsLoading] = useState(false);
-  const [horseServices, setHorseServices] = useState<Record<number, HorseServiceSummaryDto[]>>({});
-  const [expandedHorseServices, setExpandedHorseServices] = useState<Record<number, boolean>>({});
-  const [loadingHorseServices, setLoadingHorseServices] = useState<Record<number, boolean>>({});
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedRoad, setSelectedRoad] = useState<RoadInfoDto | null>(null);
   const [tourismMapOpen, setTourismMapOpen] = useState(false);
@@ -76,8 +144,17 @@ export default function TourismDetailPage() {
   const [selectedHotelForMap, setSelectedHotelForMap] = useState<HotelSummaryDto | null>(null);
   const [guiders, setGuiders] = useState<LanguageGuiderDto[]>([]);
   const [guidersLoading, setGuidersLoading] = useState(false);
+  const [guiderLangFilter, setGuiderLangFilter] = useState('');
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [zoomedImageIndex, setZoomedImageIndex] = useState<number | null>(null);
+  const [showGuiderPhoneModal, setShowGuiderPhoneModal] = useState<{ show: boolean; phone: string; guiderId: number; name: string }>({ 
+    show: false, 
+    phone: '', 
+    guiderId: 0,
+    name: ''
+  });
+  const [copiedGuiderId, setCopiedGuiderId] = useState<number | null>(null);
 
   const [authModal, setAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -101,6 +178,36 @@ export default function TourismDetailPage() {
       setError(err instanceof Error ? err.message : "Failed to load tourism details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const trackView = async () => {
+    // Only track if not recently viewed
+    if (wasRecentlyViewed(tourismId)) {
+      console.log('View already tracked within 24 hours');
+      return;
+    }
+
+    try {
+      const sessionId = getOrCreateSessionId();
+      const result = await incrementTourismView(
+        tourismId,
+        sessionId,
+        undefined, // IP will be captured by backend
+        navigator.userAgent
+      );
+      
+      if (result.counted) {
+        console.log('View counted successfully');
+        markAsViewed(tourismId);
+        // Update the view count in the detail
+        setDetail(prev => prev ? { ...prev, viewersCount: result.viewCount } : null);
+      } else {
+        console.log('View not counted (duplicate within 24h)');
+      }
+    } catch (err) {
+      console.error('Failed to track view:', err);
+      // Don't show error to user - view tracking is non-critical
     }
   };
 
@@ -138,6 +245,13 @@ export default function TourismDetailPage() {
     loadGuiders();
   }, [tourismId, token]);
 
+  // Track view after detail is loaded
+  useEffect(() => {
+    if (detail) {
+      trackView();
+    }
+  }, [detail?.id]); // Only run when detail ID changes
+
   const requireAuth = () => {
     if (!isAuthenticated) { setAuthMode('login'); setAuthModal(true); return false; }
     return true;
@@ -169,21 +283,33 @@ export default function TourismDetailPage() {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Failed to submit rating"); }
   };
 
-  const toggleHorseServices = async (roadId: number) => {
-    if (expandedHorseServices[roadId]) {
-      setExpandedHorseServices(prev => ({ ...prev, [roadId]: false }));
-      return;
-    }
-    if (!horseServices[roadId]) {
-      setLoadingHorseServices(prev => ({ ...prev, [roadId]: true }));
-      try {
-        const services = await getHorseServicesByRoad(roadId);
-        setHorseServices(prev => ({ ...prev, [roadId]: services }));
-      } catch (err) { setHorseServices(prev => ({ ...prev, [roadId]: [] })); }
-      finally { setLoadingHorseServices(prev => ({ ...prev, [roadId]: false })); }
-    }
-    setExpandedHorseServices(prev => ({ ...prev, [roadId]: true }));
+  const handleGuiderCallClick = (guiderId: number, phoneNumber: string, name: string) => {
+    setShowGuiderPhoneModal({ show: true, phone: phoneNumber, guiderId, name });
   };
+
+  const handleGuiderCopy = (guiderId: number, phoneNumber: string) => {
+    navigator.clipboard.writeText(phoneNumber);
+    setCopiedGuiderId(guiderId);
+    setTimeout(() => setCopiedGuiderId(null), 2000);
+  };
+
+  const closeGuiderPhoneModal = () => {
+    setShowGuiderPhoneModal({ show: false, phone: '', guiderId: 0, name: '' });
+    setCopiedGuiderId(null);
+  };
+
+  // Keyboard navigation for the image lightbox
+  useEffect(() => {
+    if (zoomedImageIndex === null || !detail?.images?.length) return;
+    const total = detail.images.length;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') setZoomedImageIndex(i => i !== null ? (i - 1 + total) % total : null);
+      if (e.key === 'ArrowRight') setZoomedImageIndex(i => i !== null ? (i + 1) % total : null);
+      if (e.key === 'Escape') setZoomedImageIndex(null);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [zoomedImageIndex, detail?.images?.length]);
 
   if (loading) {
     return (
@@ -221,43 +347,63 @@ export default function TourismDetailPage() {
 
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Sticky top bar with hamburger */}
-      <div className="sticky top-0 z-30 flex items-center h-12 px-2 bg-white border-b border-gray-200 shadow-sm">
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="h-9 w-9 flex items-center justify-center text-gray-700 rounded-lg hover:bg-gray-100 transition-all"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        <button onClick={() => router.back()} className="h-8 w-8 flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 transition-all ml-1">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <span className="ml-1 text-gray-900 font-bold text-sm truncate">{detail.name}</span>
+    <div className="min-h-screen bg-white">
+      {/* Sticky top bar with hamburger + action buttons */}
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center h-12 px-2">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="h-9 w-9 flex-shrink-0 flex items-center justify-center text-gray-700 rounded-lg hover:bg-gray-100 transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <button onClick={() => router.back()} className="h-8 w-8 flex-shrink-0 flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 transition-all ml-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span className="ml-1 text-gray-900 font-bold text-sm flex-shrink-0 max-w-[60px] truncate hidden sm:block">{detail.name}</span>
+          {/* Spacer — pushes buttons to right */}
+          <div className="flex-1 min-w-0" />
+          {/* Scrollable action buttons — scrollbar fully hidden */}
+          <div
+            className="flex items-center gap-0 shrink-0 max-w-[calc(100vw-155px)] sm:max-w-none"
+            style={{ overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <button onClick={() => setTourismMapOpen(true)} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">See on Map</button>
+            <button onClick={() => setActiveTab('hotels')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">Find Hotels</button>
+            <button onClick={() => setActiveTab('roads')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">View Roads & Horsers</button>
+            <button onClick={() => setActiveTab('guiders')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">View Guiders</button>
+            <button onClick={() => setActiveTab('nearby')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">Nearby Places</button>
+            <button onClick={() => { if (requireAuth()) setRatingModalOpen(true); }} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">Rate Place</button>
+          </div>
+          {/* Avatar — top right */}
+          <div className="flex-shrink-0 ml-1">
+            <AvatarDropdown onLoginClick={() => { setAuthMode('login'); setAuthModal(true); }} />
+          </div>
+        </div>
       </div>
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)} />
           <div className="relative w-64 z-50 shadow-2xl flex flex-col bg-white">
-            {/* Purple header — RideShare style */}
-            <div className="px-5 py-6" style={{ backgroundColor: '#6d28d9' }}>
-              <button onClick={() => router.push('/tourisms')} className="flex items-center gap-2 text-purple-200 hover:text-white text-xs font-bold mb-4 transition-all">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* White header */}
+            <div className="px-4 py-3 bg-white border-b border-gray-200">
+              <button onClick={() => router.push('/tourisms')} className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-xs font-bold mb-2 transition-all">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back to Destinations
               </button>
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center font-black text-lg" style={{ color: '#7c3aed' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-black text-base text-gray-700">
                   {detail.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-white font-bold text-sm truncate">{detail.name}</p>
-                  <p className="text-purple-200 text-xs">{detail.wereda}</p>
+                  <p className="text-gray-900 font-bold text-xs truncate">{detail.name}</p>
+                  <p className="text-gray-500 text-xs">{detail.wereda}</p>
                 </div>
               </div>
             </div>
@@ -270,11 +416,11 @@ export default function TourismDetailPage() {
                   onClick={() => { setActiveTab(item.id as TabType); setSidebarOpen(false); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
                   style={activeTab === item.id
-                    ? { backgroundColor: '#ede9fe', color: '#6d28d9' }
+                    ? { backgroundColor: '#dbeafe', color: '#1d4ed8' }
                     : { color: '#374151' }
                   }
                 >
-                  <svg style={{ color: activeTab === item.id ? '#6d28d9' : '#6b7280' }} className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg style={{ color: activeTab === item.id ? '#1d4ed8' : '#6b7280' }} className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     {item.id === 'overview' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />}
                     {item.id === 'nearby' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />}
                     {item.id === 'hotels' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />}
@@ -288,8 +434,11 @@ export default function TourismDetailPage() {
                 </button>
               ))}
 
-              <div className="pt-4 mt-4 border-t border-gray-100">
-                <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Quick Actions</p>
+              <div>
+                <button onClick={() => { setTourismMapOpen(true); setSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
+                  <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  See on Map
+                </button>
                 <button onClick={() => { setImageGalleryOpen(true); setSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
                   <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   View Images
@@ -309,7 +458,7 @@ export default function TourismDetailPage() {
             <div className="p-4 border-t border-gray-100 bg-white">
               {isAuthenticated ? (
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-white border-2 flex items-center justify-center font-black text-sm" style={{ borderColor: '#7c3aed', color: '#7c3aed' }}>
+                  <div className="w-9 h-9 rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center font-black text-sm text-gray-700">
                     {username?.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -318,7 +467,7 @@ export default function TourismDetailPage() {
                   </div>
                 </div>
               ) : (
-                <button onClick={() => { setAuthMode('login'); setAuthModal(true); setSidebarOpen(false); }} className="w-full py-2.5 rounded-lg text-sm font-bold text-white transition-all" style={{ backgroundColor: '#7c3aed' }}>
+                <button onClick={() => { setAuthMode('login'); setAuthModal(true); setSidebarOpen(false); }} className="w-full py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all">
                   Login to Rate
                 </button>
               )}
@@ -330,7 +479,7 @@ export default function TourismDetailPage() {
       {/* Main Content — full width */}
       <main className="min-h-screen">
         <div className="relative h-48 md:h-56">
-          <Image src={detail.images?.[currentImageIndex]?.imageUrl || detail.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"} alt={detail.name} fill className="object-cover" priority />
+          <Image src={getImageUrl(detail.images?.[currentImageIndex]?.imageUrl || detail.imageUrl, "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800")} alt={detail.name} fill className="object-cover" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent" />
           
           {detail.images && detail.images.length > 1 && (
@@ -362,147 +511,140 @@ export default function TourismDetailPage() {
 
 
         {/* Content Area */}
-        <div className="p-4 md:p-6 bg-gray-100 min-h-[calc(100vh-14rem)] shadow-[inset_0_0_80px_rgba(0,0,0,0.12)]">
+        <div className="p-4 md:p-6 bg-white min-h-[calc(100vh-14rem)]">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
-            <div className="space-y-5 p-6 rounded-2xl bg-white shadow-[0_8px_25px_rgba(0,0,0,0.12)]">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-              <div className="rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] transition-all duration-300 cursor-pointer bg-white border-2 border-gray-200">
-                  <h3 className="text-gray-900 font-black text-base mb-2">About This Place</h3>
-                  <p className="text-gray-700 text-sm leading-relaxed font-semibold line-clamp-3">{detail.description || "A beautiful destination waiting to be explored."}</p>
-                  <button
-                    onClick={() => openDetailModal('description')}
-                    className="mt-4 w-full py-2 px-3 bg-purple-100 text-purple-700 text-sm font-bold rounded-lg hover:bg-purple-200 hover:scale-105 transition-all shadow-md"
-                  >
-                    See More →
-                  </button>
-                </div>
-                
-                <div className="rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] transition-all duration-300 cursor-pointer bg-white border-2 border-gray-200">
-                  <h3 className="text-gray-900 font-black text-base mb-2">Best Time to Visit</h3>
-                  <p className="text-gray-700 text-sm leading-relaxed font-semibold line-clamp-2">{detail.bestTime || "Year-round destination"}</p>
-                  <button
-                    onClick={() => openDetailModal('bestTime')}
-                    className="mt-4 w-full py-2 px-3 bg-purple-100 text-purple-700 text-sm font-bold rounded-lg hover:bg-purple-200 hover:scale-105 transition-all shadow-md"
-                  >
-                    See More →
-                  </button>
-                </div>
+            <div className="space-y-1.5">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2 mt-1">
 
-                <div className="rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] transition-all duration-300 cursor-pointer bg-white border-2 border-gray-200">
-                  <h3 className="text-gray-900 font-black text-base mb-2">Visit Duration</h3>
-                  <p className="text-gray-700 text-sm leading-relaxed font-semibold line-clamp-2">{detail.visitTime ? formatVisitTime(detail.visitTime) : "Duration not specified"}</p>
-                  <button
-                    onClick={() => openDetailModal('visitTime')}
-                    className="mt-4 w-full py-2 px-3 bg-purple-100 text-purple-700 text-sm font-bold rounded-lg hover:bg-purple-200 hover:scale-105 transition-all shadow-md"
-                  >
-                    See More →
-                  </button>
-                </div>
-
-                <div className="rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] transition-all duration-300 cursor-pointer bg-white border-2 border-gray-200">
-                  <h3 className="text-gray-900 font-black text-base mb-2">Safety Info</h3>
-                  <p className="text-gray-700 text-sm leading-relaxed font-semibold line-clamp-2">{detail.peaceInfo || "Safe and welcoming destination"}</p>
-                  <button
-                    onClick={() => openDetailModal('safety')}
-                    className="mt-4 w-full py-2 px-3 bg-purple-100 text-purple-700 text-sm font-bold rounded-lg hover:bg-purple-200 hover:scale-105 transition-all shadow-md"
-                  >
-                    See More →
-                  </button>
-                </div>
-
-                <div className="rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] transition-all duration-300 cursor-pointer bg-white border-2 border-gray-200">
-                  <h3 className="text-gray-900 font-black text-base mb-2">Languages</h3>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {detail.languages?.length > 0 ? detail.languages.slice(0, 2).map((lang, i) => (
-                      <span key={i} className="px-3 py-1 text-gray-700 font-semibold rounded-full text-xs border border-gray-200">{lang}</span>
-                    )) : <span className="text-gray-700 text-sm font-semibold">Local languages spoken</span>}
-                    {detail.languages && detail.languages.length > 2 && (
-                      <span className="px-3 py-1 text-gray-700 font-semibold rounded-full text-xs border border-gray-200">+{detail.languages.length - 2} more</span>
-                    )}
+                {/* Card 1 — About This Place */}
+                <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
+                  <h3 className="text-gray-900 font-black text-sm mb-1">About This Place:</h3>
+                  <div className="relative">
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4 pr-0">{detail.description || "A beautiful destination waiting to be explored."}</p>
+                    <span className="absolute bottom-0 right-0 flex items-end">
+                      <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
+                      <button onClick={() => openDetailModal('description')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
+                        See More →
+                      </button>
+                    </span>
                   </div>
-                  <button
-                    onClick={() => openDetailModal('languages')}
-                    className="w-full py-2 px-3 bg-purple-100 text-purple-700 text-sm font-bold rounded-lg hover:bg-purple-200 hover:scale-105 transition-all shadow-md"
-                  >
-                    See More →
-                  </button>
                 </div>
 
-                <div className="rounded-2xl p-6 shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] transition-all duration-300 cursor-pointer bg-white border-2 border-gray-200">
-                  <h3 className="text-gray-900 font-black text-base mb-2">Rating</h3>
-                  <div className="text-4xl font-black text-yellow-500">{computeRatingSummary(detail).avgRating?.toFixed(1) || '0'}/5</div>
-                  <p className="text-gray-700 text-xs font-bold">{computeRatingSummary(detail).totalRatings || 0} reviews</p>
+                {/* Card 2 — Best Time to Visit */}
+                <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
+                  <h3 className="text-gray-900 font-black text-sm mb-1">Best Time to Visit:</h3>
+                  <div className="relative">
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{detail.bestTime || "Year-round destination"}</p>
+                    <span className="absolute bottom-0 right-0 flex items-end">
+                      <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
+                      <button onClick={() => openDetailModal('bestTime')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
+                        See More →
+                      </button>
+                    </span>
+                  </div>
                 </div>
+
+                {/* Card 3 — Visit Duration */}
+                <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
+                  <h3 className="text-gray-900 font-black text-sm mb-1">Visit Duration:</h3>
+                  <div className="relative">
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{detail.visitTime ? formatVisitTime(detail.visitTime) : "Duration not specified"}</p>
+                    <span className="absolute bottom-0 right-0 flex items-end">
+                      <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
+                      <button onClick={() => openDetailModal('visitTime')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
+                        See More →
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card 4 — Safety Info */}
+                <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
+                  <h3 className="text-gray-900 font-black text-sm mb-1">Safety Info:</h3>
+                  <div className="relative">
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{detail.peaceInfo || "Safe and welcoming destination"}</p>
+                    <span className="absolute bottom-0 right-0 flex items-end">
+                      <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
+                      <button onClick={() => openDetailModal('safety')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
+                        See More →
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card 5 — Languages */}
+                <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
+                  <h3 className="text-gray-900 font-black text-sm mb-1">Languages:</h3>
+                  <div className="relative">
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">
+                      {detail.languages?.length > 0 ? detail.languages.join(', ') : "Local languages spoken"}
+                    </p>
+                    <span className="absolute bottom-0 right-0 flex items-end">
+                      <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
+                      <button onClick={() => openDetailModal('languages')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
+                        See More →
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card 6 — Average Rating */}
+                <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
+                  <h3 className="text-gray-900 font-black text-sm mb-1">Average Rating:</h3>
+                  <div className="relative">
+                    <div className="text-lg font-black text-yellow-500 leading-tight">{computeRatingSummary(detail).avgRating?.toFixed(1) || '0'}/5</div>
+                    <p className="text-gray-500 text-xs font-medium mt-0.5 line-clamp-2">{computeRatingSummary(detail).totalRatings || 0} reviews</p>
+                    <span className="absolute bottom-0 right-0 flex items-end">
+                      <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
+                      <button onClick={() => setRatingsViewOpen(true)} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
+                        See Reviews →
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
               </div>
 
-              {/* Gallery */}
+              {/* Gallery — grid layout like hotels */}
               {detail.images && detail.images.length > 1 && (
-                <div className="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-gray-900 font-black text-lg">Gallery</h3>
-                    <button onClick={() => setImageGalleryOpen(true)} className="px-5 py-2 bg-purple-600 text-white text-sm font-black rounded-lg hover:bg-purple-700 hover:scale-105 transition-all shadow-md">
-                      View All Images
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white rounded-2xl px-4 py-4 border border-gray-200">
+                  <h3 className="text-gray-900 font-black text-base mb-3">Internal Images</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {detail.images.map((img, idx) => (
-                      <button key={idx} onClick={() => setZoomedImage(img.imageUrl)} className="relative h-20 md:h-24 rounded-lg overflow-hidden transition-all shadow-md hover:shadow-lg border border-gray-200 hover:border-purple-400 hover:scale-105">
+                      <button key={idx} onClick={() => setZoomedImageIndex(idx)} className="relative h-32 rounded-xl overflow-hidden border border-gray-200 hover:border-blue-400 transition-all">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img.imageUrl} alt={img.title || `${detail.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={getImageUrl(img.imageUrl)} alt={img.title || `${detail.name} ${idx + 1}`} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Internal Images */}
-              {(!detail.images || detail.images.length <= 1) && (
-                <div className="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <h3 className="text-gray-900 font-black">Internal Images</h3>
-                        <p className="text-gray-600 text-sm font-semibold">Explore detailed photos of this place</p>
-                      </div>
-                    </div>
-                    <button onClick={() => setImageGalleryOpen(true)}
-                      style={{ background: "linear-gradient(145deg,rgba(255,255,255,0.95) 0%,rgba(237,233,254,0.6) 50%,rgba(255,255,255,0.9) 100%)", boxShadow: "0 16px 40px rgba(109,40,217,0.22), 0 4px 12px rgba(109,40,217,0.12), inset 0 2px 0 rgba(255,255,255,1), inset 0 -2px 6px rgba(109,40,217,0.1), inset 1px 0 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(196,181,253,0.6)" }}
-                      className="px-6 py-3 text-purple-700 font-black rounded-xl hover:scale-105 hover:-translate-y-0.5 transition-all">
-                      View Gallery
+                  <div className="mt-3 flex justify-end">
+                    <button onClick={() => setImageGalleryOpen(true)} className="px-4 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 transition-all">
+                      Zoom Images
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Language Guiders */}
-              <div className="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gray-200 rounded-xl flex items-center justify-center shadow-md">
-                        <svg className="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                      </div>
-                    <div>
-                      <h3 className="text-gray-900 font-black">Language Guiders</h3>
-                      <p className="text-gray-600 text-sm font-semibold">
-                        {guidersLoading ? 'Loading...' : guiders.length > 0 ? `${guiders.length} guide${guiders.length !== 1 ? 's' : ''} available` : 'Find local guides'}
-                      </p>
-                    </div>
+              {/* Internal Images — no images case */}
+              {(!detail.images || detail.images.length <= 1) && (
+                <div className="bg-white rounded-2xl p-4 border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-gray-900 font-black">Internal Images</h3>
+                    <button onClick={() => setImageGalleryOpen(true)}
+                      className="px-4 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 transition-all">
+                      Zoom Images
+                    </button>
                   </div>
-                  <button onClick={() => setActiveTab('guiders')}
-                    style={{ background: "linear-gradient(145deg,rgba(255,255,255,0.95) 0%,rgba(237,233,254,0.6) 50%,rgba(255,255,255,0.9) 100%)", boxShadow: "0 16px 40px rgba(109,40,217,0.22), 0 4px 12px rgba(109,40,217,0.12), inset 0 2px 0 rgba(255,255,255,1), inset 0 -2px 6px rgba(109,40,217,0.1), inset 1px 0 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(196,181,253,0.6)" }}
-                    className="px-6 py-3 text-purple-700 font-black rounded-xl hover:scale-105 hover:-translate-y-0.5 transition-all">
-                    View Guiders
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* Nearby Places Preview */}
               {detail.nearbyPlaces && detail.nearbyPlaces.length > 0 && (
                 <div className="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-gray-900 font-black text-lg">Nearby Places in {detail.kebele}</h3>
-                    <button onClick={() => setActiveTab('nearby')} className="text-purple-600 text-sm font-black hover:text-purple-700 hover:underline transition-all">
+                    <button onClick={() => setActiveTab('nearby')} className="text-blue-600 text-sm font-black hover:text-blue-700 hover:underline transition-all">
                       View All ({detail.nearbyPlaces.length}) →
                     </button>
                   </div>
@@ -510,7 +652,8 @@ export default function TourismDetailPage() {
                     {detail.nearbyPlaces.slice(0, 3).map((place) => (
                       <div key={place.id} onClick={() => router.push(`/tourisms/${place.id}`)} className="relative h-28 rounded-xl overflow-hidden cursor-pointer group border-2 border-gray-300 hover:border-gray-400 shadow-md hover:shadow-lg transition-all">
                         {place.imageUrl ? (
-                          <Image src={place.imageUrl} alt={place.name} fill className="object-cover group-hover:scale-110 transition-transform" />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={getImageUrl(place.imageUrl)} alt={place.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center"></div>
                         )}
@@ -524,22 +667,6 @@ export default function TourismDetailPage() {
                 </div>
               )}
 
-              {/* CTA */}
-              <div className="bg-white rounded-2xl p-6 text-center shadow-md border-2 border-gray-200">
-                <h3 className="text-2xl font-black text-gray-900 mb-2">Ready to Explore?</h3>
-                <p className="text-gray-600 text-sm font-semibold mb-5">Find accommodations and plan your route to {detail.name}</p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  <button onClick={() => setTourismMapOpen(true)}
-                    style={{ background: "linear-gradient(145deg,rgba(255,255,255,0.95) 0%,rgba(237,233,254,0.6) 50%,rgba(255,255,255,0.9) 100%)", boxShadow: "0 16px 40px rgba(109,40,217,0.22), 0 4px 12px rgba(109,40,217,0.12), inset 0 2px 0 rgba(255,255,255,1), inset 0 -2px 6px rgba(109,40,217,0.1), inset 1px 0 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(196,181,253,0.6)" }}
-                    className="text-purple-700 px-6 py-3 rounded-xl font-black hover:scale-105 hover:-translate-y-0.5 transition-all">See on Map</button>
-                  <button onClick={() => setActiveTab('hotels')}
-                    style={{ background: "linear-gradient(145deg,rgba(255,255,255,0.95) 0%,rgba(237,233,254,0.6) 50%,rgba(255,255,255,0.9) 100%)", boxShadow: "0 16px 40px rgba(109,40,217,0.22), 0 4px 12px rgba(109,40,217,0.12), inset 0 2px 0 rgba(255,255,255,1), inset 0 -2px 6px rgba(109,40,217,0.1), inset 1px 0 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(196,181,253,0.6)" }}
-                    className="text-purple-700 px-6 py-3 rounded-xl font-black hover:scale-105 hover:-translate-y-0.5 transition-all">Find Hotels</button>
-                  <button onClick={() => setActiveTab('roads')}
-                    style={{ background: "linear-gradient(145deg,rgba(255,255,255,0.95) 0%,rgba(237,233,254,0.6) 50%,rgba(255,255,255,0.9) 100%)", boxShadow: "0 16px 40px rgba(109,40,217,0.22), 0 4px 12px rgba(109,40,217,0.12), inset 0 2px 0 rgba(255,255,255,1), inset 0 -2px 6px rgba(109,40,217,0.1), inset 1px 0 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(196,181,253,0.6)" }}
-                    className="text-purple-700 px-6 py-3 rounded-xl font-black hover:scale-105 hover:-translate-y-0.5 transition-all">View Routes</button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -563,7 +690,8 @@ export default function TourismDetailPage() {
                     <div key={place.id} onClick={() => router.push(`/tourisms/${place.id}`)} className="bg-white rounded-xl overflow-hidden cursor-pointer group shadow-md border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg hover:scale-[1.02] transition-all">
                       <div className="relative h-44">
                         {place.imageUrl ? (
-                          <Image src={place.imageUrl} alt={place.name} fill className="object-cover group-hover:scale-110 transition-transform" />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={getImageUrl(place.imageUrl)} alt={place.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center"></div>
                         )}
@@ -586,7 +714,7 @@ export default function TourismDetailPage() {
                       </div>
                       <div className="p-4 flex items-center justify-between">
                         <span className="text-gray-700 text-sm font-black">Same Kebele</span>
-                        <span className="text-purple-600 text-sm font-black hover:text-purple-700">View Details →</span>
+                        <span className="text-blue-600 text-sm font-black hover:text-blue-700">View Details →</span>
                       </div>
                     </div>
                   ))}
@@ -597,62 +725,74 @@ export default function TourismDetailPage() {
 
           {/* Hotels Tab */}
           {activeTab === 'hotels' && (
-            <div>
-              <div className="mb-6 bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200">
-                <h2 className="text-2xl font-black text-gray-900 mb-1">Hotels & Accommodations</h2>
-                <p className="text-gray-600 font-semibold">Find the perfect place to stay near {detail.name}</p>
+            <div className="space-y-1.5">
+              {/* Header — borderless, tight top margin */}
+              <div className="bg-white px-1 pt-0 pb-2 flex items-center gap-2">
+                <h2 className="text-lg font-black text-gray-900">Hotels & Accommodations</h2>
+                <span className="text-gray-300">·</span>
+                <p className="text-gray-400 text-sm font-medium">Find the perfect place to stay near {detail.name}</p>
               </div>
-              
+
               {hotelsLoading ? (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                   <p className="mt-4 text-gray-700 font-black">Loading hotels...</p>
                 </div>
               ) : hotels.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border-2 border-gray-200 shadow-md">
-                  <h3 className="text-xl font-black text-gray-900 mb-2">No Hotels Found</h3>
-                  <p className="text-gray-600 font-semibold">No accommodations available for this destination yet.</p>
+                <div className="text-center py-10 bg-white rounded-2xl border border-gray-200">
+                  <h3 className="text-lg font-black text-gray-900 mb-1">No Hotels Found</h3>
+                  <p className="text-gray-500 text-sm font-semibold">No accommodations available for this destination yet.</p>
                 </div>
               ) : (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {hotels.map((hotel) => (
-                    <div key={hotel.id} className="bg-white rounded-2xl overflow-hidden shadow-md border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg hover:scale-[1.03] transition-all duration-300">
-                      <div className="relative h-48">
+                    <div key={hotel.id} className="bg-white rounded-xl overflow-hidden border border-gray-200 flex flex-col">
+                      {/* Shorter image height */}
+                      <div className="relative w-full h-40">
                         {(() => {
-                          // Extract first image URL from images array or use imageUrl
-                          let imageUrl = '';
+                          let rawUrl = '';
                           if (hotel.images && hotel.images.length > 0) {
-                            imageUrl = hotel.images[0].imageUrl;
+                            rawUrl = hotel.images[0].imageUrl;
                           } else if (hotel.imageUrl) {
-                            imageUrl = hotel.imageUrl;
+                            rawUrl = hotel.imageUrl;
                           }
-                          
+                          const imageUrl = getImageUrl(rawUrl);
                           return imageUrl ? (
-                            <Image src={imageUrl} alt={hotel.name} fill className="object-cover" />
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={imageUrl} alt={hotel.name} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center"></div>
+                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                              <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                            </div>
                           );
                         })()}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                        <div className="absolute bottom-3 left-3 text-yellow-400 text-xl font-black drop-shadow-lg">{'★'.repeat(hotel.stars || 3)}{'☆'.repeat(5 - (hotel.stars || 3))}</div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                        <div className="absolute bottom-1.5 left-2 text-yellow-400 text-sm font-black drop-shadow-lg">
+                          {'★'.repeat(hotel.stars || 3)}{'☆'.repeat(5 - (hotel.stars || 3))}
+                        </div>
                       </div>
-                      <div className="p-5">
-                        <h3 className="text-gray-900 font-black text-xl mb-4">{hotel.name}</h3>
-                        <div className="space-y-2">
-                          <div className="flex gap-2">
-                            <button onClick={() => router.push(`/hotels/${hotel.id}`)} className="flex-1 bg-purple-600 text-white py-2.5 rounded-xl text-sm font-black hover:bg-purple-700 hover:scale-105 transition-all shadow-md flex items-center justify-center gap-2">
-                              View Details
-                            </button>
-                            <button onClick={() => router.push(`/hotels/${hotel.id}`)} className="flex-1 bg-purple-600 text-white py-2.5 rounded-xl text-sm font-black hover:bg-purple-700 hover:scale-105 transition-all shadow-md flex items-center justify-center gap-2">
-                              Booking
-                            </button>
-                          </div>
+                      {/* Info + buttons with minimal padding */}
+                      <div className="px-3 py-2.5 flex flex-col gap-2 flex-1">
+                        <h3 className="text-gray-900 font-black text-sm leading-tight truncate">{hotel.name}</h3>
+                        <div className="flex gap-1.5">
                           <button
-                            onClick={() => {
-                              setSelectedHotelForMap(hotel);
-                              setHotelMapOpen(true);
-                            }}
-                            className="w-full bg-purple-50 text-purple-700 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 transition-all border border-purple-200">
+                            onClick={() => router.push(`/hotels/${hotel.id}`)}
+                            className="flex-1 bg-white text-blue-700 py-2 px-0.5 rounded-xl text-sm font-black border border-blue-100 hover:bg-blue-50 hover:scale-105 transition-all shadow-sm"
+                          >
+                            View Details
+                          </button>
+                          <button
+                            onClick={() => router.push(`/hotels/${hotel.id}`)}
+                            className="flex-1 bg-white text-blue-700 py-2 px-0.5 rounded-xl text-sm font-black border border-blue-100 hover:bg-blue-50 hover:scale-105 transition-all shadow-sm"
+                          >
+                            Booking
+                          </button>
+                          <button
+                            onClick={() => { setSelectedHotelForMap(hotel); setHotelMapOpen(true); }}
+                            className="flex-1 bg-white text-blue-700 py-2 px-0.5 rounded-xl text-sm font-black border border-blue-100 hover:bg-blue-50 hover:scale-105 transition-all shadow-sm"
+                          >
                             View on Map
                           </button>
                         </div>
@@ -668,129 +808,94 @@ export default function TourismDetailPage() {
           {/* Roads Tab */}
           {activeTab === 'roads' && (
             <div>
-              <div className="mb-5 bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200">
-                <h2 className="text-2xl font-black text-gray-900 mb-1">Roads & Transport</h2>
-                <p className="text-gray-600 font-semibold">Find the best routes to reach {detail.name}</p>
+              {/* Header + stats in one row */}
+              <div className="flex items-center gap-2 px-1 pt-0 pb-2 flex-wrap">
+                <h2 className="text-lg font-black text-gray-900 flex-shrink-0">Roads & Transport</h2>
+                <span className="text-gray-300 flex-shrink-0">·</span>
+                <p className="text-gray-400 text-sm font-medium flex-shrink-0">Find the best routes to reach {detail.name}</p>
+                <div className="ml-auto flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">{roads.filter(r => r.distanceByCar).length} Drive Routes</span>
+                  {roads.filter(r => r.distanceByFoot).length > 0 && (
+                    <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">Walking route available</span>
+                  )}
+                  {roads.filter(r => r.distanceByHorse).length > 0 && (
+                    <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">{roads.filter(r => r.distanceByHorse).length} Horse route(s)</span>
+                  )}
+                </div>
               </div>
-              
+
               {roadsLoading ? (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                   <p className="mt-4 text-gray-700 font-black">Loading routes...</p>
                 </div>
               ) : roads.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border-2 border-gray-200 shadow-md">
+                <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
                   <h3 className="text-xl font-black text-gray-900 mb-2">No Routes Found</h3>
                   <p className="text-gray-600 font-semibold">Road information for this destination is being prepared.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-3 mb-4">
-                    <span className="px-4 py-2 bg-white text-gray-700 rounded-xl text-sm font-black shadow-md border-2 border-gray-300">{roads.filter(r => r.distanceByCar).length} Drive Routes</span>
-                    {roads.filter(r => r.distanceByFoot).length > 0 && (
-                      <span className="px-4 py-2 bg-white text-gray-700 rounded-xl text-sm font-black shadow-md border-2 border-gray-300">Walking route available</span>
-                    )}
-                    {roads.filter(r => r.distanceByHorse).length > 0 && (
-                      <span className="px-4 py-2 bg-white text-gray-700 rounded-xl text-sm font-black shadow-md border-2 border-gray-300">{roads.filter(r => r.distanceByHorse).length} Horse route(s)</span>
-                    )}
-                  </div>
-
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {roads.map((road) => (
-                    <div key={road.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all">
-                      {/* Compact header row */}
-                      <div className="px-4 py-2.5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <div key={road.id} className="bg-white rounded-xl overflow-hidden border border-gray-200 flex flex-col">
+                      {/* Card header */}
+                      <div className="px-4 py-2.5 border-b border-gray-100 flex justify-between items-center">
                         <h3 className="text-gray-900 font-black text-sm">From {road.initialPlace}</h3>
-                        <div className="flex items-center gap-2">
-                          {road.totalDistance && (
-                            <span className="text-xs font-bold text-gray-600 bg-white px-2 py-1 rounded-lg border border-gray-200">
-                              {road.totalDistance.toFixed(1)} km total
-                            </span>
-                          )}
-                        </div>
                       </div>
 
-                      <div className="px-4 py-3">
+                      <div className="px-4 py-3 flex flex-col gap-3 flex-1">
                         {road.description && (
-                          <p className="text-gray-600 text-xs font-semibold mb-2.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">{road.description}</p>
+                          <p className="text-gray-500 text-xs leading-relaxed">{road.description}</p>
                         )}
 
-                        {/* Distance pills in one row */}
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {road.distanceByCar && (
-                            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
-                              <span className="text-xs font-bold text-gray-500 uppercase">🚗 Car</span>
-                              <span className="text-xs font-black text-gray-900">{road.distanceByCar.toFixed(1)} km</span>
-                            </div>
-                          )}
-                          {road.distanceByFoot && (
-                            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
-                              <span className="text-xs font-bold text-gray-500 uppercase">🚶 Foot</span>
-                              <span className="text-xs font-black text-gray-900">{road.distanceByFoot.toFixed(1)} km</span>
-                            </div>
-                          )}
-                          {road.distanceByHorse && (
-                            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
-                              <span className="text-xs font-bold text-gray-500 uppercase">🐎 Horse</span>
-                              <span className="text-xs font-black text-gray-900">{road.distanceByHorse.toFixed(1)} km</span>
-                            </div>
-                          )}
-                          {road.distanceByPlane && (
-                            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
-                              <span className="text-xs font-bold text-gray-500 uppercase">✈️ Plane</span>
-                              <span className="text-xs font-black text-gray-900">{road.distanceByPlane.toFixed(1)} km</span>
-                            </div>
-                          )}
+                        {/* Road Supports — column format */}
+                        <div>
+                          <p className="text-gray-400 text-xs font-black uppercase tracking-wider mb-1.5">Road Supports</p>
+                          <div className="space-y-1">
+                            {road.distanceByCar && (
+                              <div className="flex items-center justify-between py-1 border-b border-gray-100">
+                                <span className="text-sm font-semibold text-gray-600">By Car</span>
+                                <span className="text-sm font-black text-gray-900">{road.distanceByCar.toFixed(1)} km</span>
+                              </div>
+                            )}
+                            {road.distanceByFoot && (
+                              <div className="flex items-center justify-between py-1 border-b border-gray-100">
+                                <span className="text-sm font-semibold text-gray-600">By Foot</span>
+                                <span className="text-sm font-black text-gray-900">{road.distanceByFoot.toFixed(1)} km</span>
+                              </div>
+                            )}
+                            {road.distanceByHorse && (
+                              <div className="flex items-center justify-between py-1 border-b border-gray-100">
+                                <span className="text-sm font-semibold text-gray-600">By Horse</span>
+                                <span className="text-sm font-black text-gray-900">{road.distanceByHorse.toFixed(1)} km</span>
+                              </div>
+                            )}
+                            {road.distanceByPlane && (
+                              <div className="flex items-center justify-between py-1 border-b border-gray-100">
+                                <span className="text-sm font-semibold text-gray-600">By Plane</span>
+                                <span className="text-sm font-black text-gray-900">{road.distanceByPlane.toFixed(1)} km</span>
+                              </div>
+                            )}
+                            {road.totalDistance && (
+                              <div className="flex items-center justify-between py-1">
+                                <span className="text-sm font-black text-gray-900">Total</span>
+                                <span className="text-sm font-black text-gray-900">{road.totalDistance.toFixed(1)} km</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Action buttons — side by side, fixed height */}
-                        <div className="flex gap-2">
+                        {/* Action buttons — pushed to bottom */}
+                        <div className="flex flex-col gap-1.5 mt-auto pt-1">
                           <button onClick={() => { setSelectedRoad(road); setMapModalOpen(true); }}
-                            className="flex-1 bg-purple-50 text-purple-700 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 transition-all border border-purple-200">
+                            className="w-full bg-white text-blue-700 py-2 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-50 transition-all">
                             View on Map
                           </button>
-                          <button onClick={() => toggleHorseServices(road.id)} disabled={loadingHorseServices[road.id]}
-                            className="flex-1 bg-purple-50 text-purple-700 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 transition-all disabled:opacity-50 border border-purple-200 flex items-center justify-center gap-1.5">
-                            Horse Services
-                            {loadingHorseServices[road.id] ? (
-                              <span className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></span>
-                            ) : (
-                              <svg className={`w-3 h-3 transition-transform ${expandedHorseServices[road.id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            )}
+                          <button onClick={() => router.push(`/horsers?roadId=${road.id}`)}
+                            className="w-full bg-white text-blue-700 py-2 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-50 transition-all">
+                            Horse Services for this road
                           </button>
                         </div>
-
-                        {/* Horse services — expands below the Horse Services button (right half) */}
-                        {expandedHorseServices[road.id] && (
-                          <div className="flex gap-2 mt-2">
-                            {/* Empty left half to align with View on Map button */}
-                            <div className="flex-1" />
-                            {/* Horse services panel aligned under Horse Services button */}
-                            <div className="flex-1 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                              {horseServices[road.id]?.length > 0 ? (
-                                <div className="space-y-1.5">
-                                  {horseServices[road.id].map((service) => (
-                                    <div key={service.id} className="bg-white px-3 py-2 rounded-lg border border-gray-200">
-                                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#374151', lineHeight: '1.7' }}>
-                                        <span style={{ color: '#6b7280' }}>Name: </span><span style={{ color: '#111827', fontWeight: 800 }}>{service.ownerName}</span><br/>
-                                        <span style={{ color: '#6b7280' }}>Initial Place: </span><span style={{ color: '#111827', fontWeight: 800 }}>{service.initialPlace}</span><br/>
-                                        <span style={{ color: '#6b7280' }}>Contact: </span><span style={{ color: '#111827', fontWeight: 800 }}>{service.contactInfo}</span>
-                                      </div>
-                                      {service.cost && (
-                                        <div className="mt-1" style={{ fontWeight: 900, fontSize: '13px', color: '#111827' }}>
-                                          {service.cost.toLocaleString()} ETB
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-gray-500 text-xs font-semibold text-center py-1">No horse services available.</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -803,83 +908,125 @@ export default function TourismDetailPage() {
           {/* Guiders Tab */}
           {activeTab === 'guiders' && (
             <div>
-              <div className="mb-5">
-                <h2 className="text-2xl font-black text-gray-900 mb-2">Language Guiders</h2>
-                <p className="text-gray-600 font-semibold">Local guides who can help you explore {detail.name}</p>
+              {/* Header row with language search on the right */}
+              <div className="flex items-center gap-2 px-1 pt-0 pb-2 flex-wrap">
+                <h2 className="text-lg font-black text-gray-900 flex-shrink-0">Language Guiders</h2>
+                <span className="text-gray-300 flex-shrink-0">·</span>
+                <p className="text-gray-400 text-sm font-medium flex-shrink-0">Local guides who can help you explore {detail.name}</p>
+                {guiders.length > 0 && (
+                  <>
+                    <span className="text-gray-300 flex-shrink-0">·</span>
+                    <span className="text-gray-500 text-sm font-semibold flex-shrink-0">
+                      {guiders.filter(g => !guiderLangFilter.trim() || g.languages.some(l => l.toLowerCase().includes(guiderLangFilter.toLowerCase()))).length} Guider{guiders.length !== 1 ? 's' : ''}
+                    </span>
+                  </>
+                )}
+                {/* Language search — pushed to right */}
+                <div className="ml-auto flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white">
+                  <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={guiderLangFilter}
+                    onChange={e => setGuiderLangFilter(e.target.value)}
+                    placeholder="Filter by language..."
+                    className="text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent w-36"
+                  />
+                  {guiderLangFilter && (
+                    <button onClick={() => setGuiderLangFilter('')} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
-              
+
               {guidersLoading ? (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                   <p className="mt-4 text-gray-700 font-black">Loading guiders...</p>
                 </div>
               ) : guiders.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border-2 border-gray-200 shadow-md">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                  </div>
+                <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
                   <h3 className="text-xl font-black text-gray-900 mb-2">No Guiders Available</h3>
                   <p className="text-gray-600 font-semibold">No language guiders registered for this destination yet.</p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-3 mb-4">
-                    <span className="px-3 py-1 text-gray-700 rounded-full text-sm font-semibold border border-gray-200">{guiders.length} Guider{guiders.length !== 1 ? 's' : ''}</span>
-                    <span className="px-3 py-1 text-gray-700 rounded-full text-sm font-semibold border border-gray-200">{[...new Set(guiders.flatMap(g => g.languages))].length} Languages</span>
+              ) : (() => {
+                const filtered = guiderLangFilter.trim()
+                  ? guiders.filter(g => g.languages.some(l => l.toLowerCase().includes(guiderLangFilter.toLowerCase())))
+                  : guiders;
+                return filtered.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+                    <p className="text-gray-500 font-semibold">No guiders found for "<span className="font-black text-gray-700">{guiderLangFilter}</span>"</p>
+                    <button onClick={() => setGuiderLangFilter('')} className="mt-2 text-blue-600 text-sm font-bold hover:underline">Clear filter</button>
                   </div>
-
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {guiders.map((guider) => (
-                      <div key={guider.id} className="bg-white rounded-2xl overflow-hidden shadow-md border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all">
-                        <div className="p-5 border-b border-gray-200 flex items-center gap-4 bg-gray-50">
-                          <div className="w-14 h-14 bg-gray-200 rounded-xl flex items-center justify-center shadow-md">
-                            <svg className="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {filtered.map((guider) => (
+                      <div key={guider.id} className="bg-white rounded-xl overflow-hidden border border-gray-200 flex flex-col">
+                        {/* Card header */}
+                        <div className="px-4 py-2.5 flex items-center gap-3">
+                          <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                           </div>
-                          <div>
-                            <h3 className="text-gray-900 font-black text-lg">{guider.fullName || guider.name}</h3>
-                            <p className="text-gray-600 text-sm font-semibold">Language Guide</p>
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-black text-gray-900 truncate">{guider.fullName || guider.name}</h3>
+                            <p className="text-xs text-gray-400">Language Guide</p>
                           </div>
                         </div>
-                        <div className="p-5 space-y-4">
-                          <div className="flex items-center gap-3">
-                            <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                            <div>
-                              <p className="text-gray-600 text-xs uppercase font-bold">Contact</p>
-                              <p className="text-gray-900 font-bold">{guider.contactInfo}</p>
+
+                        <div className="px-4 pb-3 flex flex-col gap-3 flex-1">
+                          {/* Info column */}
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between py-1">
+                              <span className="text-sm font-semibold text-gray-600">Contact</span>
+                              <span className="text-sm font-black text-gray-900">{guider.contactInfo}</span>
+                            </div>
+                            <div className="flex items-start justify-between py-1">
+                              <span className="text-sm font-semibold text-gray-600 flex-shrink-0">Languages</span>
+                              <span className="text-sm font-black text-gray-900 text-right ml-2">
+                                {guider.languages.map((lang, idx) => (
+                                  <span key={idx}>
+                                    <span className={guiderLangFilter && lang.toLowerCase().includes(guiderLangFilter.toLowerCase()) ? 'text-blue-700 underline' : ''}>
+                                      {lang}
+                                    </span>
+                                    {idx < guider.languages.length - 1 ? ', ' : ''}
+                                  </span>
+                                ))}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between py-1">
+                              <span className="text-sm font-semibold text-gray-600">Status</span>
+                              <span className={`text-sm font-black flex items-center gap-1 ${guider.active ? 'text-green-600' : 'text-red-500'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${guider.active ? 'bg-green-600' : 'bg-red-500'}`}></span>
+                                {guider.active ? 'Available' : 'Unavailable'}
+                              </span>
                             </div>
                           </div>
-                          <div>
-                            <p className="text-gray-600 text-xs uppercase font-bold mb-2">Languages Spoken</p>
-                            <div className="flex flex-wrap gap-2">
-                              {guider.languages.map((lang, idx) => (
-                                <span key={idx} className="px-3 py-1 text-gray-700 rounded-full text-sm font-semibold border border-gray-200">{lang}</span>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="pt-2 border-t border-gray-200">
-                            <span className={`inline-flex items-center gap-1 text-sm font-bold ${guider.active ? 'text-green-600' : 'text-red-600'}`}>
-                              <span className={`w-2 h-2 rounded-full ${guider.active ? 'bg-green-600' : 'bg-red-600'}`}></span>
-                              {guider.active ? 'Available for hire' : 'Currently unavailable'}
-                            </span>
+
+                          {/* Buttons pushed to bottom */}
+                          <div className="flex gap-2 mt-auto pt-1">
+                            <button
+                              onClick={() => handleGuiderCallClick(guider.id, guider.contactInfo, guider.fullName || guider.name || 'Guide')}
+                              className="flex-1 bg-white text-blue-700 py-2 rounded-lg font-bold text-sm hover:bg-blue-50 transition-colors border border-blue-200"
+                            >
+                              Call
+                            </button>
+                            <button
+                              disabled
+                              className="flex-1 bg-white text-gray-400 py-2 rounded-lg font-normal text-sm cursor-not-allowed border border-gray-200"
+                            >
+                              Book
+                            </button>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  <div className="bg-white rounded-xl p-5 shadow-md border-2 border-gray-200">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                        <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      </div>
-                      <div>
-                        <h4 className="text-gray-900 font-black">Hire a Local Guide</h4>
-                        <p className="text-gray-600 text-sm font-semibold">Contact any guider above to arrange a tour in your preferred language.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
         </div>
@@ -903,6 +1050,51 @@ export default function TourismDetailPage() {
           <HotelRatingModal isOpen={hotelRatingModalOpen} hotelId={ratingHotelId} hotelName={hotels.find(h => h.id === ratingHotelId)?.name || "Hotel"} onClose={() => setHotelRatingModalOpen(false)} onSubmit={handleSubmitHotelRating} />
           <RatingsViewModal isOpen={hotelRatingsViewOpen} onClose={() => setHotelRatingsViewOpen(false)} fetchUrl={`${API_BASE_URL}/ratings/hotel/${ratingHotelId}`} token={token ?? undefined} title={hotels.find(h => h.id === ratingHotelId)?.name || "Hotel Ratings"} refreshKey={0} />
         </>
+      )}
+
+      {/* Guider Phone Number Modal */}
+      {showGuiderPhoneModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Contact {showGuiderPhoneModal.name}</h3>
+              <button
+                onClick={closeGuiderPhoneModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <span className="text-lg font-bold text-gray-900 flex-1">{showGuiderPhoneModal.phone}</span>
+                <button
+                  onClick={() => handleGuiderCopy(showGuiderPhoneModal.guiderId, showGuiderPhoneModal.phone)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors flex-shrink-0"
+                >
+                  {copiedGuiderId === showGuiderPhoneModal.guiderId ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 text-center mb-4">
+              Use the Copy button to copy the number, then dial it from your phone.
+            </p>
+
+            <button
+              onClick={closeGuiderPhoneModal}
+              className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
 
       {selectedRoad && detail && (
@@ -936,6 +1128,73 @@ export default function TourismDetailPage() {
           latitude={(selectedHotelForMap as any).latitude ?? detail.latitude}
           longitude={(selectedHotelForMap as any).longitude ?? detail.longitude}
         />
+      )}
+
+      {/* Image Zoom Modal with Navigation */}
+      {zoomedImageIndex !== null && detail?.images && detail.images.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center">
+          {/* Close button */}
+          <button
+            onClick={() => setZoomedImageIndex(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+          >
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Image counter */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-sm font-bold z-10">
+            {zoomedImageIndex + 1} / {detail.images.length}
+          </div>
+
+          {/* Previous button */}
+          {detail.images.length > 1 && (
+            <button
+              onClick={() => setZoomedImageIndex(i => i !== null ? (i - 1 + detail.images.length) % detail.images.length : null)}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-3 z-10"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Image */}
+          <div className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getImageUrl(detail.images[zoomedImageIndex].imageUrl)}
+              alt={detail.images[zoomedImageIndex].title || `${detail.name} ${zoomedImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+
+          {/* Next button */}
+          {detail.images.length > 1 && (
+            <button
+              onClick={() => setZoomedImageIndex(i => i !== null ? (i + 1) % detail.images.length : null)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-3 z-10"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Image dots indicator */}
+          {detail.images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              {detail.images.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setZoomedImageIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition ${idx === zoomedImageIndex ? 'bg-white' : 'bg-white/50'}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       <TourismImageGallery tourismId={tourismId} tourismName={detail?.name || "Tourism Place"} isOpen={imageGalleryOpen} onClose={() => setImageGalleryOpen(false)} preloadedImages={detail?.images} />

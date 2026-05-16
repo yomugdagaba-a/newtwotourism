@@ -14,6 +14,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => { setIsClient(true); }, []);
 
+  // Close sidebar automatically on every route change
+  useEffect(() => { setSidebarOpen(false); }, [pathname]);
+
   useEffect(() => {
     if (!isClient || !isHydrated) return; // Wait for client mount and store hydration
     if (!isAuthenticated) {
@@ -25,6 +28,18 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     await logout();
     router.push('/');
   };
+
+  // Make sidebar toggle available globally for TopBar
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__toggleAdminSidebar = () => setSidebarOpen(prev => !prev);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__toggleAdminSidebar;
+      }
+    };
+  }, []);
 
   const navigation = [
     { name: 'Dashboard',      href: '/admin',               current: pathname === '/admin' },
@@ -38,10 +53,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   ];
 
   const auditNavigation = [
-    { name: 'Audit Dashboard', href: '/admin/audit/dashboard', current: pathname === '/admin/audit/dashboard' },
-    { name: 'Audit Logs',      href: '/admin/audit',           current: pathname === '/admin/audit' },
-    { name: 'Security Events', href: '/admin/audit/security',  current: pathname === '/admin/audit/security' },
-    { name: 'Management',      href: '/admin/audit/management',current: pathname === '/admin/audit/management' },
+    { name: 'Audit Dashboard', href: '/admin/audit/management', current: pathname === '/admin/audit/management' },
+    { name: 'Audit Logs',      href: '/admin/audit',            current: pathname === '/admin/audit' },
   ];
 
   // Nav icons (simple SVG paths matching RideSystem style)
@@ -60,14 +73,11 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     Management:     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
   };
 
-  const NavLink = ({ item }: { item: any }) => (
+  const NavLink = ({ item }: { item: { name: string; href: string; current: boolean } }) => (
     <Link
       href={item.href}
-      onClick={() => setSidebarOpen(false)}
       className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-        item.current
-          ? 'bg-purple-50 text-purple-700'
-          : 'text-gray-700 hover:bg-gray-100'
+        item.current ? 'bg-purple-50 text-purple-700' : 'text-gray-700 hover:bg-gray-100'
       }`}
     >
       <span className={item.current ? 'text-purple-600' : 'text-gray-500'}>{navIcons[item.name]}</span>
@@ -104,87 +114,46 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white">
-      {/* Purple header */}
-      <div className="px-5 py-6" style={{ backgroundColor: '#6d28d9' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center font-black text-lg" style={{ color: '#7c3aed' }}>
-            {username?.charAt(0).toUpperCase() || 'A'}
-          </div>
-          <div>
-            <p className="text-white font-bold text-sm">{username}</p>
-            <p className="text-purple-200 text-xs">{role}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto bg-white">
-        {navigation.map((item) => (
-          <NavLink key={item.name} item={item} />
-        ))}
-        <div className="pt-4 mt-4 border-t border-gray-100">
-          <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Audit & Security</p>
-          <div className="space-y-1">
-            {auditNavigation.map((item) => (
-              <NavLink key={item.name} item={item} />
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      {/* Logout */}
-      <div className="p-4 border-t border-gray-100 bg-white">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-lg transition-all w-full"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Logout
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen admin-page bg-gray-50">
-      {/* Sidebar overlay */}
+      {/* Sidebar overlay — starts below the TopBar (top-12 = 48px) */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-[60vw] sm:w-64 z-50 shadow-2xl">
-            <SidebarContent />
+        <div className="fixed inset-x-0 bottom-0 top-12 z-40 flex">
+          <div className="fixed inset-x-0 bottom-0 top-12 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)} />
+          <div className="relative w-[60vw] sm:w-64 z-50 shadow-2xl border-t border-gray-200 flex flex-col bg-white">
+            {/* Nav */}
+            <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto bg-white">
+              {navigation.map((item) => (
+                <NavLink key={item.name} item={item} />
+              ))}
+              <div className="pt-4 mt-4 border-t border-gray-100">
+                <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Audit & Security</p>
+                <div className="space-y-1">
+                  {auditNavigation.map((item) => (
+                    <NavLink key={item.name} item={item} />
+                  ))}
+                </div>
+              </div>
+            </nav>
+            {/* Logout */}
+            <div className="p-4 border-t border-gray-100 bg-white">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-lg transition-all w-full"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Sticky top bar with hamburger */}
-      <div className="sticky top-0 z-30 flex items-center h-12 px-2 bg-white border-b border-gray-200 shadow-sm">
-        <button
-          type="button"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="h-9 w-9 flex items-center justify-center text-gray-700 rounded-lg hover:bg-gray-100 transition-all"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        <button type="button" onClick={() => router.back()} className="h-8 w-8 flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 transition-all ml-1">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <span className="ml-1 text-gray-900 font-bold text-sm">Admin Panel</span>
-      </div>
-
       {/* Page content */}
       <main className="flex-1">
-        <div className="py-4">
-          {children}
-        </div>
+        {children}
       </main>
     </div>
   );

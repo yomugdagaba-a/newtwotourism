@@ -26,7 +26,7 @@ const MobileMenu: React.FC<Props> = ({ isOpen, onClose }) => {
       case 'ADMIN':
         return '/admin';
       case 'HOTEL_OWNER':
-        return '/hotel-owner';
+        return '/owner/bookings';
       default:
         return '/profile';
     }
@@ -112,3 +112,4 @@ const MobileMenu: React.FC<Props> = ({ isOpen, onClose }) => {
 };
 
 export default MobileMenu;
+

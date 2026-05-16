@@ -73,25 +73,10 @@ const HELP: Partial<Record<BannerType, string>> = {
 export default function BlockedBanner({ message, onClose }: Props) {
   const type = classify(message);
   const cfg = CONFIGS[type];
-  const help = HELP[type];
 
   return (
-    <div className={`rounded-xl border-2 ${cfg.bg} ${cfg.border} p-4 flex gap-3`}>
-      <span className="text-2xl flex-shrink-0 mt-0.5">{cfg.icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className={`font-bold text-sm ${cfg.color}`}>{cfg.title}</p>
-        <p className={`text-sm font-semibold mt-0.5 ${cfg.text}`}>{message}</p>
-        {help && type !== "generic_error" && (
-          <p className={`text-xs mt-1.5 font-medium ${cfg.text} opacity-80`}>{help}</p>
-        )}
-      </div>
-      {onClose && (
-        <button onClick={onClose} className={`flex-shrink-0 ${cfg.text} hover:opacity-70 transition-opacity`}>
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      )}
+    <div className={`rounded-lg border ${cfg.bg} ${cfg.border} px-3 py-2`}>
+      <p className={`text-xs font-medium ${cfg.text}`}>{message}</p>
     </div>
   );
 }

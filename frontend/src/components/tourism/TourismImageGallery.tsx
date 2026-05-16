@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { TourismImageDto } from "@/types/tourismImage";
 import { getTourismImages } from "@/services/tourismImage.service";
 import Image from "next/image";
+import { getImageUrl } from "@/utils/imageUrl";
 
 interface TourismImageGalleryProps {
   tourismId: number;
@@ -154,7 +155,7 @@ export default function TourismImageGallery({
             ) : selectedImage ? (
               <>
                 <Image
-                  src={selectedImage.imageUrl}
+                  src={getImageUrl(selectedImage.imageUrl)}
                   alt={selectedImage.title || `Image ${currentIndex + 1}`}
                   fill
                   className="object-contain"
@@ -220,7 +221,7 @@ export default function TourismImageGallery({
                     title={image.title || `Image ${index + 1}`}
                   >
                     <Image
-                      src={image.imageUrl}
+                      src={getImageUrl(image.imageUrl)}
                       alt={image.title || `Thumbnail ${index + 1}`}
                       fill
                       className="object-cover"

@@ -12,6 +12,16 @@ import { RoadInfoDto } from "@/types/road";
 import { API_BASE_URL } from "@/services/api";
 import Modal from "@/components/common/Modal";
 
+// Fix Leaflet default icon paths
+if (typeof window !== 'undefined') {
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  });
+}
+
 interface RoadMapModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -52,7 +62,11 @@ export default function RoadMapModal({
 
     // Destroy existing map if switching modes
     if (map.current) {
-      map.current.remove();
+      try {
+        map.current.remove();
+      } catch (e) {
+        console.warn('Error removing map:', e);
+      }
       map.current = null;
       routingControl.current = null;
       startMarker.current = null;
@@ -62,6 +76,13 @@ export default function RoadMapModal({
     const initializeMap = async () => {
       try {
         if (!mapContainer.current) return;
+
+        // Check if container already has a map instance
+        const container = mapContainer.current as any;
+        if (container._leaflet_id) {
+          console.log('Container already has a map, clearing...');
+          container._leaflet_id = undefined;
+        }
 
         // Use tourism place data from road if not provided via props
         const destName = tourismName || road.tourismPlaceName || 'Destination';
@@ -265,209 +286,132 @@ export default function RoadMapModal({
     // Fullscreen Map View
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-4 shadow-lg flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black">{road.roadType} Route</h2>
-          <p className="text-gray-300 text-sm">From {road.initialPlace} to {tourismName || road.tourismPlaceName || 'Destination'}</p>
+          <h2 className="text-lg font-black text-gray-900">{road.roadType} Route</h2>
+          <p className="text-gray-500 text-xs">Full Screen Map View</p>
         </div>
         <button
           onClick={() => setIsFullscreen(false)}
-          className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-bold transition-all flex items-center gap-2"
+          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-bold transition-all flex items-center gap-2 text-sm"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
           Exit Fullscreen
         </button>
       </div>
 
-      {/* Info Bar */}
-      {routeInfo && (
-        <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 flex gap-8">
-          <div>
-            <p className="text-sm text-gray-700 font-semibold">Distance</p>
-            <p className="text-2xl font-black text-gray-900">{routeInfo.distance}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-700 font-semibold">Estimated Time</p>
-            <p className="text-2xl font-black text-gray-900">{routeInfo.duration}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-700 font-semibold">Road Type</p>
-            <p className="text-2xl font-black text-gray-900">{road.roadType}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error Bar */}
-      {error && (
-        <div className="bg-red-50 border-b border-red-200 px-6 py-3">
-          <p className="text-red-700 font-semibold">{error}</p>
-        </div>
-      )}
-
-      {/* Loading Bar */}
-      {loading && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3">
-          <p className="text-yellow-700 font-semibold">Loading map...</p>
-        </div>
-      )}
+      {/* Single compact info row — all status in one bar */}
+      <div className="border-b border-gray-200 px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-1 bg-gray-50 text-sm">
+        {routeInfo && (
+          <>
+            <span className="text-gray-500 font-semibold">Distance:</span>
+            <span className="font-black text-gray-900">{routeInfo.distance}</span>
+            <span className="text-gray-300 mx-1">|</span>
+            <span className="text-gray-500 font-semibold">Est. Time:</span>
+            <span className="font-black text-gray-900">{routeInfo.duration}</span>
+          </>
+        )}
+        {error && <span className="text-red-600 font-semibold text-xs ml-2">⚠ {error}</span>}
+        {loading && <span className="text-blue-600 font-semibold text-xs ml-2">Loading map...</span>}
+      </div>
 
       {/* Map Container - Full Height */}
-      <div className="flex-1 relative">
-        <div ref={mapContainer} className="w-full h-full" />
+      <div className="flex-1 relative" style={{ minHeight: 0 }}>
+        <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
         
         {/* Floating Exit Fullscreen Button */}
         <button
           onClick={() => setIsFullscreen(false)}
-          className="absolute bottom-4 right-4 z-40 px-4 py-2 bg-white hover:bg-gray-100 text-gray-900 font-bold rounded-lg transition-all shadow-lg flex items-center gap-2 hover:scale-105"
+          className="absolute bottom-4 right-4 z-40 px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-900 font-bold rounded-lg transition-all shadow-lg flex items-center gap-2 text-sm"
           title="Exit fullscreen"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
           Exit
         </button>
       </div>
 
-      {/* Legend */}
-      <div className="bg-white border-t border-gray-200 px-6 py-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-8">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-green-500 rounded-full"></div>
-              <span className="text-gray-700 font-semibold">Starting Point</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-red-500 rounded-full"></div>
-              <span className="text-gray-700 font-semibold">Destination</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-1 bg-blue-500"></div>
-              <span className="text-gray-700 font-semibold">Route</span>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 font-bold rounded-lg transition-all"
-          >
-            Close
-          </button>
+      {/* Single bottom row — legend + close */}
+      <div className="bg-white border-t border-gray-200 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-4 text-xs text-gray-600">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-500 rounded-full inline-block"></span>Starting Point</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500 rounded-full inline-block"></span>Destination</span>
+          <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-blue-500 inline-block"></span>Route</span>
         </div>
+        <button onClick={() => setIsFullscreen(false)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg transition-all text-sm">
+          Close
+        </button>
       </div>
     </div>
   ) : (
     // Modal View
-    <Modal isOpen={isOpen} onClose={onClose} title={`${road.roadType} Route`} size="2xl">
-      <div className="space-y-4">
-        {/* Route Info */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <h3 className="font-black text-gray-900 mb-3">Route Information</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600 font-semibold">From:</span>
-              <span className="text-gray-900 font-black">{road.initialPlace}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 font-semibold">To:</span>
-              <span className="text-gray-900 font-black">{tourismName || road.tourismPlaceName || 'Destination'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 font-semibold">Type:</span>
-              <span className="text-gray-900 font-black">{road.roadType}</span>
-            </div>
-            {road.totalDistance && (
-              <div className="flex justify-between">
-                <span className="text-gray-600 font-semibold">Distance:</span>
-                <span className="text-gray-900 font-black">{road.totalDistance.toFixed(1)} km</span>
-              </div>
-            )}
-          </div>
+    <Modal isOpen={isOpen} onClose={onClose} title="Road Route Map" size="2xl">
+      <div className="space-y-2">
+
+        {/* Single compact info row — all status in one bar */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm">
+          {routeInfo && (
+            <>
+              <span className="text-gray-500 font-semibold">Distance:</span>
+              <span className="font-black text-gray-900">{routeInfo.distance}</span>
+              <span className="text-gray-300">|</span>
+              <span className="text-gray-500 font-semibold">Est. Time:</span>
+              <span className="font-black text-gray-900">{routeInfo.duration}</span>
+              <span className="text-gray-300">|</span>
+            </>
+          )}
+          {error && <span className="text-red-600 font-semibold text-xs">⚠ {error}</span>}
+          {loading && <span className="text-blue-600 font-semibold text-xs">Loading map...</span>}
+          {/* Legend inline */}
+          <span className="ml-auto flex items-center gap-3 text-xs text-gray-600">
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-500 rounded-full inline-block"></span>Start</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500 rounded-full inline-block"></span>Destination</span>
+            <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-blue-500 inline-block"></span>Route</span>
+          </span>
         </div>
 
-        {/* Route Calculation Info */}
-        {routeInfo && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-black text-blue-900 mb-2">Calculated Route</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-blue-700 font-semibold">Distance</p>
-                <p className="text-lg font-black text-blue-900">{routeInfo.distance}</p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-700 font-semibold">Estimated Time</p>
-                <p className="text-lg font-black text-blue-900">{routeInfo.duration}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Error Section */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700 font-semibold">{error}</p>
-          </div>
-        )}
-
-        {/* Loading Section */}
-        {loading && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-yellow-700 font-semibold">Loading map...</p>
-          </div>
-        )}
-
-        {/* Map Container */}
-        <div
-          ref={mapContainer}
-          className="w-full rounded-lg border-2 border-gray-300 bg-gray-100 relative"
-          style={{ height: "600px", minHeight: "600px" }}
-        >
-          {/* Floating Fullscreen Button */}
+        {/* Fullscreen button — always visible, outside the map */}
+        <div className="flex justify-end mb-1">
           <button
             onClick={() => setIsFullscreen(true)}
-            className="absolute top-3 right-3 z-50 px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-lg transition-all shadow-xl flex items-center gap-2 hover:scale-110"
-            title="Expand to fullscreen"
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-sm flex items-center gap-1.5 text-xs"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6v4m12-4h4v4M6 18h4v-4m12 4h-4v-4" />
             </svg>
             Fullscreen
           </button>
         </div>
 
-        {/* Legend */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <h4 className="font-black text-gray-900 mb-2">Legend</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-green-500 rounded-full"></div>
-              <span className="text-gray-700 font-semibold">Starting Point</span>
+        {/* Map Container */}
+        <div
+          ref={mapContainer}
+          className="w-full rounded-lg border border-gray-300 bg-gray-100 relative overflow-hidden"
+          style={{ height: "380px", minHeight: "380px", width: "100%" }}
+        >
+          {!map.current && loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-gray-600 font-semibold">Loading map...</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-red-500 rounded-full"></div>
-              <span className="text-gray-700 font-semibold">Destination</span>
+          )}
+          {!map.current && error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+              <div className="text-center px-4">
+                <p className="text-red-600 font-semibold">{error}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-1 bg-blue-500"></div>
-              <span className="text-gray-700 font-semibold">Route</span>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Description */}
-        {road.description && (
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <h4 className="font-black text-gray-900 mb-2">Description</h4>
-            <p className="text-gray-700 text-sm font-semibold">{road.description}</p>
-          </div>
-        )}
-
-        {/* Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 px-4 bg-gray-300 hover:bg-gray-400 text-gray-900 font-black rounded-lg transition-all"
-          >
+        {/* Bottom single row — close */}
+        <div className="flex justify-end pt-1">
+          <button onClick={onClose} className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-sm transition-all">
             Close Map
           </button>
         </div>

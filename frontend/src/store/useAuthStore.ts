@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import { refreshToken as refreshTokenAPI, logout as logoutAPI } from "../services/auth.service";
+import { SecurityConfig } from "@/config/security.config";
 
 export type UserRole = "CLIENT" | "HOTEL_OWNER" | "ADMIN";
 export type BrowsingMode = "CLIENT" | "OWNER";
@@ -406,6 +407,8 @@ export const useHydrateAuth = () => {
 };
 
 // Auto-refresh hook
+// Automatically refreshes the access token when it's about to expire
+// This ensures active users never get interrupted
 export const useAutoRefresh = () => {
   const { isAuthenticated, getTimeUntilExpiry, refreshAccessToken, logout } = useAuthStore();
 
@@ -415,8 +418,12 @@ export const useAutoRefresh = () => {
     const checkAndRefresh = async () => {
       const timeUntilExpiry = getTimeUntilExpiry();
       
-      if (timeUntilExpiry > 0 && timeUntilExpiry < 300) {
-        console.log('🔄 Token expiring soon, refreshing...');
+      // Refresh token when less than threshold remaining (from SecurityConfig)
+      // This gives us a buffer before actual expiration
+      const refreshThresholdSeconds = SecurityConfig.jwt.refreshThreshold / 1000;
+      
+      if (timeUntilExpiry > 0 && timeUntilExpiry < refreshThresholdSeconds) {
+        console.log('🔄 Token expiring soon (', Math.floor(timeUntilExpiry), 's remaining), refreshing...');
         const refreshed = await refreshAccessToken();
         if (!refreshed) {
           console.log('❌ Auto-refresh failed, logging out');
@@ -425,8 +432,12 @@ export const useAutoRefresh = () => {
       }
     };
 
+    // Check immediately on mount
     checkAndRefresh();
+    
+    // Then check every 60 seconds
     const interval = setInterval(checkAndRefresh, 60000);
+    
     return () => clearInterval(interval);
   }, [isAuthenticated, getTimeUntilExpiry, refreshAccessToken, logout]);
 };

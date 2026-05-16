@@ -8,6 +8,7 @@ import { getHotelDetails } from "@/services/hotel.service";
 import HotelRatings from "./HotelRatings";
 import HotelBookingForm from "./HotelBookingForm";
 import Image from "next/image";
+import { getImageUrl } from "@/utils/imageUrl";
 
 interface Props {
   hotel?: HotelDetailInfoDto; // If parent already fetched hotel, pass it here
@@ -63,7 +64,7 @@ const HotelDetail: React.FC<Props> = ({ hotel: propHotel, hotelId: propHotelId, 
             return imageUrl ? (
               <div key={idx} className="relative w-full h-64 rounded-lg overflow-hidden">
                 <Image 
-                  src={imageUrl} 
+                  src={getImageUrl(imageUrl, 'https://images.unsplash.com/photo-1564507592333-cdd18562ea6f?w=400')} 
                   alt={`${hotel.name} image ${idx + 1}`} 
                   fill 
                   className="object-cover hover:scale-105 transition-transform duration-300" 

@@ -70,9 +70,10 @@ test.describe('ST-02 Tourism discovery', () => {
 
   test('Get Started button opens auth modal', async ({ page }) => {
     await page.goto(BASE);
-    const getStartedBtn = page.locator('button:has-text("Get Started")').first();
-    await expect(getStartedBtn).toBeVisible({ timeout: 15000 });
-    await getStartedBtn.click();
+    // The app shows "Join" button for unauthenticated users
+    const joinBtn = page.locator('button:has-text("Join"), button:has-text("Get Started"), button:has-text("Sign Up")').first();
+    await expect(joinBtn).toBeVisible({ timeout: 15000 });
+    await joinBtn.click();
     // Modal with form should appear
     const modal = page.locator('[class*="modal"], [role="dialog"], form').first();
     await expect(modal).toBeVisible({ timeout: 5000 });

@@ -248,7 +248,7 @@ export default function PhoneInput({
               <div className="p-2 border-b border-gray-200">
                 <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Search country..." autoFocus
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500" />
+                  className="w-full px-3 py-2 text-sm border-0 bg-gray-50 rounded-md focus:ring-1 focus:ring-gray-200 focus:outline-none" />
               </div>
               <div className="max-h-72 overflow-y-auto">
                 {filtered.map(country => (

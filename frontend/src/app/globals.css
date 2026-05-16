@@ -10,7 +10,7 @@
 body {
   background: #f3f4f6;
   color: var(--foreground);
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-family: 'Times New Roman', Times, serif;
   min-height: 100vh;
 }
 
@@ -32,8 +32,8 @@ body {
 
 /* Scrollbar styling - Gray */
 ::-webkit-scrollbar {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
@@ -48,6 +48,43 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: #6B7280;
+}
+
+/* Thin scrollbar for modals */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: transparent;
+}
+
+/* Alternative: Show scrollbar only on hover */
+.scrollbar-hover::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-hover::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.scrollbar-hover:hover::-webkit-scrollbar-thumb {
   background: #6B7280;
 }
 
@@ -473,4 +510,57 @@ a:hover {
 @keyframes heroScroll {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* ========================================
+   LEAFLET MAP FIX - Ensure proper rendering
+   ======================================== */
+.leaflet-container {
+  font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif !important;
+  z-index: 1 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 200 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 400 !important;
+}
+
+.leaflet-shadow-pane {
+  z-index: 500 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 600 !important;
+}
+
+.leaflet-tooltip-pane {
+  z-index: 650 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 700 !important;
+}
+
+.leaflet-map-pane canvas,
+.leaflet-map-pane svg {
+  z-index: auto !important;
+}
+
+.leaflet-tile {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Ensure map container has proper dimensions */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Fix for modal overflow affecting map */
+.leaflet-container .leaflet-control-container {
+  position: relative !important;
 }

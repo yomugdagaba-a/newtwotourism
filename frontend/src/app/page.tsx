@@ -6,6 +6,7 @@ import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Footer from "@/components/layout/Footer";
 import { API_BASE_URL } from "@/services/api";
+import { getImageUrl } from "@/utils/imageUrl";
 
 const TNR = "'Times New Roman', Times, serif";
 
@@ -70,7 +71,7 @@ export default function HomePage() {
               }}>
               {/* Duplicate for seamless loop */}
               {[...heroImages, ...heroImages].map((img, i) => (
-                <img key={i} src={img.imageUrl} alt={img.title || 'Hero'}
+                <img key={i} src={getImageUrl(img.imageUrl)} alt={img.title || 'Hero'}
                   style={{ height: '100%', width: 'auto', flexShrink: 0, display: 'block' }}
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
@@ -100,32 +101,35 @@ export default function HomePage() {
       }} className="px-4 sm:px-6 py-5">
         <div className="max-w-6xl mx-auto">
 
-          {/* Row 1: View All Places | Select All | Select Categories Below */}
+          {/* Row 1: Select Categories label | View All Places | Select All */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
+            {/* Plain label — no background */}
+            <span style={{ fontFamily: TNR, fontSize: "0.82rem", fontWeight: 600, color: "#6b7280" }} className="flex-shrink-0">
+              {!selectedCategories.length ? "Select Categories:" : `${selectedCategories.length} selected:`}
+            </span>
+
+            {/* View All Places */}
             <Link href="/tourisms"
-              style={{ fontFamily: TNR, background: "linear-gradient(135deg,#2563eb,#1d4ed8)", boxShadow: "0 6px 20px rgba(37,99,235,0.45)", fontWeight: 700, fontSize: "0.88rem" }}
-              className="px-5 py-2 text-white rounded-full hover:scale-105 transition-all flex-shrink-0">
+              style={{ fontFamily: TNR, fontWeight: 700, fontSize: "0.82rem", background: "white", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+              className="px-3 py-1.5 text-blue-600 hover:text-blue-800 rounded-full transition-all flex-shrink-0">
               View All Places
             </Link>
+
+            {/* Select All */}
             <button onClick={handleSelectAll}
               style={{ fontFamily: TNR, fontSize: "0.82rem", fontWeight: 700, background: "white", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
               className="px-3 py-1.5 text-blue-600 hover:text-blue-800 rounded-full transition-all flex-shrink-0">
               {selectedCategories.length === categories.length ? "Clear All" : "Select All"}
             </button>
-            {selectedCategories.length > 0 &&
-              <span style={{ fontFamily: TNR, fontSize: "0.78rem", fontStyle: "italic", color: "#059669", fontWeight: 600 }} className="flex-shrink-0">
-                {selectedCategories.length} selected
-              </span>}
-            <button onClick={handleViewSelected} disabled={!selectedCategories.length}
-              style={{
-                fontFamily: TNR, fontSize: "0.82rem", fontWeight: 800, flexShrink: 0,
-                ...(selectedCategories.length
-                  ? { background: "linear-gradient(135deg,#059669,#047857)", boxShadow: "0 6px 20px rgba(5,150,105,0.4)" }
-                  : { background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #e2e8f0" }),
-              }}
-              className={`px-4 py-2 rounded-full transition-all text-sm ${selectedCategories.length ? "text-white hover:scale-105" : "text-gray-700 cursor-not-allowed"}`}>
-              {!selectedCategories.length ? "Select Categories" : `View ${selectedCategories.length} Selected`}
-            </button>
+
+            {/* View Selected — only when categories chosen */}
+            {selectedCategories.length > 0 && (
+              <button onClick={handleViewSelected}
+                style={{ fontFamily: TNR, fontSize: "0.82rem", fontWeight: 700, background: "white", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+                className="px-3 py-1.5 text-emerald-600 hover:text-emerald-800 rounded-full transition-all flex-shrink-0">
+                View {selectedCategories.length} Selected
+              </button>
+            )}
           </div>
 
           {/* Row 2: Category cards — 2 cols on mobile, 3 on tablet, 6 on desktop */}

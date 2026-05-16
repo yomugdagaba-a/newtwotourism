@@ -183,6 +183,26 @@ export interface TourismImageCreateDto {
 }
 
 // ========================
+// Hotel Image Types
+// ========================
+export interface HotelImage {
+  id: number;
+  imageUrl: string;
+  title: string | null;
+  description: string | null;
+  isMain: boolean;
+  displayOrder: number;
+}
+
+export interface HotelImageCreateDto {
+  imageUrl: string;
+  title?: string;
+  description?: string;
+  isMain?: boolean;
+  displayOrder?: number;
+}
+
+// ========================
 // Guider Types
 // ========================
 export interface GuiderCreateDto {
@@ -545,6 +565,61 @@ export class AdminHotelService {
       { method: "PATCH", headers: getAuthHeaders(token) }
     );
     return handleResponse<void>(response);
+  }
+
+  // Backend: GET /api/admin/hotels/{hotelId}/images
+  static async getHotelImages(token: string, hotelId: number): Promise<HotelImage[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/hotels/${hotelId}/images`,
+      { headers: getAuthHeaders(token) }
+    );
+    return handleResponse<HotelImage[]>(response);
+  }
+
+  // Backend: POST /api/admin/hotels/{hotelId}/images
+  static async addHotelImage(token: string, hotelId: number, data: HotelImageCreateDto): Promise<HotelImage> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/hotels/${hotelId}/images`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(token),
+        body: JSON.stringify(data),
+      }
+    );
+    return handleResponse<HotelImage>(response);
+  }
+
+  // Backend: PUT /api/admin/hotels/{hotelId}/images/{imageId}
+  static async updateHotelImage(token: string, hotelId: number, imageId: number, data: HotelImageCreateDto): Promise<HotelImage> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/hotels/${hotelId}/images/${imageId}`,
+      {
+        method: "PUT",
+        headers: getAuthHeaders(token),
+        body: JSON.stringify(data),
+      }
+    );
+    return handleResponse<HotelImage>(response);
+  }
+
+  // Set main image using dedicated endpoint
+  static async setMainHotelImage(token: string, hotelId: number, imageUrl: string): Promise<void> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/hotels/${hotelId}/set-main-image`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(token),
+        body: JSON.stringify({ imageUrl }),
+      }
+    );
+    return handleResponse<void>(response);
+  }
+
+  // Get the current main imageUrl for a hotel
+  static async getHotelMainImageUrl(token: string, hotelId: number): Promise<string | null> {
+    const images = await this.getHotelImages(token, hotelId);
+    const mainImage = images.find(img => img.displayOrder === 0);
+    return mainImage?.imageUrl || null;
   }
 }
 
@@ -1088,5 +1163,92 @@ export class AdminRoadService {
       { method: "DELETE", headers: getAuthHeaders(token) }
     );
     return handleResponse<void>(response);
+  }
+}
+
+// ========================
+// IMAGE UPLOAD SERVICE
+// ========================
+export class AdminImageUploadService {
+  private static async uploadFile(token: string, url: string, file: File, extraFields?: Record<string, string>): Promise<string> {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (extraFields) {
+      Object.entries(extraFields).forEach(([k, v]) => formData.append(k, v));
+    }
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(err || 'Upload failed');
+    }
+    const data = await response.json();
+    return data.imageUrl;
+  }
+
+  // Upload tourism main image
+  static async uploadTourismMainImage(token: string, tourismId: number, file: File): Promise<string> {
+    return this.uploadFile(token, `${API_BASE_URL}/admin/tourism/${tourismId}/main-image/upload`, file);
+  }
+
+  // Upload tourism gallery image
+  static async uploadTourismGalleryImage(token: string, tourismId: number, file: File, title?: string, description?: string): Promise<string> {
+    return this.uploadFile(token, `${API_BASE_URL}/admin/tourism/${tourismId}/images/upload`, file, {
+      ...(title ? { title } : {}),
+      ...(description ? { description } : {}),
+    });
+  }
+
+  // Upload hotel main image
+  static async uploadHotelMainImage(token: string, hotelId: number, file: File): Promise<string> {
+    return this.uploadFile(token, `${API_BASE_URL}/admin/hotels/${hotelId}/main-image/upload`, file);
+  }
+
+  // Upload hotel gallery image
+  static async uploadHotelGalleryImage(token: string, hotelId: number, file: File): Promise<string> {
+    return this.uploadFile(token, `${API_BASE_URL}/admin/hotels/${hotelId}/images/upload`, file);
+  }
+
+  // Upload hero image (creates new hero image record)
+  static async uploadHeroImage(token: string, file: File, title?: string, description?: string, displayOrder?: number, active?: boolean): Promise<{ imageUrl: string; id: number }> {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (title) formData.append('title', title);
+    if (description) formData.append('description', description);
+    if (displayOrder !== undefined) formData.append('displayOrder', String(displayOrder));
+    if (active !== undefined) formData.append('active', String(active));
+    const response = await fetch(`${API_BASE_URL}/admin/hero-images/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(err || 'Upload failed');
+    }
+    return response.json();
+  }
+
+  // Update hero image with optional new file
+  static async updateHeroImageWithUpload(token: string, id: number, file: File | null, fields: { title?: string; description?: string; displayOrder?: number; active?: boolean }): Promise<any> {
+    const formData = new FormData();
+    if (file) formData.append('image', file);
+    if (fields.title !== undefined) formData.append('title', fields.title);
+    if (fields.description !== undefined) formData.append('description', fields.description);
+    if (fields.displayOrder !== undefined) formData.append('displayOrder', String(fields.displayOrder));
+    if (fields.active !== undefined) formData.append('active', String(fields.active));
+    const response = await fetch(`${API_BASE_URL}/admin/hero-images/${id}/upload`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(err || 'Update failed');
+    }
+    return response.json();
   }
 }

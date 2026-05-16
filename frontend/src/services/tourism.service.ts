@@ -141,3 +141,30 @@ export const fetchTourismDetail = async (tourismId: number, token?: string): Pro
   const fallback = await api.get<TourismFullDetailDto>(`/tourisms/${tourismId}`);
   return fallback as unknown as TourismFullDetailDto;
 };
+
+// ========================
+// Increment view count
+// ========================
+export interface IncrementViewResponse {
+  counted: boolean;
+  viewCount: number;
+}
+
+export const incrementTourismView = async (
+  tourismId: number,
+  sessionId: string,
+  ipAddress?: string,
+  userAgent?: string
+): Promise<IncrementViewResponse> => {
+  const response = await fetch(`${API_BASE_URL}/tourisms/${tourismId}/increment-view`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId, ipAddress, userAgent }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to increment view: ${response.status}`);
+  }
+
+  return response.json();
+};

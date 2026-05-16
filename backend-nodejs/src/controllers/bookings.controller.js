@@ -2,133 +2,181 @@ const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { authenticate } = require('../middleware/auth.middleware');
 const { validate } = require('../middleware/validate');
 const { CreateBookingDto, UpdateBookingDto } = require('../dto/booking.dto');
 const bookingsService = require('../services/bookings.service');
 
-const router = Router();
+class BookingsController {
+  constructor() {
+    this.router = Router();
+    this._upload = this._createUploader();
+    this._registerRoutes();
+  }
 
-// Multer setup for receipt uploads - use /tmp in production
-const uploadDir = process.env.NODE_ENV === 'production'
-  ? path.join('/tmp', 'uploads', 'receipts')
-  : path.resolve(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads', 'receipts');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, `${require('crypto').randomUUID()}${path.extname(file.originalname)}`),
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).replace('.', '').toLowerCase();
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      return cb(new Error(`File type not allowed. Allowed types: ${ALLOWED_EXTENSIONS.join(', ')}`));
-    }
-    cb(null, true);
-  },
-});
+  _createUploader() {
+    const uploadDir = process.env.NODE_ENV === 'production'
+      ? path.join('/tmp', 'uploads', 'receipts')
+      : path.resolve(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads', 'receipts');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-// Admin routes (must be before /:id)
-router.get('/admin/all', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.getAllAdmin(req.query.page || 0, req.query.size || 20)); } catch (e) { next(e); }
-});
+    const ALLOWED = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+    const storage = multer.diskStorage({
+      destination: (req, file, cb) => cb(null, uploadDir),
+      filename: (req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname)}`),
+    });
+    return multer({
+      storage,
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).replace('.', '').toLowerCase();
+        if (!ALLOWED.includes(ext)) return cb(new Error(`File type not allowed. Allowed: ${ALLOWED.join(', ')}`));
+        cb(null, true);
+      },
+    });
+  }
 
-router.get('/admin/problems', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.getProblemBookings()); } catch (e) { next(e); }
-});
+  _registerRoutes() {
+    // Admin routes — must be before /:id
+    this.router.get('/admin/all', authenticate, this.getAllAdmin.bind(this));
+    this.router.get('/admin/problems', authenticate, this.getProblemBookings.bind(this));
+    this.router.post('/admin/:id/resolve', authenticate, this.resolveBooking.bind(this));
 
-router.post('/admin/:id/resolve', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.resolveBooking(parseInt(req.params.id), req.body.resolution)); } catch (e) { next(e); }
-});
+    // User-scoped queries
+    this.router.get('/my', authenticate, this.getMyBookings.bind(this));
+    this.router.get('/hotel/:hotelId', authenticate, this.getByHotel.bind(this));
+    this.router.get('/owner', authenticate, this.getByOwner.bind(this));
 
-// User bookings
-router.get('/my', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.getByUser(req.query.userId ? parseInt(req.query.userId) : req.user.userId)); } catch (e) { next(e); }
-});
+    // Workflow actions
+    this.router.post('/:id/accept', authenticate, this.acceptRequest.bind(this));
+    this.router.post('/:id/cost', authenticate, this.proposeCost.bind(this));
+    this.router.post('/:id/approve', authenticate, this.approveBooking.bind(this));
+    this.router.post('/:id/reject', authenticate, this.rejectBooking.bind(this));
+    this.router.post('/:id/receipt', authenticate, this.uploadReceiptUrl.bind(this));
+    this.router.post('/:id/receipt/upload', authenticate, this._upload.single('file'), this.uploadReceiptFile.bind(this));
+    this.router.post('/:id/problem', authenticate, this.reportProblem.bind(this));
+    this.router.post('/:id/hide', authenticate, this.hideFromClient.bind(this));
+    this.router.post('/:id/message', authenticate, this.sendMessage.bind(this));
+    this.router.post('/:id/owner-message', authenticate, this.sendOwnerMessage.bind(this));
+    this.router.post('/:id/messages', authenticate, this.sendMessageGeneric.bind(this));
 
-router.get('/hotel/:hotelId', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.getByHotel(parseInt(req.params.hotelId), parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10)); } catch (e) { next(e); }
-});
+    // CRUD
+    this.router.post('/', authenticate, validate(CreateBookingDto), this.create.bind(this));
+    this.router.get('/', this.findAll.bind(this));
+    this.router.get('/:id', this.findById.bind(this));
+    this.router.put('/:id/status', authenticate, this.updateStatus.bind(this));
+    this.router.put('/:id', authenticate, validate(UpdateBookingDto), this.update.bind(this));
+    this.router.delete('/:id', authenticate, this.remove.bind(this));
+  }
 
-router.get('/owner', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.getByOwner(req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId)); } catch (e) { next(e); }
-});
+  // ── Admin ──────────────────────────────────────────────────────────────────
 
-// Booking workflow
-router.post('/:id/accept', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.acceptRequest(parseInt(req.params.id), req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId)); } catch (e) { next(e); }
-});
+  async getAllAdmin(req, res, next) {
+    try { res.json(await bookingsService.getAllAdmin(req.query.page || 0, req.query.size || 20)); } catch (e) { next(e); }
+  }
 
-router.post('/:id/cost', authenticate, async (req, res, next) => {
-  try {
-    const cost = parseFloat(req.query.cost);
-    if (isNaN(cost) || cost <= 0) return res.status(400).json({ message: 'Cost must be a positive number' });
-    res.json(await bookingsService.proposeCost(parseInt(req.params.id), cost, req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId));
-  } catch (e) { next(e); }
-});
+  async getProblemBookings(req, res, next) {
+    try { res.json(await bookingsService.getProblemBookings()); } catch (e) { next(e); }
+  }
 
-router.post('/:id/approve', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.approveBooking(parseInt(req.params.id), req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId)); } catch (e) { next(e); }
-});
+  async resolveBooking(req, res, next) {
+    try { res.json(await bookingsService.resolveBooking(parseInt(req.params.id), req.body.resolution)); } catch (e) { next(e); }
+  }
 
-router.post('/:id/reject', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.rejectBooking(parseInt(req.params.id), req.query.reason || req.body.reason, req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId)); } catch (e) { next(e); }
-});
+  // ── Queries ────────────────────────────────────────────────────────────────
 
-router.post('/:id/receipt', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.uploadReceipt(parseInt(req.params.id), req.query.receiptUrl, req.query.userId ? parseInt(req.query.userId) : req.user.userId)); } catch (e) { next(e); }
-});
+  async getMyBookings(req, res, next) {
+    try { res.json(await bookingsService.getByUser(req.query.userId ? parseInt(req.query.userId) : req.user.userId)); } catch (e) { next(e); }
+  }
 
-router.post('/:id/receipt/upload', authenticate, upload.single('file'), async (req, res, next) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: 'No file provided' });
-    const receiptUrl = `/uploads/receipts/${req.file.filename}`;
-    res.json(await bookingsService.uploadReceipt(parseInt(req.params.id), receiptUrl, req.query.userId ? parseInt(req.query.userId) : req.user.userId));
-  } catch (e) { next(e); }
-});
+  async getByHotel(req, res, next) {
+    try { res.json(await bookingsService.getByHotel(parseInt(req.params.hotelId), parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10)); } catch (e) { next(e); }
+  }
 
-router.post('/:id/problem', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.reportProblem(parseInt(req.params.id), req.body.problem)); } catch (e) { next(e); }
-});
+  async getByOwner(req, res, next) {
+    try { res.json(await bookingsService.getByOwner(req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId)); } catch (e) { next(e); }
+  }
 
-router.post('/:id/message', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.sendMessage(parseInt(req.params.id), req.query.userId ? parseInt(req.query.userId) : req.user.userId, req.body.message, false)); } catch (e) { next(e); }
-});
+  // ── CRUD ───────────────────────────────────────────────────────────────────
 
-router.post('/:id/owner-message', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.sendMessage(parseInt(req.params.id), req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId, req.body.message, true)); } catch (e) { next(e); }
-});
+  async create(req, res, next) {
+    try { res.status(201).json(await bookingsService.create(req.body, req.query.userId ? parseInt(req.query.userId) : req.user.userId)); } catch (e) { next(e); }
+  }
 
-router.post('/:id/messages', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.sendMessage(parseInt(req.params.id), req.user.userId, req.body.message, req.body.isFromOwner || false)); } catch (e) { next(e); }
-});
+  async findAll(req, res, next) {
+    try { res.json(await bookingsService.findAll(parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10, req.query.hotelId, req.query.userId)); } catch (e) { next(e); }
+  }
 
-// CRUD
-router.post('/', authenticate, validate(CreateBookingDto), async (req, res, next) => {
-  try { res.status(201).json(await bookingsService.create(req.body, req.query.userId ? parseInt(req.query.userId) : req.user.userId)); } catch (e) { next(e); }
-});
+  async findById(req, res, next) {
+    try { res.json(await bookingsService.findById(parseInt(req.params.id))); } catch (e) { next(e); }
+  }
 
-router.get('/', async (req, res, next) => {
-  try { res.json(await bookingsService.findAll(parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10, req.query.hotelId, req.query.userId)); } catch (e) { next(e); }
-});
+  async update(req, res, next) {
+    try { res.json(await bookingsService.update(parseInt(req.params.id), req.body)); } catch (e) { next(e); }
+  }
 
-router.get('/:id', async (req, res, next) => {
-  try { res.json(await bookingsService.findById(parseInt(req.params.id))); } catch (e) { next(e); }
-});
+  async updateStatus(req, res, next) {
+    try { res.json(await bookingsService.updateStatus(parseInt(req.params.id), req.body.status)); } catch (e) { next(e); }
+  }
 
-router.put('/:id/status', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.updateStatus(parseInt(req.params.id), req.body.status)); } catch (e) { next(e); }
-});
+  async remove(req, res, next) {
+    try { res.json(await bookingsService.remove(parseInt(req.params.id))); } catch (e) { next(e); }
+  }
 
-router.put('/:id', authenticate, validate(UpdateBookingDto), async (req, res, next) => {
-  try { res.json(await bookingsService.update(parseInt(req.params.id), req.body)); } catch (e) { next(e); }
-});
+  // ── Workflow ───────────────────────────────────────────────────────────────
 
-router.delete('/:id', authenticate, async (req, res, next) => {
-  try { res.json(await bookingsService.remove(parseInt(req.params.id))); } catch (e) { next(e); }
-});
+  async acceptRequest(req, res, next) {
+    try { res.json(await bookingsService.acceptRequest(parseInt(req.params.id), req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId)); } catch (e) { next(e); }
+  }
 
-module.exports = router;
+  async proposeCost(req, res, next) {
+    try {
+      const cost = parseFloat(req.query.cost);
+      if (isNaN(cost) || cost <= 0) return res.status(400).json({ message: 'Cost must be a positive number' });
+      res.json(await bookingsService.proposeCost(parseInt(req.params.id), cost, req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId));
+    } catch (e) { next(e); }
+  }
+
+  async approveBooking(req, res, next) {
+    try { res.json(await bookingsService.approveBooking(parseInt(req.params.id), req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId)); } catch (e) { next(e); }
+  }
+
+  async rejectBooking(req, res, next) {
+    try { res.json(await bookingsService.rejectBooking(parseInt(req.params.id), req.query.reason || req.body.reason, req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId)); } catch (e) { next(e); }
+  }
+
+  async uploadReceiptUrl(req, res, next) {
+    try { res.json(await bookingsService.uploadReceipt(parseInt(req.params.id), req.query.receiptUrl, req.query.userId ? parseInt(req.query.userId) : req.user.userId)); } catch (e) { next(e); }
+  }
+
+  async uploadReceiptFile(req, res, next) {
+    try {
+      if (!req.file) return res.status(400).json({ message: 'No file provided' });
+      const receiptUrl = `/uploads/receipts/${req.file.filename}`;
+      res.json(await bookingsService.uploadReceipt(parseInt(req.params.id), receiptUrl, req.query.userId ? parseInt(req.query.userId) : req.user.userId));
+    } catch (e) { next(e); }
+  }
+
+  async reportProblem(req, res, next) {
+    try { res.json(await bookingsService.reportProblem(parseInt(req.params.id), req.body.problem)); } catch (e) { next(e); }
+  }
+
+  async hideFromClient(req, res, next) {
+    try { res.json(await bookingsService.hideFromClient(parseInt(req.params.id), req.query.userId ? parseInt(req.query.userId) : req.user.userId)); } catch (e) { next(e); }
+  }
+
+  async sendMessage(req, res, next) {
+    try { res.json(await bookingsService.sendMessage(parseInt(req.params.id), req.query.userId ? parseInt(req.query.userId) : req.user.userId, req.body.message, false)); } catch (e) { next(e); }
+  }
+
+  async sendOwnerMessage(req, res, next) {
+    try { res.json(await bookingsService.sendMessage(parseInt(req.params.id), req.query.ownerId ? parseInt(req.query.ownerId) : req.user.userId, req.body.message, true)); } catch (e) { next(e); }
+  }
+
+  async sendMessageGeneric(req, res, next) {
+    try { res.json(await bookingsService.sendMessage(parseInt(req.params.id), req.user.userId, req.body.message, req.body.isFromOwner || false)); } catch (e) { next(e); }
+  }
+}
+
+module.exports = new BookingsController().router;

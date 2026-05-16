@@ -10,6 +10,16 @@ import { getUserLocation, calculateRoute, formatDistance, formatDuration } from 
 import { getLocationCoordinates, addCoordinateOffset, searchTourismPlaceLocation } from "@/services/location.service";
 import Modal from "@/components/common/Modal";
 
+// Fix Leaflet default icon paths
+if (typeof window !== 'undefined') {
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  });
+}
+
 interface TourismMapModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,7 +56,11 @@ export default function TourismMapModal({
 
     // Destroy existing map if switching modes
     if (map.current) {
-      map.current.remove();
+      try {
+        map.current.remove();
+      } catch (e) {
+        console.warn('Error removing map:', e);
+      }
       map.current = null;
       routingControl.current = null;
       userMarker.current = null;
@@ -55,8 +69,25 @@ export default function TourismMapModal({
 
     const initializeMap = async () => {
       try {
-        // Ensure container is ready
+        // Ensure container is ready — retry up to 5 times
+        if (!mapContainer.current) {
+          let retries = 0;
+          await new Promise<void>((resolve, reject) => {
+            const check = setInterval(() => {
+              retries++;
+              if (mapContainer.current) { clearInterval(check); resolve(); }
+              else if (retries >= 10) { clearInterval(check); reject(new Error('Map container not found')); }
+            }, 100);
+          });
+        }
         if (!mapContainer.current) return;
+
+        // Check if container already has a map instance
+        const container = mapContainer.current as any;
+        if (container._leaflet_id) {
+          console.log('Container already has a map, clearing...');
+          container._leaflet_id = undefined;
+        }
 
         // Try to search for the specific tourism place first
         let tourismLocation: LocationCoordinates | null = null;
@@ -86,16 +117,20 @@ export default function TourismMapModal({
         const tourismLocationWithOffset = addCoordinateOffset(tourismLocation, 0.3);
 
         // Create map centered on tourism location
+        console.log('🗺️ Creating Leaflet map...');
         map.current = L.map(mapContainer.current).setView(
           [tourismLocationWithOffset.latitude, tourismLocationWithOffset.longitude],
           13
         );
+        console.log('✅ Map created successfully');
 
         // Add OpenStreetMap tiles
+        console.log('🌍 Adding map tiles...');
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 19,
         }).addTo(map.current);
+        console.log('✅ Tiles added successfully');
 
         // Add tourism marker
         const tourismIcon = L.icon({
@@ -204,13 +239,17 @@ export default function TourismMapModal({
       }
     };
 
-    // Use setTimeout to ensure DOM is ready
-    const timeoutId = setTimeout(initializeMap, 100);
+    // Use setTimeout to ensure DOM is ready — longer delay for modal rendering
+    const timeoutId = setTimeout(initializeMap, 500);
 
     return () => {
       clearTimeout(timeoutId);
       if (routingControl.current && map.current) {
-        map.current.removeControl(routingControl.current);
+        try {
+          map.current.removeControl(routingControl.current);
+        } catch (e) {
+          console.warn('Error removing routing control:', e);
+        }
         routingControl.current = null;
       }
     };
@@ -246,189 +285,138 @@ export default function TourismMapModal({
     // Fullscreen Map View
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 shadow-lg flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black">{tourismName}</h2>
-          <p className="text-blue-100 text-sm">Full Screen Map View</p>
+          <h2 className="text-lg font-black text-gray-900">{tourismName}</h2>
+          <p className="text-gray-500 text-xs">Full Screen Map View</p>
         </div>
         <button
           onClick={() => setIsFullscreen(false)}
-          className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-bold transition-all flex items-center gap-2"
+          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-bold transition-all flex items-center gap-2 text-sm"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
           Exit Fullscreen
         </button>
       </div>
 
-      {/* Info Bar */}
-      {routeInfo && (
-        <div className="bg-blue-50 border-b border-blue-200 px-6 py-3 flex gap-8">
-          <div>
-            <p className="text-sm text-blue-700 font-semibold">Distance</p>
-            <p className="text-2xl font-black text-blue-900">{routeInfo.distance}</p>
-          </div>
-          <div>
-            <p className="text-sm text-blue-700 font-semibold">Estimated Time</p>
-            <p className="text-2xl font-black text-blue-900">{routeInfo.duration}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error Bar */}
-      {error && (
-        <div className="bg-red-50 border-b border-red-200 px-6 py-3">
-          <p className="text-red-700 font-semibold">{error}</p>
-        </div>
-      )}
-
-      {/* Fallback Location Warning */}
-      {usingFallbackLocation && (
-        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
-          <p className="text-amber-700 font-semibold">Showing approximate location for {tourismWereda}. The exact tourism place coordinates are not available.</p>
-        </div>
-      )}
-
-      {/* Loading Bar */}
-      {loading && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3">
-          <p className="text-yellow-700 font-semibold">Getting your location...</p>
-        </div>
-      )}
+      {/* Single compact info row — all status in one bar */}
+      <div className="border-b border-gray-200 px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-1 bg-gray-50 text-sm">
+        {routeInfo && (
+          <>
+            <span className="text-gray-500 font-semibold">Distance:</span>
+            <span className="font-black text-gray-900">{routeInfo.distance}</span>
+            <span className="text-gray-300 mx-1">|</span>
+            <span className="text-gray-500 font-semibold">Est. Time:</span>
+            <span className="font-black text-gray-900">{routeInfo.duration}</span>
+          </>
+        )}
+        {usingFallbackLocation && (
+          <span className="text-amber-600 font-semibold text-xs ml-2">⚠ Approximate location for {tourismWereda}</span>
+        )}
+        {error && <span className="text-red-600 font-semibold text-xs ml-2">⚠ {error}</span>}
+        {loading && <span className="text-blue-600 font-semibold text-xs ml-2">Getting your location...</span>}
+      </div>
 
       {/* Map Container - Full Height */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative" style={{ minHeight: 0 }}>
         <div
           ref={mapContainer}
-          className="w-full h-full"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
         />
-        
-        {/* Floating Exit Fullscreen Button (Alternative) */}
         <button
           onClick={() => setIsFullscreen(false)}
-          className="absolute bottom-4 right-4 z-40 px-4 py-2 bg-white hover:bg-gray-100 text-gray-900 font-bold rounded-lg transition-all shadow-lg flex items-center gap-2 hover:scale-105"
-          title="Exit fullscreen"
+          className="absolute bottom-4 right-4 z-40 px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-900 font-bold rounded-lg transition-all shadow-lg flex items-center gap-2 text-sm"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
           Exit
         </button>
       </div>
 
-      {/* Legend */}
-      <div className="bg-white border-t border-gray-200 px-6 py-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-8">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-500 rounded-full"></div>
-              <span className="text-gray-700 font-semibold">Your Location</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-red-500 rounded-full"></div>
-              <span className="text-gray-700 font-semibold">Tourism Place</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-1 bg-blue-500"></div>
-              <span className="text-gray-700 font-semibold">Route</span>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 font-bold rounded-lg transition-all"
-          >
-            Close
-          </button>
+      {/* Single bottom row — legend + close */}
+      <div className="bg-white border-t border-gray-200 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-4 text-xs text-gray-600">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-500 rounded-full inline-block"></span>Your Location</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500 rounded-full inline-block"></span>Tourism Place</span>
+          <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-blue-500 inline-block"></span>Route</span>
         </div>
+        <button onClick={() => setIsFullscreen(false)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg transition-all text-sm">
+          Close
+        </button>
       </div>
     </div>
   ) : (
     // Modal View
     <Modal isOpen={isOpen} onClose={onClose} title="Tourism Place Map" size="2xl">
-      <div className="space-y-4">
-        {/* Info Section */}
-        {routeInfo && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-bold text-blue-900 mb-2">Route Information</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-blue-700">Distance</p>
-                <p className="text-lg font-bold text-blue-900">{routeInfo.distance}</p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-700">Estimated Time</p>
-                <p className="text-lg font-bold text-blue-900">{routeInfo.duration}</p>
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="space-y-2">
 
-        {/* Error Section */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700 font-semibold">{error}</p>
-          </div>
-        )}
+        {/* Single compact info row — all status in one bar */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm">
+          {routeInfo && (
+            <>
+              <span className="text-gray-500 font-semibold">Distance:</span>
+              <span className="font-black text-gray-900">{routeInfo.distance}</span>
+              <span className="text-gray-300">|</span>
+              <span className="text-gray-500 font-semibold">Est. Time:</span>
+              <span className="font-black text-gray-900">{routeInfo.duration}</span>
+              <span className="text-gray-300">|</span>
+            </>
+          )}
+          {usingFallbackLocation && (
+            <span className="text-amber-600 font-semibold text-xs">⚠ Approximate location for {tourismWereda}</span>
+          )}
+          {error && <span className="text-red-600 font-semibold text-xs">⚠ {error}</span>}
+          {loading && <span className="text-blue-600 font-semibold text-xs">Getting your location...</span>}
+          {/* Legend inline */}
+          <span className="ml-auto flex items-center gap-3 text-xs text-gray-600">
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-500 rounded-full inline-block"></span>You</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500 rounded-full inline-block"></span>Place</span>
+            <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-blue-500 inline-block"></span>Route</span>
+          </span>
+        </div>
 
-        {/* Fallback Location Warning */}
-        {usingFallbackLocation && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <p className="text-amber-700 font-semibold">Showing approximate location for {tourismWereda}. The exact tourism place coordinates are not available.</p>
-          </div>
-        )}
-
-        {/* Loading Section */}
-        {loading && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-yellow-700 font-semibold">Getting your location...</p>
-          </div>
-        )}
-
-        {/* Map Container */}
-        <div
-          ref={mapContainer}
-          className="w-full rounded-lg border-2 border-gray-300 bg-gray-100 relative"
-          style={{ height: "600px", minHeight: "600px" }}
-        >
-          {/* Floating Fullscreen Button */}
+        {/* Fullscreen button — always visible, outside the map */}
+        <div className="flex justify-end mb-1">
           <button
             onClick={() => setIsFullscreen(true)}
-            className="absolute top-3 right-3 z-50 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-xl flex items-center gap-2 hover:scale-110"
-            title="Expand to fullscreen"
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-sm flex items-center gap-1.5 text-xs"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6v4m12-4h4v4M6 18h4v-4m12 4h-4v-4" />
             </svg>
             Fullscreen
           </button>
         </div>
 
-        {/* Legend */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <h4 className="font-bold text-gray-900 mb-2">Legend</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-500 rounded-full"></div>
-              <span className="text-gray-700">Your Location</span>
+        {/* Map Container */}
+        <div
+          ref={mapContainer}
+          className="w-full rounded-lg border border-gray-300 bg-gray-100 relative overflow-hidden"
+          style={{ height: "380px", minHeight: "380px", width: "100%" }}
+        >
+          {!map.current && loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-gray-600 font-semibold">Loading map...</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-red-500 rounded-full"></div>
-              <span className="text-gray-700">Tourism Place</span>
+          )}
+          {!map.current && error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+              <div className="text-center px-4">
+                <p className="text-red-600 font-semibold">{error}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-1 bg-blue-500"></div>
-              <span className="text-gray-700">Route</span>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 px-4 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold rounded-lg transition-all"
-          >
+        {/* Bottom single row — close */}
+        <div className="flex justify-end pt-1">
+          <button onClick={onClose} className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-sm transition-all">
             Close Map
           </button>
         </div>
