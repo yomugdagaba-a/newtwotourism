@@ -300,7 +300,26 @@ class AdminController {
   async uploadTourismMainImage(req, res, next) {
     try {
       if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-      const imageUrl = this._imagePath('tourism-images', req.file.filename);
+      
+      // Try Supabase Storage first, fall back to local storage
+      const supabaseStorage = require('../services/supabase-storage.service');
+      let imageUrl;
+      
+      if (supabaseStorage.isConfigured()) {
+        // Upload to Supabase Storage
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        imageUrl = await supabaseStorage.uploadFile(
+          req.file.buffer,
+          fileName,
+          'tourism-images',
+          req.file.mimetype
+        );
+        console.log('✓ Uploaded to Supabase Storage:', imageUrl);
+      } else {
+        // Fall back to local storage
+        imageUrl = this._imagePath('tourism-images', req.file.filename);
+        console.warn('⚠️  Using local storage (Supabase not configured)');
+      }
       
       // Update the main imageUrl on the tourism place
       const result = await tourismService.update(parseInt(req.params.id), { imageUrl });
@@ -337,7 +356,27 @@ class AdminController {
   async uploadHotelMainImage(req, res, next) {
     try {
       if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-      const imageUrl = this._imagePath('hotel-images', req.file.filename);
+      
+      // Try Supabase Storage first, fall back to local storage
+      const supabaseStorage = require('../services/supabase-storage.service');
+      let imageUrl;
+      
+      if (supabaseStorage.isConfigured()) {
+        // Upload to Supabase Storage
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        imageUrl = await supabaseStorage.uploadFile(
+          req.file.buffer,
+          fileName,
+          'hotel-images',
+          req.file.mimetype
+        );
+        console.log('✓ Uploaded to Supabase Storage:', imageUrl);
+      } else {
+        // Fall back to local storage
+        imageUrl = this._imagePath('hotel-images', req.file.filename);
+        console.warn('⚠️  Using local storage (Supabase not configured)');
+      }
+      
       // Delete existing main image (displayOrder=0) and insert new one at position 0
       // without touching gallery images
       await prisma.hotelImage.deleteMany({ where: { hotelId: parseInt(req.params.id), displayOrder: 0 } });
@@ -350,7 +389,27 @@ class AdminController {
   async uploadHotelGalleryImage(req, res, next) {
     try {
       if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-      const imageUrl = this._imagePath('hotel-images', req.file.filename);
+      
+      // Try Supabase Storage first, fall back to local storage
+      const supabaseStorage = require('../services/supabase-storage.service');
+      let imageUrl;
+      
+      if (supabaseStorage.isConfigured()) {
+        // Upload to Supabase Storage
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        imageUrl = await supabaseStorage.uploadFile(
+          req.file.buffer,
+          fileName,
+          'hotel-images',
+          req.file.mimetype
+        );
+        console.log('✓ Uploaded to Supabase Storage:', imageUrl);
+      } else {
+        // Fall back to local storage
+        imageUrl = this._imagePath('hotel-images', req.file.filename);
+        console.warn('⚠️  Using local storage (Supabase not configured)');
+      }
+      
       res.status(201).json(await hotelsService.addImage(parseInt(req.params.id), imageUrl));
     } catch (e) { next(e); }
   }
@@ -358,7 +417,27 @@ class AdminController {
   async uploadHeroImage(req, res, next) {
     try {
       if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-      const imageUrl = this._imagePath('hero-images', req.file.filename);
+      
+      // Try Supabase Storage first, fall back to local storage
+      const supabaseStorage = require('../services/supabase-storage.service');
+      let imageUrl;
+      
+      if (supabaseStorage.isConfigured()) {
+        // Upload to Supabase Storage
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        imageUrl = await supabaseStorage.uploadFile(
+          req.file.buffer,
+          fileName,
+          'hero-images',
+          req.file.mimetype
+        );
+        console.log('✓ Uploaded to Supabase Storage:', imageUrl);
+      } else {
+        // Fall back to local storage
+        imageUrl = this._imagePath('hero-images', req.file.filename);
+        console.warn('⚠️  Using local storage (Supabase not configured)');
+      }
+      
       res.status(201).json(await tourismService.addHeroImage({
         imageUrl,
         title: req.body.title || '',
@@ -377,7 +456,28 @@ class AdminController {
         displayOrder: req.body.displayOrder ? parseInt(req.body.displayOrder) : undefined,
         active: req.body.active !== undefined ? req.body.active !== 'false' : undefined,
       };
-      if (req.file) updateData.imageUrl = this._imagePath('hero-images', req.file.filename);
+      
+      if (req.file) {
+        // Try Supabase Storage first, fall back to local storage
+        const supabaseStorage = require('../services/supabase-storage.service');
+        
+        if (supabaseStorage.isConfigured()) {
+          // Upload to Supabase Storage
+          const fileName = `${Date.now()}-${req.file.originalname}`;
+          updateData.imageUrl = await supabaseStorage.uploadFile(
+            req.file.buffer,
+            fileName,
+            'hero-images',
+            req.file.mimetype
+          );
+          console.log('✓ Uploaded to Supabase Storage:', updateData.imageUrl);
+        } else {
+          // Fall back to local storage
+          updateData.imageUrl = this._imagePath('hero-images', req.file.filename);
+          console.warn('⚠️  Using local storage (Supabase not configured)');
+        }
+      }
+      
       res.json(await tourismService.updateHeroImage(parseInt(req.params.id), updateData));
     } catch (e) { next(e); }
   }

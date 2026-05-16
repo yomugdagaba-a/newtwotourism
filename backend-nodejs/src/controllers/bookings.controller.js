@@ -16,16 +16,10 @@ class BookingsController {
   }
 
   _createUploader() {
-    const uploadDir = process.env.NODE_ENV === 'production'
-      ? path.join('/tmp', 'uploads', 'receipts')
-      : path.resolve(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads', 'receipts');
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
+    // Always use memory storage for Supabase compatibility
+    const storage = multer.memoryStorage();
+    
     const ALLOWED = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-    const storage = multer.diskStorage({
-      destination: (req, file, cb) => cb(null, uploadDir),
-      filename: (req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname)}`),
-    });
     return multer({
       storage,
       limits: { fileSize: 10 * 1024 * 1024 },
@@ -153,11 +147,30 @@ class BookingsController {
   async uploadReceiptFile(req, res, next) {
     try {
       if (!req.file) return res.status(400).json({ message: 'No file provided' });
-      // Return absolute URL pointing to backend for production
-      const backendUrl = process.env.BACKEND_URL || process.env.API_URL || '';
-      const receiptUrl = backendUrl 
-        ? `${backendUrl}/uploads/receipts/${req.file.filename}`
-        : `/uploads/receipts/${req.file.filename}`;
+      
+      // Try Supabase Storage first, fall back to local storage
+      const supabaseStorage = require('../services/supabase-storage.service');
+      let receiptUrl;
+      
+      if (supabaseStorage.isConfigured()) {
+        // Upload to Supabase Storage
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        receiptUrl = await supabaseStorage.uploadFile(
+          req.file.buffer,
+          fileName,
+          'receipts',
+          req.file.mimetype
+        );
+        console.log('✓ Uploaded receipt to Supabase Storage:', receiptUrl);
+      } else {
+        // Fall back to local storage (won't work on Leapcell)
+        const backendUrl = process.env.BACKEND_URL || process.env.API_URL || '';
+        receiptUrl = backendUrl 
+          ? `${backendUrl}/uploads/receipts/${req.file.filename}`
+          : `/uploads/receipts/${req.file.filename}`;
+        console.warn('⚠️  Using local storage for receipt (Supabase not configured)');
+      }
+      
       res.json(await bookingsService.uploadReceipt(parseInt(req.params.id), receiptUrl, req.query.userId ? parseInt(req.query.userId) : req.user.userId));
     } catch (e) { next(e); }
   }
