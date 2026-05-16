@@ -8,7 +8,31 @@ if (!supabaseKey) {
   console.warn('⚠️  SUPABASE_SERVICE_KEY not set. File uploads will fail.');
 }
 
-const supabase = supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+// Configure Supabase client with WebSocket support for Node.js < 22
+let supabase = null;
+if (supabaseKey) {
+  try {
+    // Try to use ws package for WebSocket support
+    const ws = require('ws');
+    supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        headers: {
+          'x-client-info': 'supabase-js-node',
+        },
+      },
+      realtime: {
+        transport: ws,
+      },
+    });
+    console.log('✅ Supabase Storage client initialized with WebSocket support');
+  } catch (error) {
+    console.error('❌ Failed to initialize Supabase client:', error.message);
+  }
+}
 
 /**
  * Upload a file to Supabase Storage
