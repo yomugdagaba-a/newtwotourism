@@ -51,6 +51,20 @@ try {
 }
 app.use('/uploads', express.static(uploadsDir));
 
+// Debug endpoint to check environment variables
+app.get('/api/debug/env', (req, res) => {
+  res.json({
+    BACKEND_URL: process.env.BACKEND_URL || 'NOT SET',
+    API_URL: process.env.API_URL || 'NOT SET',
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT,
+    uploadsDir: uploadsDir,
+    sampleImageUrl: process.env.BACKEND_URL 
+      ? `${process.env.BACKEND_URL}/uploads/tourism-images/sample.jpg`
+      : '/uploads/tourism-images/sample.jpg'
+  });
+});
+
 // ── Controllers ────────────────────────────────────────────────────────────────
 const { publicRouter: tourismPublicRouter, crudRouter: tourismCrudRouter } = require('./controllers/tourism.controller');
 const hotelsController = require('./controllers/hotels.controller');
