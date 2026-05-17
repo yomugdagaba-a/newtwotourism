@@ -5,7 +5,7 @@ In the Leapcell dashboard, configure these settings:
 
 1. BUILD SETTINGS:
    - Root Directory: Leave empty (use root)
-   - Build Command: npm install && cd backend-nodejs && npx prisma generate
+   - Build Command: npm install && cd backend-nodejs && npx prisma generate && npx prisma migrate deploy
    - Start Command: npm start
    - Port: 3001
 
@@ -42,10 +42,10 @@ IMPORTANT NOTES:
 - View counter will work with fallback logic (no TourismView table needed)
 - Make sure to set all environment variables before deploying
 
-TEMPORARY FIX:
-The build command has been changed from:
-  npm install && cd backend-nodejs && npx prisma migrate deploy
-To:
-  npm install && cd backend-nodejs && npx prisma generate
+TEMPORARY FIX (NOW RESOLVED):
+The build command was previously changed to skip migrations due to a failed migration.
+It has now been restored to run migrations properly:
+  npm install && cd backend-nodejs && npx prisma generate && npx prisma migrate deploy
 
-This skips the failed migration and allows deployment to succeed.
+The new migration 20260517_add_active_to_road_infos adds the missing `active` column
+to the road_infos table which was causing 500 errors on all tourism detail pages.

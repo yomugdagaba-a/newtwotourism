@@ -59,6 +59,7 @@ class RoadMapper {
       initialPlace: road.name || 'Unknown',
       roadType: (road.type || 'CAR').toString(),
       description: road.description || '',
+      active: road.active !== false, // default true if null/undefined
       distanceByCar: distances.distanceByCar,
       distanceByFoot: distances.distanceByFoot,
       distanceByHorse: distances.distanceByHorse,
