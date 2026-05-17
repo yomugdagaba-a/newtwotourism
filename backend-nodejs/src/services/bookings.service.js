@@ -271,9 +271,20 @@ class BookingsService {
   }
 
   async hideFromClient(id, userId) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id } });
+    const booking = await prisma.hotelBooking.findUnique({ 
+      where: { id },
+      include: { hotel: true }
+    });
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
-    if (booking.userId !== userId) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    
+    // Allow both the client (userId) and the hotel owner (ownerId) to hide the booking
+    const isClient = booking.userId === userId;
+    const isOwner = booking.hotel?.ownerId === userId;
+    
+    if (!isClient && !isOwner) {
+      throw Object.assign(new Error('Not authorized'), { status: 403 });
+    }
+    
     const updated = await prisma.hotelBooking.update({ where: { id }, data: { hiddenFromClient: true }, include: INCLUDE });
     return this._transform(updated);
   }
