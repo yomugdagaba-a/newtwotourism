@@ -12,6 +12,8 @@ class HorseServicesService {
       initialPlace: placeMatch ? placeMatch[1].trim() : '',
       cost: s.pricePerHour ? parseFloat(s.pricePerHour.toString()) : 0,
       roadInfoId: s.roadInfoId,
+      active: s.active !== undefined ? s.active : true,
+      createdAt: s.createdAt ? s.createdAt.toISOString() : undefined,
     };
   }
 
