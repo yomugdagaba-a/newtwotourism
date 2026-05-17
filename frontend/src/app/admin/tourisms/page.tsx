@@ -378,7 +378,7 @@ const TourismsManagementPage = () => {
                   )}
 
                   {/* Action Buttons - all inline */}
-                  <div className="mt-2.5 flex gap-1.5">
+                  <div className="mt-2.5 flex gap-1.5 flex-wrap">
                     <button onClick={() => router.push(`/admin/tourisms/${tourism.id}/images`)}
                       className="flex-1 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs font-semibold transition-all border border-gray-200">
                       Images
@@ -386,6 +386,26 @@ const TourismsManagementPage = () => {
                     <button onClick={() => openEditModal(tourism)}
                       className="flex-1 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs font-semibold transition-all border border-gray-200">
                       Edit
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!token) return;
+                        const isActive = (tourism as any).status !== 'BLOCKED';
+                        const action = isActive ? 'block' : 'activate';
+                        const ok = await confirm({ message: `Are you sure you want to ${action} this tourism place?`, variant: isActive ? 'warning' : 'info', title: `${isActive ? 'Block' : 'Activate'} Tourism Place`, confirmLabel: 'Yes', cancelLabel: 'No' });
+                        if (!ok) return;
+                        try {
+                          setActionLoading(tourism.id);
+                          await AdminTourismService.updateTourism(token, tourism.id, { status: isActive ? 'BLOCKED' : 'ACTIVE' } as any);
+                          toast.success(`Tourism place ${isActive ? 'blocked' : 'activated'} successfully`);
+                          await loadTourisms();
+                        } catch (err) {
+                          toast.error('Failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+                        } finally { setActionLoading(null); }
+                      }}
+                      disabled={actionLoading === tourism.id}
+                      className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all border disabled:opacity-50 ${(tourism as any).status === 'BLOCKED' ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' : 'bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200'}`}>
+                      {actionLoading === tourism.id ? '...' : (tourism as any).status === 'BLOCKED' ? 'Activate' : 'Deactivate'}
                     </button>
                     <button onClick={() => handleDelete(tourism.id)} disabled={actionLoading === tourism.id}
                       className="flex-1 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded text-xs font-semibold transition-all border border-red-200 disabled:opacity-50">

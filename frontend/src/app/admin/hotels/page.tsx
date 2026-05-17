@@ -513,7 +513,7 @@ const HotelsManagementPage = () => {
                   </div>
                   
                   {/* Action Buttons */}
-                  <div className="mt-3 flex gap-1.5">
+                  <div className="mt-3 flex gap-1.5 flex-wrap">
                     <button onClick={() => router.push(`/admin/hotels/${hotel.id}`)}
                       className="flex-1 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs font-semibold transition-all border border-gray-200">
                       Manage
@@ -521,6 +521,26 @@ const HotelsManagementPage = () => {
                     <button onClick={() => openEditModal(hotel)} 
                       className="flex-1 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs font-semibold transition-all border border-gray-200">
                       Edit
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!token) return;
+                        const isActive = hotel.active !== false;
+                        const action = isActive ? 'deactivate' : 'activate';
+                        const ok = await confirm({ message: `Are you sure you want to ${action} this hotel?`, variant: isActive ? 'warning' : 'info', title: `${isActive ? 'Deactivate' : 'Activate'} Hotel`, confirmLabel: 'Yes', cancelLabel: 'No' });
+                        if (!ok) return;
+                        try {
+                          setActionLoading(hotel.id);
+                          await AdminHotelService.toggleActive(token, hotel.id, !isActive);
+                          toast.success(`Hotel ${action}d successfully`);
+                          await loadHotels();
+                        } catch (err) {
+                          toast.error('Failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+                        } finally { setActionLoading(null); }
+                      }}
+                      disabled={actionLoading === hotel.id}
+                      className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all border disabled:opacity-50 ${hotel.active !== false ? 'bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200' : 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200'}`}>
+                      {actionLoading === hotel.id ? '...' : hotel.active !== false ? 'Deactivate' : 'Activate'}
                     </button>
                     <button onClick={() => handleDelete(hotel.id)} disabled={actionLoading === hotel.id}
                       className="flex-1 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded text-xs font-semibold transition-all border border-red-200 disabled:opacity-50">

@@ -304,18 +304,29 @@ export default function ClientBookingsPage() {
                 {filteredBookings.length === 0 ? (
                   <div className="p-4 text-center text-gray-400 text-xs">No bookings found</div>
                 ) : filteredBookings.map(b => (
-                  <div key={b.bookingId} onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }}
-                    className={"bg-white rounded-lg p-2.5 cursor-pointer border-2 transition hover:shadow-sm " + (selectedBooking?.bookingId === b.bookingId ? "border-blue-400/50" : "border-gray-200")}>
-                    <div className="flex justify-between items-start mb-0.5">
-                      <div>
-                        <span className="font-bold text-gray-900 text-xs">Booking {b.bookingId}</span>
-                        <span className="text-gray-400 ml-1 text-xs">{b.hotel.name}</span>
+                  <div key={b.bookingId} className={"bg-white rounded-lg p-2.5 border-2 transition hover:shadow-sm " + (selectedBooking?.bookingId === b.bookingId ? "border-blue-400/50" : "border-gray-200")}>
+                    <div onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }} className="cursor-pointer">
+                      <div className="flex justify-between items-start mb-0.5">
+                        <div>
+                          <span className="font-bold text-gray-900 text-xs">Booking {b.bookingId}</span>
+                          <span className="text-gray-400 ml-1 text-xs">{b.hotel.name}</span>
+                        </div>
+                        <span className={"text-xs " + BookingService.getStatusColor(b.bookingStatus)}>
+                          {BookingService.getStatusLabel(b.bookingStatus)}
+                        </span>
                       </div>
-                      <span className={"text-xs " + BookingService.getStatusColor(b.bookingStatus)}>
-                        {BookingService.getStatusLabel(b.bookingStatus)}
-                      </span>
+                      <div className="text-xs text-gray-500">{b.checkIn} → {b.checkOut} · {b.numberOfGuests} guests</div>
                     </div>
-                    <div className="text-xs text-gray-500">{b.checkIn} → {b.checkOut} · {b.numberOfGuests} guests</div>
+                    {/* Delete/Hide button — removes from client view only, booking stays in admin/owner */}
+                    <div className="mt-1.5 flex justify-end">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleHideBooking(b.bookingId); }}
+                        className="text-xs text-red-400 hover:text-red-600 font-semibold transition-all px-1"
+                        title="Remove from my list (booking stays in admin records)"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
