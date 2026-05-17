@@ -270,27 +270,37 @@ export default function AdminBookingsPage() {
                 filteredBookings.map((b, index) => (
                   <div
                     key={b.bookingId || `booking-${index}`}
-                    onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }}
-                    className={`bg-white rounded-xl px-4 py-3 cursor-pointer transition border shadow-sm hover:shadow-md ${
+                    className={`bg-white rounded-xl px-4 py-3 transition border shadow-sm hover:shadow-md ${
                       selectedBooking?.bookingId === b.bookingId ? 'bg-blue-50 border-blue-200 shadow-md' : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-1">
-                      <div>
-                        <span className="font-black text-gray-900 text-sm">Booking {b.bookingId}</span>
-                        {b.problemReported && <span className="ml-2 text-xs text-red-500 font-bold">Problem</span>}
+                    <div onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }} className="cursor-pointer">
+                      <div className="flex justify-between items-start mb-1">
+                        <div>
+                          <span className="font-black text-gray-900 text-sm">Booking {b.bookingId}</span>
+                          {b.problemReported && <span className="ml-2 text-xs text-red-500 font-bold">Problem</span>}
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-black shadow-sm ${BookingService.getStatusColor(b.bookingStatus)}`}>
+                          {BookingService.getStatusLabel(b.bookingStatus)}
+                        </span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-black shadow-sm ${BookingService.getStatusColor(b.bookingStatus)}`}>
-                        {BookingService.getStatusLabel(b.bookingStatus)}
-                      </span>
+                      <div className="text-xs text-gray-700 space-y-0.5">
+                        <div className="font-black text-gray-900">{b.hotel?.name || 'N/A'}</div>
+                        <div className="font-semibold">{b.client?.fullName || 'N/A'}</div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-gray-500">{b.checkIn} — {b.checkOut}</span>
+                          {b.totalCost && <span className="font-black text-gray-800">{b.totalCost} ETB</span>}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-700 space-y-0.5">
-                      <div className="font-black text-gray-900">{b.hotel?.name || 'N/A'}</div>
-                      <div className="font-semibold">{b.client?.fullName || 'N/A'}</div>
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-gray-500">{b.checkIn} — {b.checkOut}</span>
-                        {b.totalCost && <span className="font-black text-gray-800">{b.totalCost} ETB</span>}
-                      </div>
+                    {/* See button */}
+                    <div className="mt-2 flex justify-start">
+                      <button
+                        onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-all"
+                      >
+                        See
+                      </button>
                     </div>
                   </div>
                 ))

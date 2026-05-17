@@ -126,6 +126,16 @@ export default function ClientBookingsPage() {
 
   const handleHideBooking = async (bookingId: number) => {
     if (!token || !userId) return;
+    
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      "⚠️ Warning: If you delete this booking, you will not be able to view it again in your bookings list.\n\n" +
+      "The booking will still be visible to the hotel owner and admin for record-keeping purposes.\n\n" +
+      "Are you sure you want to remove this booking from your list?"
+    );
+    
+    if (!confirmed) return;
+    
     try {
       await BookingService.hideBooking(token, bookingId, userId);
       setBookings(prev => prev.filter(b => b.bookingId !== bookingId));
@@ -317,8 +327,14 @@ export default function ClientBookingsPage() {
                       </div>
                       <div className="text-xs text-gray-500">{b.checkIn} → {b.checkOut} · {b.numberOfGuests} guests</div>
                     </div>
-                    {/* Delete/Hide button — removes from client view only, booking stays in admin/owner */}
-                    <div className="mt-1.5 flex justify-end">
+                    {/* Action buttons */}
+                    <div className="mt-1.5 flex justify-between items-center">
+                      <button
+                        onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-all"
+                      >
+                        See
+                      </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleHideBooking(b.bookingId); }}
                         className="text-xs text-red-400 hover:text-red-600 font-semibold transition-all px-1"
