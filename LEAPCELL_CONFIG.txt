@@ -5,7 +5,7 @@ In the Leapcell dashboard, configure these settings:
 
 1. BUILD SETTINGS:
    - Root Directory: Leave empty (use root)
-   - Build Command: npm install && cd backend-nodejs && npx prisma migrate deploy
+   - Build Command: npm install && cd backend-nodejs && npx prisma generate
    - Start Command: npm start
    - Port: 3001
 
@@ -29,11 +29,23 @@ In the Leapcell dashboard, configure these settings:
    MAX_IP_ATTEMPTS_PER_HOUR=100
    AUDIT_ENABLED=true
    AUDIT_RETENTION_DAYS=90
+   BACKEND_URL=https://newtwotourism-yomugdagaba9439-uhal9g6y.leapcell.dev
+   SUPABASE_URL=https://gclzstgdcguzocxxgkdv.supabase.co
+   SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjbHpzdGdkY2d1em9jeHhna2R2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjU4NTMwOSwiZXhwIjoyMDkyMTYxMzA5fQ.QavLtsePUWKR0Qp9ns4yDxoK0Sr9SocUUjWmOq4wwrk
 
 3. HEALTH CHECK:
    - Health Check Path: /health
 
 IMPORTANT NOTES:
+- Build command changed to skip migrations (failed migration blocking deployment)
 - The postinstall script will automatically run "npx prisma generate" after npm install
-- The build command runs database migrations
+- View counter will work with fallback logic (no TourismView table needed)
 - Make sure to set all environment variables before deploying
+
+TEMPORARY FIX:
+The build command has been changed from:
+  npm install && cd backend-nodejs && npx prisma migrate deploy
+To:
+  npm install && cd backend-nodejs && npx prisma generate
+
+This skips the failed migration and allows deployment to succeed.
