@@ -35,7 +35,7 @@ export const getUserLocation = (): Promise<LocationCoordinates> => {
       },
       {
         enableHighAccuracy: false, // Use network/WiFi location for faster response
-        timeout: 5000, // Reduced from 10s to 5s
+        timeout: 30000, // Increased to 30 seconds for better reliability
         maximumAge: 300000, // Cache location for 5 minutes (300000ms)
       }
     );
