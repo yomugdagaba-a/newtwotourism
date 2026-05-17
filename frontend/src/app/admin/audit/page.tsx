@@ -302,7 +302,7 @@ const AuditLogsPage = () => {
               onClick={handleExportCsv}
               disabled={exportLoading}
               style={{ fontSize: '14px' }}
-              className="shrink-0 bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded whitespace-nowrap transition-colors disabled:opacity-40"
+              className="shrink-0 text-green-600 hover:text-green-800 px-2.5 py-1 rounded whitespace-nowrap transition-colors disabled:opacity-40 font-black"
             >
               {exportLoading ? '...' : 'Export CSV'}
             </button>

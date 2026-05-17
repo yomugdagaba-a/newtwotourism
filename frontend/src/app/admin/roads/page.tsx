@@ -432,19 +432,19 @@ const RoadsManagementPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-3">
-                          <button onClick={() => openEditModal(road)} className="text-blue-600 hover:text-blue-800 px-3 py-1 rounded-lg font-black border border-blue-600 hover:border-blue-800">Edit</button>
+                          <button onClick={() => openEditModal(road)} className="text-blue-600 hover:text-blue-800 px-3 py-1 rounded-lg font-black transition-colors">Edit</button>
                           <button onClick={() => handleDelete(road.id)} disabled={actionLoading === road.id}
-                            className="text-red-600 hover:text-red-800 px-3 py-1 rounded-lg font-black border border-red-600 hover:border-red-800 disabled:opacity-50">
+                            className="text-red-600 hover:text-red-800 px-3 py-1 rounded-lg font-black transition-colors disabled:opacity-50">
                             {actionLoading === road.id ? '...' : 'Delete'}
                           </button>
                           {road.active !== false ? (
                             <button onClick={() => handleToggleActive(road.id, road.active !== false)} disabled={actionLoading === road.id}
-                              className="text-orange-600 hover:text-orange-800 px-3 py-1 rounded-lg font-black border border-orange-600 hover:border-orange-800 disabled:opacity-50">
+                              className="text-orange-600 hover:text-orange-800 px-3 py-1 rounded-lg font-black transition-colors disabled:opacity-50">
                               {actionLoading === road.id ? '...' : 'Deactivate'}
                             </button>
                           ) : (
                             <button onClick={() => handleToggleActive(road.id, road.active !== false)} disabled={actionLoading === road.id}
-                              className="text-green-600 hover:text-green-800 px-3 py-1 rounded-lg font-black border border-green-600 hover:border-green-800 disabled:opacity-50">
+                              className="text-green-600 hover:text-green-800 px-3 py-1 rounded-lg font-black transition-colors disabled:opacity-50">
                               {actionLoading === road.id ? '...' : 'Activate'}
                             </button>
                           )}
