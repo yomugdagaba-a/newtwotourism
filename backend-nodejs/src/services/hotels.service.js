@@ -27,7 +27,9 @@ class HotelsService {
   }
 
   async findAll(skip = 0, take = 10, tourismPlaceId) {
-    const where = tourismPlaceId ? { tourismPlaceId: parseInt(tourismPlaceId) } : {};
+    const where = tourismPlaceId
+      ? { tourismPlaceId: parseInt(tourismPlaceId), active: true }
+      : { active: true };
     const [hotels, total] = await Promise.all([
       prisma.hotel.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: INCLUDE_LIST }),
       prisma.hotel.count({ where }),
@@ -43,7 +45,7 @@ class HotelsService {
   }
 
   async getByTourism(tourismPlaceId) {
-    const hotels = await prisma.hotel.findMany({ where: { tourismPlaceId }, include: INCLUDE_LIST });
+    const hotels = await prisma.hotel.findMany({ where: { tourismPlaceId, active: true }, include: INCLUDE_LIST });
     return hotels.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
   }
 
@@ -83,7 +85,7 @@ class HotelsService {
   }
 
   async search(q = '', skip = 0, take = 10) {
-    const where = { OR: [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] };
+    const where = { active: true, OR: [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] };
     const [hotels, total] = await Promise.all([
       prisma.hotel.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: INCLUDE_LIST }),
       prisma.hotel.count({ where }),
