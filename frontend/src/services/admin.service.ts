@@ -258,6 +258,7 @@ export interface HorseService {
   initialPlace: string;
   cost: number;
   roadInfoId?: number;
+  active?: boolean;
   createdAt?: string;
 }
 
@@ -319,6 +320,7 @@ export interface Road {
   distanceByHorse?: number;
   totalDistance?: number;
   tourismPlaceId?: number;
+  active?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -821,7 +823,7 @@ export class AdminGuiderService {
 
   static async getGuidersByTourism(token: string, tourismId: number): Promise<Guider[]> {
     const response = await fetch(
-      `${API_BASE_URL}/guiders/tourism/${tourismId}`,
+      `${API_BASE_URL}/admin/guiders/tourism/${tourismId}`,
       { headers: getAuthHeaders(token) }
     );
     return handleResponse<Guider[]>(response);
@@ -866,6 +868,15 @@ export class AdminGuiderService {
     );
     return handleResponse<void>(response);
   }
+
+  static async toggleGuiderActive(token: string, guiderId: number): Promise<Guider> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/guiders/${guiderId}/toggle-active`,
+      { method: "PATCH", headers: getAuthHeaders(token) }
+    );
+    const result = await handleResponse<{ guider: Guider }>(response);
+    return result.guider;
+  }
 }
 
 // ========================
@@ -890,7 +901,7 @@ export class AdminHorseServiceService {
 
   static async getHorseServicesByRoad(token: string, roadId: number): Promise<HorseService[]> {
     const response = await fetch(
-      `${API_BASE_URL}/roads/${roadId}/horse-services`,
+      `${API_BASE_URL}/admin/horse-services/road/${roadId}`,
       { headers: getAuthHeaders(token) }
     );
     return handleResponse<HorseService[]>(response);
@@ -934,6 +945,15 @@ export class AdminHorseServiceService {
       { method: "DELETE", headers: getAuthHeaders(token) }
     );
     return handleResponse<void>(response);
+  }
+
+  static async toggleHorseServiceActive(token: string, horseServiceId: number): Promise<HorseService> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/horse-services/${horseServiceId}/toggle-active`,
+      { method: "PATCH", headers: getAuthHeaders(token) }
+    );
+    const result = await handleResponse<{ service: HorseService }>(response);
+    return result.service;
   }
 }
 
@@ -1119,7 +1139,7 @@ export class AdminRoadService {
 
   static async getRoadsByTourism(token: string, tourismId: number): Promise<Road[]> {
     const response = await fetch(
-      `${API_BASE_URL}/tourisms/${tourismId}/roads`,
+      `${API_BASE_URL}/admin/roads/tourism/${tourismId}`,
       { headers: getAuthHeaders(token) }
     );
     return handleResponse<Road[]>(response);
@@ -1163,6 +1183,15 @@ export class AdminRoadService {
       { method: "DELETE", headers: getAuthHeaders(token) }
     );
     return handleResponse<void>(response);
+  }
+
+  static async toggleRoadActive(token: string, roadId: number): Promise<Road> {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/roads/${roadId}/toggle-active`,
+      { method: "PATCH", headers: getAuthHeaders(token) }
+    );
+    const result = await handleResponse<{ road: Road }>(response);
+    return result.road;
   }
 }
 

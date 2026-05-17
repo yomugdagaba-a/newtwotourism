@@ -198,6 +198,29 @@ const HorseServicesManagementPage = () => {
     }
   };
 
+  const handleToggleActive = async (serviceId: number, currentStatus: boolean) => {
+    if (!token || !selectedRoadId) return;
+    const action = currentStatus ? 'deactivate' : 'activate';
+    const ok = await confirm({ 
+      message: `Are you sure you want to ${action} this horse service? ${currentStatus ? 'The service will not be visible to clients.' : 'The service will be visible to clients.'}`, 
+      variant: currentStatus ? 'warning' : 'info', 
+      title: `${action.charAt(0).toUpperCase() + action.slice(1)} Horse Service`, 
+      confirmLabel: 'Yes', 
+      cancelLabel: 'No' 
+    });
+    if (!ok) return;
+    try {
+      setActionLoading(serviceId);
+      await AdminHorseServiceService.toggleHorseServiceActive(token, serviceId);
+      toast.success(`Horse service ${action}d successfully`);
+      await loadHorseServices(selectedRoadId);
+    } catch (err) {
+      toast.error(`Failed to ${action}: ` + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const openEditModal = (service: HorseService) => {
     setEditingService(service);
     setFormData({
@@ -374,7 +397,7 @@ const HorseServicesManagementPage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ID</th>
@@ -382,10 +405,11 @@ const HorseServicesManagementPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Initial Place</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cost</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+              <tbody className="bg-white">
                 {filteredServices.map((service) => (
                   <tr key={service.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -413,13 +437,29 @@ const HorseServicesManagementPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full font-bold border border-green-300">{service.cost} ETB</span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full border ${service.active !== false ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>
+                        {service.active !== false ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-3">
-                        <button onClick={() => openEditModal(service)} className="bg-blue-200 text-blue-800 px-3 py-1 rounded-lg font-black hover:bg-blue-300 shadow-md">Edit</button>
+                        <button onClick={() => openEditModal(service)} className="text-blue-600 hover:text-blue-800 px-3 py-1 rounded-lg font-black border border-blue-600 hover:border-blue-800">Edit</button>
                         <button onClick={() => handleDelete(service.id)} disabled={actionLoading === service.id}
-                          className="bg-red-200 text-red-800 px-3 py-1 rounded-lg font-black hover:bg-red-300 shadow-md disabled:opacity-50">
+                          className="text-red-600 hover:text-red-800 px-3 py-1 rounded-lg font-black border border-red-600 hover:border-red-800 disabled:opacity-50">
                           {actionLoading === service.id ? '...' : 'Delete'}
                         </button>
+                        {service.active !== false ? (
+                          <button onClick={() => handleToggleActive(service.id, service.active !== false)} disabled={actionLoading === service.id}
+                            className="text-orange-600 hover:text-orange-800 px-3 py-1 rounded-lg font-black border border-orange-600 hover:border-orange-800 disabled:opacity-50">
+                            {actionLoading === service.id ? '...' : 'Deactivate'}
+                          </button>
+                        ) : (
+                          <button onClick={() => handleToggleActive(service.id, service.active !== false)} disabled={actionLoading === service.id}
+                            className="text-green-600 hover:text-green-800 px-3 py-1 rounded-lg font-black border border-green-600 hover:border-green-800 disabled:opacity-50">
+                            {actionLoading === service.id ? '...' : 'Activate'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

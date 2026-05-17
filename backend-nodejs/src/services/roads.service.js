@@ -30,6 +30,12 @@ class RoadsService {
   }
 
   async getByTourism(tourismPlaceId) {
+    const roads = await prisma.roadInfo.findMany({ where: { tourismPlaceId: parseInt(tourismPlaceId), active: true }, include: INCLUDE });
+    return roads.map(toRoadDto);
+  }
+
+  async getAllByTourism(tourismPlaceId) {
+    // Admin endpoint - shows all roads (active and inactive)
     const roads = await prisma.roadInfo.findMany({ where: { tourismPlaceId: parseInt(tourismPlaceId) }, include: INCLUDE });
     return roads.map(toRoadDto);
   }
@@ -45,6 +51,17 @@ class RoadsService {
     const road = await prisma.roadInfo.findUnique({ where: { id } });
     if (!road) throw Object.assign(new Error('Road not found'), { status: 404 });
     await prisma.roadInfo.delete({ where: { id } });
+  }
+
+  async toggleActive(id) {
+    const road = await prisma.roadInfo.findUnique({ where: { id } });
+    if (!road) throw Object.assign(new Error('Road not found'), { status: 404 });
+    const updated = await prisma.roadInfo.update({
+      where: { id },
+      data: { active: !road.active },
+      include: INCLUDE,
+    });
+    return toRoadDto(updated);
   }
 }
 

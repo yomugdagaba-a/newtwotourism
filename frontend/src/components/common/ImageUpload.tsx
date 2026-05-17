@@ -74,31 +74,45 @@ export default function ImageUpload({
 
   const previewSrc = preview ? getImageSrc(preview) : '';
 
+  const handleRemove = () => {
+    setPreview(null);
+    setError('');
+    onUrlChange?.('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-1">
+      <label className="block text-sm font-semibold text-gray-700 mb-2">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
 
-      {/* Preview — only render when we have a non-empty src */}
+      {/* Preview with Remove button */}
       {previewSrc && (
-        <div className="mb-2">
+        <div className="mb-3 relative group">
           <img
             src={previewSrc}
             alt="Preview"
-            className="h-28 w-full object-cover rounded border border-gray-200"
+            className="h-32 w-full object-cover rounded-lg border border-gray-200"
             onError={() => setPreview(null)}
           />
+          {/* Remove button - X style */}
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={isUploading}
+            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Remove image"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
-      {/* Upload area */}
-      <div
-        onClick={() => !isUploading && fileInputRef.current?.click()}
-        className={`border border-dashed border-gray-300 rounded-lg px-3 py-3 text-center cursor-pointer transition-colors ${
-          isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-purple-400 hover:bg-purple-50'
-        }`}
-      >
+      {/* Upload/Change button */}
+      <div className="flex items-center gap-2">
         <input
           ref={fileInputRef}
           type="file"
@@ -107,25 +121,39 @@ export default function ImageUpload({
           className="hidden"
           disabled={isUploading}
         />
-        {isUploading ? (
-          <div className="flex items-center justify-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-            <span className="text-xs text-gray-500">Uploading...</span>
-          </div>
-        ) : (
-          <div>
-            <svg className="w-5 h-5 text-gray-400 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-xs text-gray-500">
-              {previewSrc ? 'Click to change image' : 'Click to upload image'}
-            </p>
-            <p className="text-xs text-gray-400">JPG, PNG, GIF, WebP — max 10MB</p>
-          </div>
-        )}
+        
+        <button
+          type="button"
+          onClick={() => !isUploading && fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+        >
+          {isUploading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span>Uploading...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>{previewSrc ? 'Change' : 'Upload'}</span>
+            </>
+          )}
+        </button>
+        
+        <span className="text-xs text-gray-400">JPG, PNG, GIF, WebP — max 10MB</span>
       </div>
 
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {error && (
+        <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

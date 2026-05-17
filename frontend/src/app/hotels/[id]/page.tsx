@@ -1010,34 +1010,69 @@ export default function HotelDetailPage() {
                                 Payment Required
                               </h4>
                               <div className="space-y-3">
-                                <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 text-center hover:bg-gray-50 hover:border-blue-400 transition-all cursor-pointer">
-                                  <input type="file" accept="image/*,.pdf" onChange={handleReceiptFileChange} className="hidden" id="receipt-upload-input" />
-                                  <label htmlFor="receipt-upload-input" className="cursor-pointer block">
-                                    {receiptFile ? (
-                                      <div>
-                                        <div className="text-green-600 text-2xl mb-2">✓</div>
-                                        <p className="text-gray-800 font-medium text-sm">{receiptFile.name}</p>
-                                        <p className="text-gray-500 text-xs">{(receiptFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                      </div>
-                                    ) : (
-                                      <div>
-                                        <svg className="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                {/* Receipt preview */}
+                                {receiptFile && (
+                                  <div className="relative group">
+                                    {receiptPreview && (
+                                      <img src={receiptPreview} alt="Preview" className="w-full h-32 object-cover rounded-lg border border-gray-200" />
+                                    )}
+                                    {!receiptPreview && (
+                                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                                        <svg className="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                         </svg>
-                                        <p className="text-gray-600 font-medium text-sm">Click to select receipt</p>
-                                        <p className="text-gray-400 text-xs mt-1">JPG, PNG, PDF (max 10MB)</p>
+                                        <p className="text-gray-600 text-sm font-medium">{receiptFile.name}</p>
+                                        <p className="text-gray-400 text-xs">{(receiptFile.size / 1024 / 1024).toFixed(2)} MB</p>
                                       </div>
                                     )}
-                                  </label>
+                                    {/* Remove button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setReceiptFile(null);
+                                        setReceiptPreview(null);
+                                      }}
+                                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all"
+                                      title="Remove file"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                )}
+                                
+                                {/* Upload button */}
+                                <div className="flex items-center gap-3">
+                                  <input 
+                                    type="file" 
+                                    accept="image/*,.pdf" 
+                                    onChange={handleReceiptFileChange} 
+                                    className="hidden" 
+                                    id="receipt-upload-input" 
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => document.getElementById('receipt-upload-input')?.click()}
+                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors flex items-center gap-1.5"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>{receiptFile ? 'Change' : 'Upload'} Receipt</span>
+                                  </button>
+                                  <span className="text-xs text-gray-400">JPG, PNG, PDF — max 10MB</span>
                                 </div>
-                                {receiptPreview && <img src={receiptPreview} alt="Preview" className="max-h-32 rounded-lg mx-auto border border-gray-100 shadow-sm" />}
-                                <button
-                                  onClick={handleUploadReceipt}
-                                  disabled={!receiptFile || submitting}
-                                  className="w-full bg-white text-blue-700 px-5 py-3 rounded-xl text-sm font-medium border border-blue-200 hover:bg-blue-50 disabled:opacity-50 transition-all shadow-sm"
-                                >
-                                  {submitting ? 'Uploading...' : 'Upload Receipt'}
-                                </button>
+                                
+                                {receiptFile && (
+                                  <button
+                                    onClick={handleUploadReceipt}
+                                    disabled={submitting}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg text-sm font-medium disabled:opacity-50 transition-all shadow-sm"
+                                  >
+                                    {submitting ? 'Uploading...' : 'Submit Receipt'}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           )}
@@ -1307,7 +1342,7 @@ export default function HotelDetailPage() {
       <Modal isOpen={detailModalOpen} onClose={() => setDetailModalOpen(false)} size="lg">
         <div className="bg-white rounded-2xl overflow-hidden">
           {/* Header */}
-          <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="px-6 pt-6 pb-4">
             <h2 className="text-xl font-black text-blue-700">
               {detailModalType === 'description' ? '🏨 About This Hotel' : '📋 Hotel Policies'}
             </h2>
@@ -1354,18 +1389,6 @@ export default function HotelDetailPage() {
               }
               return <p className="text-gray-700 text-sm leading-relaxed">{text}</p>;
             })()}
-          </div>
-
-          {/* Hint footer */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-start gap-3">
-            <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-gray-500 text-xs leading-relaxed">
-              {detailModalType === 'description'
-                ? 'Complete information about this hotel. Contact the hotel for more details.'
-                : 'Please review these policies before making a booking.'}
-            </p>
           </div>
 
           {/* Close */}

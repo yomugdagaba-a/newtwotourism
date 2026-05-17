@@ -201,6 +201,29 @@ const GuidersManagementPage = () => {
     }
   };
 
+  const handleToggleActive = async (guiderId: number, currentStatus: boolean) => {
+    if (!token || !selectedTourismId) return;
+    const action = currentStatus ? 'deactivate' : 'activate';
+    const ok = await confirm({ 
+      message: `Are you sure you want to ${action} this guider? ${currentStatus ? 'The guider will not be visible to clients.' : 'The guider will be visible to clients.'}`, 
+      variant: currentStatus ? 'warning' : 'info', 
+      title: `${action.charAt(0).toUpperCase() + action.slice(1)} Guider`, 
+      confirmLabel: 'Yes', 
+      cancelLabel: 'No' 
+    });
+    if (!ok) return;
+    try {
+      setActionLoading(guiderId);
+      await AdminGuiderService.toggleGuiderActive(token, guiderId);
+      toast.success(`Guider ${action}d successfully`);
+      await loadGuiders(selectedTourismId);
+    } catch (err) {
+      toast.error(`Failed to ${action}: ` + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const openEditModal = (guider: Guider) => {
     setEditingGuider(guider);
     setFormData({
@@ -352,7 +375,7 @@ const GuidersManagementPage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Guider</th>
@@ -362,7 +385,7 @@ const GuidersManagementPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white">
                 {filteredGuiders.map((guider) => (
                   <tr key={guider.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -403,11 +426,22 @@ const GuidersManagementPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-3">
-                        <button onClick={() => openEditModal(guider)} className="bg-blue-200 text-blue-800 px-3 py-1 rounded-lg font-black hover:bg-blue-300 shadow-md">Edit</button>
+                        <button onClick={() => openEditModal(guider)} className="text-blue-600 hover:text-blue-800 px-3 py-1 rounded-lg font-black border border-blue-600 hover:border-blue-800">Edit</button>
                         <button onClick={() => handleDelete(guider.id)} disabled={actionLoading === guider.id}
-                          className="bg-red-200 text-red-800 px-3 py-1 rounded-lg font-black hover:bg-red-300 shadow-md disabled:opacity-50">
+                          className="text-red-600 hover:text-red-800 px-3 py-1 rounded-lg font-black border border-red-600 hover:border-red-800 disabled:opacity-50">
                           {actionLoading === guider.id ? '...' : 'Delete'}
                         </button>
+                        {guider.active ? (
+                          <button onClick={() => handleToggleActive(guider.id, guider.active)} disabled={actionLoading === guider.id}
+                            className="text-orange-600 hover:text-orange-800 px-3 py-1 rounded-lg font-black border border-orange-600 hover:border-orange-800 disabled:opacity-50">
+                            {actionLoading === guider.id ? '...' : 'Deactivate'}
+                          </button>
+                        ) : (
+                          <button onClick={() => handleToggleActive(guider.id, guider.active)} disabled={actionLoading === guider.id}
+                            className="text-green-600 hover:text-green-800 px-3 py-1 rounded-lg font-black border border-green-600 hover:border-green-800 disabled:opacity-50">
+                            {actionLoading === guider.id ? '...' : 'Activate'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

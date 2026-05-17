@@ -132,6 +132,7 @@ class AdminController {
     this.router.post('/roads', ...g, this.createRoad.bind(this));
     this.router.put('/roads/:id', ...g, this.updateRoad.bind(this));
     this.router.delete('/roads/:id', ...g, this.deleteRoad.bind(this));
+    this.router.patch('/roads/:id/toggle-active', ...g, this.toggleRoadActive.bind(this));
 
     // Horse Services
     this.router.get('/horse-services/road/:roadId', ...g, this.getHorseServicesByRoad.bind(this));
@@ -140,12 +141,15 @@ class AdminController {
     this.router.post('/horse-services', ...g, this.createHorseService.bind(this));
     this.router.put('/horse-services/:id', ...g, this.updateHorseService.bind(this));
     this.router.delete('/horse-services/:id', ...g, this.deleteHorseService.bind(this));
+    this.router.patch('/horse-services/:id/toggle-active', ...g, this.toggleHorseServiceActive.bind(this));
 
     // Language Guiders
     this.router.get('/guiders', ...g, this.getGuiders.bind(this));
+    this.router.get('/guiders/tourism/:tourismPlaceId', ...g, this.getGuidersByTourism.bind(this));
     this.router.post('/guiders', ...g, this.createGuider.bind(this));
     this.router.put('/guiders/:id', ...g, this.updateGuider.bind(this));
     this.router.delete('/guiders/:id', ...g, this.deleteGuider.bind(this));
+    this.router.patch('/guiders/:id/toggle-active', ...g, this.toggleGuiderActive.bind(this));
 
     // Audit
     this.router.get('/audit/search', ...g, this.auditSearch.bind(this));
@@ -629,7 +633,7 @@ class AdminController {
   }
 
   async getRoadsByTourism(req, res, next) {
-    try { res.json(await roadsService.getByTourism(parseInt(req.params.tourismPlaceId))); } catch (e) { next(e); }
+    try { res.json(await roadsService.getAllByTourism(parseInt(req.params.tourismPlaceId))); } catch (e) { next(e); }
   }
 
   async createRoad(req, res, next) {
@@ -644,6 +648,13 @@ class AdminController {
     try { await roadsService.remove(parseInt(req.params.id)); res.json({ message: 'Road deleted' }); } catch (e) { next(e); }
   }
 
+  async toggleRoadActive(req, res, next) {
+    try { 
+      const road = await roadsService.toggleActive(parseInt(req.params.id)); 
+      res.json({ message: `Road ${road.active ? 'activated' : 'deactivated'}`, road }); 
+    } catch (e) { next(e); }
+  }
+
   // ── Horse Services ─────────────────────────────────────────────────────────
 
   async getHorseServices(req, res, next) {
@@ -655,7 +666,7 @@ class AdminController {
   }
 
   async getHorseServicesByRoad(req, res, next) {
-    try { res.json(await horseServicesService.getByRoad(parseInt(req.params.roadId))); } catch (e) { next(e); }
+    try { res.json(await horseServicesService.getAllByRoad(parseInt(req.params.roadId))); } catch (e) { next(e); }
   }
 
   async createHorseService(req, res, next) {
@@ -670,10 +681,23 @@ class AdminController {
     try { await horseServicesService.remove(parseInt(req.params.id)); res.json({ message: 'Horse service deleted' }); } catch (e) { next(e); }
   }
 
+  async toggleHorseServiceActive(req, res, next) {
+    try { 
+      const service = await horseServicesService.toggleActive(parseInt(req.params.id)); 
+      res.json({ message: `Horse service ${service.active ? 'activated' : 'deactivated'}`, service }); 
+    } catch (e) { next(e); }
+  }
+
   // ── Language Guiders ───────────────────────────────────────────────────────
 
   async getGuiders(req, res, next) {
     try { res.json(await languageGuidersService.findAll(parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10)); } catch (e) { next(e); }
+  }
+
+  async getGuidersByTourism(req, res, next) {
+    try { 
+      res.json(await languageGuidersService.findAllByTourismPlace(req.params.tourismPlaceId)); 
+    } catch (e) { next(e); }
   }
 
   async createGuider(req, res, next) {
@@ -686,6 +710,13 @@ class AdminController {
 
   async deleteGuider(req, res, next) {
     try { await languageGuidersService.remove(parseInt(req.params.id)); res.json({ message: 'Guider deleted' }); } catch (e) { next(e); }
+  }
+
+  async toggleGuiderActive(req, res, next) {
+    try { 
+      const guider = await languageGuidersService.toggleActive(parseInt(req.params.id)); 
+      res.json({ message: `Guider ${guider.active ? 'activated' : 'deactivated'}`, guider }); 
+    } catch (e) { next(e); }
   }
 
   // ── Audit ──────────────────────────────────────────────────────────────────

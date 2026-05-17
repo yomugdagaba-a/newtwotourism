@@ -46,6 +46,12 @@ class HorseServicesService {
   }
 
   async getByRoad(roadId) {
+    const services = await prisma.horseService.findMany({ where: { roadInfoId: parseInt(roadId), active: true } });
+    return services.map(s => this._toDto(s));
+  }
+
+  async getAllByRoad(roadId) {
+    // Admin endpoint - shows all horse services (active and inactive)
     const services = await prisma.horseService.findMany({ where: { roadInfoId: parseInt(roadId) } });
     return services.map(s => this._toDto(s));
   }
@@ -61,6 +67,16 @@ class HorseServicesService {
     const existing = await prisma.horseService.findUnique({ where: { id } });
     if (!existing) throw Object.assign(new Error('Horse service not found'), { status: 404 });
     await prisma.horseService.delete({ where: { id } });
+  }
+
+  async toggleActive(id) {
+    const service = await prisma.horseService.findUnique({ where: { id } });
+    if (!service) throw Object.assign(new Error('Horse service not found'), { status: 404 });
+    const updated = await prisma.horseService.update({
+      where: { id },
+      data: { active: !service.active },
+    });
+    return this._toDto(updated);
   }
 }
 

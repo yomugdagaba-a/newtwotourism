@@ -41,6 +41,23 @@ class LanguageGuidersService {
       orderBy: { name: 'asc' },
     });
   }
+
+  async findAllByTourismPlace(tourismPlaceId) {
+    // Admin endpoint - shows all guiders (active and inactive)
+    return prisma.languageGuider.findMany({
+      where: { tourismPlaceId: parseInt(tourismPlaceId) },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async toggleActive(id) {
+    const guider = await prisma.languageGuider.findUnique({ where: { id } });
+    if (!guider) throw Object.assign(new Error('Language guider not found'), { status: 404 });
+    return prisma.languageGuider.update({
+      where: { id },
+      data: { active: !guider.active },
+    });
+  }
 }
 
 module.exports = new LanguageGuidersService();

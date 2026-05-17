@@ -421,6 +421,7 @@ model RoadInfo {
   type            RoadType
   description     String?
   condition       String?
+  active          Boolean @default(true)
   
   // Distance fields for different transportation types
   distance        Float?              // Legacy field (kept for backward compatibility)

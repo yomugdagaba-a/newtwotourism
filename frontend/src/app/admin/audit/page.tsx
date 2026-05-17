@@ -18,6 +18,7 @@ const AuditLogsPage = () => {
   const [searchParams, setSearchParams] = useState<AuditLogSearchParams>({});
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
 
   const { role, isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -34,6 +35,21 @@ const AuditLogsPage = () => {
       setSearchParams(prev => ({ ...prev, ipAddress: ipFromUrl }));
     }
   }, [isAuthenticated, role]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.options-dropdown-container')) {
+        setShowOptionsDropdown(false);
+      }
+    };
+    
+    if (showOptionsDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showOptionsDropdown]);
 
   // Reload when page/size changes
   useEffect(() => {
@@ -236,23 +252,57 @@ const AuditLogsPage = () => {
                 style={{ fontSize: '13px' }}
                 className="rounded px-2 py-1 w-20 lg:w-24 bg-gray-50 border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white outline-none transition-colors"
               />
-              <button onClick={handleSearch} style={{ fontSize: '13px' }} className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded font-bold whitespace-nowrap transition-colors">Search</button>
-              <button onClick={handleClear} style={{ fontSize: '13px' }} className="text-gray-600 hover:text-gray-900 px-2 py-1 rounded font-bold whitespace-nowrap border border-transparent hover:border-gray-300 transition-colors">Clear</button>
+              <button 
+                onClick={handleSearch} 
+                style={{ fontSize: '13px' }} 
+                className="text-blue-600 hover:text-blue-800 px-2.5 py-1 rounded whitespace-nowrap transition-colors"
+              >
+                Search
+              </button>
             </div>
 
-            {/* Advanced + Export CSV — always visible */}
-            <button
-              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-              style={{ fontSize: '14px' }}
-              className="shrink-0 text-gray-700 hover:text-gray-900 px-2 py-1 rounded font-bold whitespace-nowrap border border-transparent hover:border-gray-300 transition-colors"
-            >
-              {showAdvancedSearch ? 'Hide' : 'Advanced'}
-            </button>
+            {/* Options Dropdown (Advanced, Hide, Clear) + Export CSV */}
+            <div className="relative options-dropdown-container">
+              <button
+                onClick={() => setShowOptionsDropdown(!showOptionsDropdown)}
+                style={{ fontSize: '14px' }}
+                className="shrink-0 text-gray-700 hover:text-gray-900 px-2 py-1 rounded whitespace-nowrap transition-colors flex items-center gap-1"
+              >
+                Options
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showOptionsDropdown && (
+                <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <button
+                    onClick={() => {
+                      setShowAdvancedSearch(!showAdvancedSearch);
+                      setShowOptionsDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    {showAdvancedSearch ? 'Hide Advanced' : 'Show Advanced'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleClear();
+                      setShowOptionsDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
+            
             <button
               onClick={handleExportCsv}
               disabled={exportLoading}
               style={{ fontSize: '14px' }}
-              className="shrink-0 bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded font-bold whitespace-nowrap transition-colors disabled:opacity-40"
+              className="shrink-0 bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded whitespace-nowrap transition-colors disabled:opacity-40"
             >
               {exportLoading ? '...' : 'Export CSV'}
             </button>
@@ -300,8 +350,7 @@ const AuditLogsPage = () => {
             onChange={(e) => setSearchParams({ ...searchParams, ipAddress: e.target.value })}
             className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs w-24 sm:w-32"
           />
-          <button onClick={handleSearch} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-bold text-xs">Search</button>
-          <button onClick={handleClear} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-bold text-xs border border-gray-300">Clear</button>
+          <button onClick={handleSearch} className="text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-lg transition-colors text-xs">Search</button>
         </div>
       </div>
 
@@ -322,10 +371,20 @@ const AuditLogsPage = () => {
               <option key={severity} value={severity}>{severity}</option>
             ))}
           </select>
-          <input type="datetime-local" value={searchParams.startTime || ''} onChange={(e) => setSearchParams({ ...searchParams, startTime: e.target.value })}
-            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
-          <input type="datetime-local" value={searchParams.endTime || ''} onChange={(e) => setSearchParams({ ...searchParams, endTime: e.target.value })}
-            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+          <input 
+            type="datetime-local" 
+            value={searchParams.startTime || ''} 
+            onChange={(e) => setSearchParams({ ...searchParams, startTime: e.target.value })}
+            placeholder="Start date and time"
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs" 
+          />
+          <input 
+            type="datetime-local" 
+            value={searchParams.endTime || ''} 
+            onChange={(e) => setSearchParams({ ...searchParams, endTime: e.target.value })}
+            placeholder="End date and time"
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs" 
+          />
         </div>
       )}
 

@@ -94,7 +94,7 @@ export default function TourismDetailModal({
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <div className="bg-white rounded-2xl overflow-hidden">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+        <div className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
             {icon && <span className="text-2xl">{icon}</span>}
             <h2 className={`text-xl font-black ${config.accent}`}>{title}</h2>
@@ -104,14 +104,6 @@ export default function TourismDetailModal({
         {/* Body */}
         <div className="px-6 py-5 max-h-[55vh] overflow-y-auto">
           {renderContent()}
-        </div>
-
-        {/* Hint footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-start gap-3">
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-gray-500 text-xs leading-relaxed">{config.hint}</p>
         </div>
 
         {/* Close */}

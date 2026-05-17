@@ -408,25 +408,53 @@ export default function ClientBookingsPage() {
                     )}
 
                     {/* Client actions */}
-                    <div className="pb-3 flex flex-wrap gap-2">
-                      {selectedBooking.bookingStatus === BOOKING_STATUS.COST_PROPOSED && (
-                        <label className="bg-purple-100 text-purple-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-purple-200 transition-all cursor-pointer">
-                          Upload Receipt
-                          <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleReceiptFileChange} />
-                        </label>
+                    <div className="pb-3 flex flex-wrap gap-3 items-center">
+                      {selectedBooking.bookingStatus === BOOKING_STATUS.COST_PROPOSED && !receiptFile && (
+                        <>
+                          <input 
+                            type="file" 
+                            id="receipt-upload-input" 
+                            className="hidden" 
+                            accept="image/*,application/pdf" 
+                            onChange={handleReceiptFileChange} 
+                          />
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('receipt-upload-input')?.click()}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors flex items-center gap-1.5"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Upload Receipt</span>
+                          </button>
+                        </>
                       )}
                       {receiptFile && (
-                        <button onClick={handleUploadReceipt} disabled={actionLoading}
-                          className="bg-green-100 text-green-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-green-200 transition-all disabled:opacity-50">
-                          {actionLoading ? "Uploading..." : `Submit: ${receiptFile.name}`}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600">{receiptFile.name}</span>
+                          <button onClick={handleUploadReceipt} disabled={actionLoading}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50">
+                            {actionLoading ? "Uploading..." : "Submit"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReceiptFile(null)}
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            title="Remove file"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
                       <button onClick={() => setShowProblemModal(true)}
-                        className="bg-red-100 text-red-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-red-200 transition-all">
+                        className="text-red-600 hover:text-red-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border border-transparent hover:border-red-200">
                         Report Problem
                       </button>
                       <button onClick={() => router.push(`/hotels/${selectedBooking.hotel.id}`)}
-                        className="bg-white text-blue-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-blue-50 transition-all border border-blue-200">
+                        className="text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border border-transparent hover:border-blue-200">
                         View Hotel
                       </button>
                       {selectedBooking.bookingStatus === BOOKING_STATUS.APPROVED && (

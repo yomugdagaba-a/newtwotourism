@@ -214,6 +214,29 @@ const RoadsManagementPage = () => {
     }
   };
 
+  const handleToggleActive = async (roadId: number, currentStatus: boolean) => {
+    if (!token || !selectedTourismId) return;
+    const action = currentStatus ? 'deactivate' : 'activate';
+    const ok = await confirm({ 
+      message: `Are you sure you want to ${action} this road? ${currentStatus ? 'The road will not be visible to clients.' : 'The road will be visible to clients.'}`, 
+      variant: currentStatus ? 'warning' : 'info', 
+      title: `${action.charAt(0).toUpperCase() + action.slice(1)} Road`, 
+      confirmLabel: 'Yes', 
+      cancelLabel: 'No' 
+    });
+    if (!ok) return;
+    try {
+      setActionLoading(roadId);
+      await AdminRoadService.toggleRoadActive(token, roadId);
+      toast.success(`Road ${action}d successfully`);
+      await loadRoads(selectedTourismId);
+    } catch (err) {
+      toast.error(`Failed to ${action}: ` + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const openEditModal = (road: Road) => {
     setEditingRoad(road);
     setFormData({
@@ -361,17 +384,18 @@ const RoadsManagementPage = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full">
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ID</th>
                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Initial Place</th>
                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Distances</th>
                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Description</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                <tbody className="bg-white">
                   {filteredRoads.map((road) => (
                     <tr key={road.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -401,13 +425,29 @@ const RoadsManagementPage = () => {
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-800 font-bold line-clamp-2 max-w-xs">{road.description || 'No description'}</p>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full border ${road.active !== false ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>
+                          {road.active !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-3">
-                          <button onClick={() => openEditModal(road)} className="bg-blue-200 text-blue-800 px-3 py-1 rounded-lg font-black hover:bg-blue-300 shadow-md">Edit</button>
+                          <button onClick={() => openEditModal(road)} className="text-blue-600 hover:text-blue-800 px-3 py-1 rounded-lg font-black border border-blue-600 hover:border-blue-800">Edit</button>
                           <button onClick={() => handleDelete(road.id)} disabled={actionLoading === road.id}
-                            className="bg-red-200 text-red-800 px-3 py-1 rounded-lg font-black hover:bg-red-300 shadow-md disabled:opacity-50">
+                            className="text-red-600 hover:text-red-800 px-3 py-1 rounded-lg font-black border border-red-600 hover:border-red-800 disabled:opacity-50">
                             {actionLoading === road.id ? '...' : 'Delete'}
                           </button>
+                          {road.active !== false ? (
+                            <button onClick={() => handleToggleActive(road.id, road.active !== false)} disabled={actionLoading === road.id}
+                              className="text-orange-600 hover:text-orange-800 px-3 py-1 rounded-lg font-black border border-orange-600 hover:border-orange-800 disabled:opacity-50">
+                              {actionLoading === road.id ? '...' : 'Deactivate'}
+                            </button>
+                          ) : (
+                            <button onClick={() => handleToggleActive(road.id, road.active !== false)} disabled={actionLoading === road.id}
+                              className="text-green-600 hover:text-green-800 px-3 py-1 rounded-lg font-black border border-green-600 hover:border-green-800 disabled:opacity-50">
+                              {actionLoading === road.id ? '...' : 'Activate'}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
