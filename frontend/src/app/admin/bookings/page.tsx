@@ -271,7 +271,7 @@ export default function AdminBookingsPage() {
                   <div
                     key={b.bookingId || `booking-${index}`}
                     className={`bg-white rounded-xl px-4 py-3 transition border shadow-sm hover:shadow-md ${
-                      selectedBooking?.bookingId === b.bookingId ? 'bg-blue-50 border-blue-200 shadow-md' : 'border-gray-200 hover:border-gray-300'
+                      selectedBooking?.bookingId === b.bookingId ? 'bg-blue-50 border-blue-200' : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <div onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }} className="cursor-pointer">
@@ -293,13 +293,13 @@ export default function AdminBookingsPage() {
                         </div>
                       </div>
                     </div>
-                    {/* See button */}
-                    <div className="mt-2 flex justify-start">
+                    {/* See Detail button */}
+                    <div className="mt-2 pt-2 border-t border-gray-100 flex justify-start">
                       <button
                         onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }}
                         className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-all"
                       >
-                        See
+                        See Detail
                       </button>
                     </div>
                   </div>

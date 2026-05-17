@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { BookingService, Booking, BOOKING_STATUS } from "@/services/booking.service";
 import { useToast } from "@/components/common/Toast";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import AvatarDropdown from "@/components/common/AvatarDropdown";
 
 export default function OwnerBookingsPage() {
   const router = useRouter();
   const { isAuthenticated, token, userId, isHydrated } = useAuthStore();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -161,12 +163,14 @@ export default function OwnerBookingsPage() {
   const handleHideBooking = async (bookingId: number) => {
     if (!token || !userId) return;
     
-    // Show confirmation dialog
-    const confirmed = window.confirm(
-      "⚠️ Warning: If you delete this booking, you will not be able to view it again in your bookings management page.\n\n" +
-      "The booking will still be visible to the client and admin for record-keeping purposes.\n\n" +
-      "Are you sure you want to remove this booking from your list?"
-    );
+    // Show custom confirmation dialog
+    const confirmed = await confirm({
+      title: "Delete Booking",
+      message: "If you delete this booking, you will not be able to view it again in your bookings management page. The booking will still be visible to the client and admin for record-keeping purposes. Are you sure you want to remove this booking from your list?",
+      variant: "warning",
+      confirmLabel: "Yes, Delete",
+      cancelLabel: "Cancel"
+    });
     
     if (!confirmed) return;
     
@@ -350,7 +354,7 @@ export default function OwnerBookingsPage() {
                 {filteredBookings.length === 0 ? (
                   <div className="p-4 text-center text-gray-400 text-xs">No bookings found</div>
                 ) : filteredBookings.map(b => (
-                  <div key={b.bookingId} className={"bg-white rounded-lg p-2.5 border-2 transition hover:shadow-sm " + (selectedBooking?.bookingId === b.bookingId ? "border-blue-400/50" : "border-gray-200")}>
+                  <div key={b.bookingId} className={"bg-white rounded-lg p-2.5 border transition hover:shadow-sm " + (selectedBooking?.bookingId === b.bookingId ? "border-blue-300" : "border-gray-200")}>
                     <div onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }} className="cursor-pointer">
                       <div className="flex justify-between items-start mb-0.5">
                         <div>
@@ -364,16 +368,16 @@ export default function OwnerBookingsPage() {
                       <div className="text-xs text-gray-500">{b.hotel.name} · {b.checkIn} → {b.checkOut}</div>
                     </div>
                     {/* Action buttons */}
-                    <div className="mt-1.5 flex justify-between items-center">
+                    <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center">
                       <button
                         onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }}
                         className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-all"
                       >
-                        See
+                        See Detail
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleHideBooking(b.bookingId); }}
-                        className="text-xs text-red-400 hover:text-red-600 font-semibold transition-all px-1"
+                        className="text-xs text-red-500 hover:text-red-600 font-semibold transition-all"
                         title="Remove from my list (booking stays in client and admin records)"
                       >
                         Delete
