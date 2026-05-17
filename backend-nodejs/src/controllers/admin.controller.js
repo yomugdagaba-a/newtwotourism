@@ -561,7 +561,7 @@ class AdminController {
       const size = parseInt(req.query.size) || 10;
       const skip = req.query.skip ? parseInt(req.query.skip) : page * size;
       const take = req.query.take ? parseInt(req.query.take) : size;
-      const result = await hotelsService.findAll(skip, take);
+      const result = await hotelsService.getAllHotels(skip, take);
       res.json({ content: result.hotels, totalElements: result.total, totalPages: Math.ceil(result.total / take) });
     } catch (e) { next(e); }
   }

@@ -26,13 +26,23 @@ class HotelsService {
     return prisma.hotel.findUnique({ where: { id: hotel.id }, include: INCLUDE_FULL });
   }
 
-  async findAll(skip = 0, take = 10, tourismPlaceId) {
+  async findAll(skip = 0, take = 10, tourismPlaceId, includeInactive = false) {
     const where = tourismPlaceId
-      ? { tourismPlaceId: parseInt(tourismPlaceId), active: true }
-      : { active: true };
+      ? { tourismPlaceId: parseInt(tourismPlaceId), ...(includeInactive ? {} : { active: true }) }
+      : (includeInactive ? {} : { active: true });
     const [hotels, total] = await Promise.all([
       prisma.hotel.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: INCLUDE_LIST }),
       prisma.hotel.count({ where }),
+    ]);
+    const enriched = hotels.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
+    return { hotels: enriched, total };
+  }
+
+  async getAllHotels(skip = 0, take = 10) {
+    // Admin endpoint - returns ALL hotels (active and inactive)
+    const [hotels, total] = await Promise.all([
+      prisma.hotel.findMany({ skip: parseInt(skip), take: parseInt(take), include: INCLUDE_LIST }),
+      prisma.hotel.count(),
     ]);
     const enriched = hotels.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
     return { hotels: enriched, total };
