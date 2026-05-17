@@ -330,6 +330,7 @@ model HotelBooking {
   problemReport     String?
   problemReported   Boolean @default(false)
   hiddenFromClient  Boolean @default(false) // Client can hide booking from their view
+  hiddenFromOwner   Boolean @default(false) // Owner can hide booking from their view
   statusId          Int
   status            BookingStatusEntity @relation(fields: [statusId], references: [id])
 

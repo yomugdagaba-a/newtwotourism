@@ -160,7 +160,12 @@ class BookingsService {
 
   async getByOwner(ownerId) {
     const bookings = await prisma.hotelBooking.findMany({
-      where: { hotel: { ownerId } }, include: INCLUDE, orderBy: { createdAt: 'desc' },
+      where: { 
+        hotel: { ownerId },
+        hiddenFromOwner: false  // Don't show bookings hidden by owner
+      }, 
+      include: INCLUDE, 
+      orderBy: { createdAt: 'desc' },
     });
     return bookings.map(b => this._transform(b));
   }
@@ -277,7 +282,7 @@ class BookingsService {
     });
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     
-    // Allow both the client (userId) and the hotel owner (ownerId) to hide the booking
+    // Determine if the user is the client or the owner
     const isClient = booking.userId === userId;
     const isOwner = booking.hotel?.ownerId === userId;
     
@@ -285,7 +290,16 @@ class BookingsService {
       throw Object.assign(new Error('Not authorized'), { status: 403 });
     }
     
-    const updated = await prisma.hotelBooking.update({ where: { id }, data: { hiddenFromClient: true }, include: INCLUDE });
+    // Hide from the appropriate view
+    const updateData = isClient 
+      ? { hiddenFromClient: true }
+      : { hiddenFromOwner: true };
+    
+    const updated = await prisma.hotelBooking.update({ 
+      where: { id }, 
+      data: updateData, 
+      include: INCLUDE 
+    });
     return this._transform(updated);
   }
 }
