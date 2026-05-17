@@ -474,17 +474,17 @@ const TourismsManagementPage = () => {
                   </div>
                   {formErrors.categories && <p className="text-red-500 text-sm font-semibold mt-1">{formErrors.categories}</p>}
                 </div>
-                <FormInput label="Best Time to Visit" name="bestTime" value={formData.bestTime || ''}
-                  onChange={handleInputChange} placeholder="e.g., October - March"
+                <FormInput label="Best Time to Visit" name="bestTime" type="textarea" value={formData.bestTime || ''}
+                  onChange={handleInputChange} placeholder="e.g., October - March (Dry season, clear skies)" rows={3}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput label="Visit Duration" name="visitTime" value={formData.visitTime || ''}
-                  onChange={handleInputChange} placeholder="e.g., 2-3 hours, half day, full day"
+                <FormInput label="Visit Duration" name="visitTime" type="textarea" value={formData.visitTime || ''}
+                  onChange={handleInputChange} placeholder="e.g., 2-3 hours, half day, full day" rows={3}
                 />
-                <FormInput label="Peace Info" name="peaceInfo" value={formData.peaceInfo || ''}
-                  onChange={handleInputChange} placeholder="Safety information"
+                <FormInput label="Peace Info" name="peaceInfo" type="textarea" value={formData.peaceInfo || ''}
+                  onChange={handleInputChange} placeholder="Safety information, security details" rows={3}
                 />
               </div>
 
