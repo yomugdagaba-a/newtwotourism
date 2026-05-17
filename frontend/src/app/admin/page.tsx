@@ -114,9 +114,9 @@ const AdminDashboard = () => {
             <Link
               key={action.name}
               href={action.href}
-              className="bg-white rounded-lg border border-gray-300 px-2 py-2 hover:border-purple-400 hover:bg-purple-50 hover:shadow-md active:scale-95 transition-all text-center shadow-sm"
+              className="bg-white rounded-lg px-2 py-2 hover:bg-purple-50 hover:shadow-md active:scale-95 transition-all text-center shadow-sm"
             >
-              <span className="text-xs font-semibold text-blue-600">{action.name}</span>
+              <span className="text-sm font-black text-blue-600">{action.name}</span>
             </Link>
           ))}
         </div>
