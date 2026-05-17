@@ -48,47 +48,67 @@ class TourismService {
       throw Object.assign(new Error('Session ID is required'), { status: 400 });
     }
 
-    // Check if this session has viewed this place in the last 24 hours
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentView = await prisma.tourismView.findFirst({
-      where: {
-        tourismPlaceId,
-        sessionId,
-        viewedAt: { gte: twentyFourHoursAgo }
-      }
-    });
-
-    let counted = false;
-    if (!recentView) {
-      // Record the view
-      await prisma.tourismView.create({
-        data: {
+    try {
+      // Check if this session has viewed this place in the last 24 hours
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const recentView = await prisma.tourismView.findFirst({
+        where: {
           tourismPlaceId,
           sessionId,
-          ipAddress,
-          userAgent
+          viewedAt: { gte: twentyFourHoursAgo }
         }
       });
 
-      // Increment the counter
+      let counted = false;
+      if (!recentView) {
+        // Record the view
+        await prisma.tourismView.create({
+          data: {
+            tourismPlaceId,
+            sessionId,
+            ipAddress,
+            userAgent
+          }
+        });
+
+        // Increment the counter
+        await prisma.tourismPlace.update({
+          where: { id: tourismPlaceId },
+          data: { viewersCount: { increment: 1 } }
+        });
+
+        counted = true;
+      }
+
+      // Get current view count
+      const place = await prisma.tourismPlace.findUnique({
+        where: { id: tourismPlaceId },
+        select: { viewersCount: true }
+      });
+
+      return {
+        counted,
+        viewCount: place?.viewersCount || 0
+      };
+    } catch (error) {
+      // If TourismView table doesn't exist, just increment the counter
+      console.warn('TourismView table not found, incrementing counter only:', error.message);
+      
       await prisma.tourismPlace.update({
         where: { id: tourismPlaceId },
         data: { viewersCount: { increment: 1 } }
       });
 
-      counted = true;
+      const place = await prisma.tourismPlace.findUnique({
+        where: { id: tourismPlaceId },
+        select: { viewersCount: true }
+      });
+
+      return {
+        counted: true,
+        viewCount: place?.viewersCount || 0
+      };
     }
-
-    // Get current view count
-    const place = await prisma.tourismPlace.findUnique({
-      where: { id: tourismPlaceId },
-      select: { viewersCount: true }
-    });
-
-    return {
-      counted,
-      viewCount: place?.viewersCount || 0
-    };
   }
 
   async update(id, data) {
