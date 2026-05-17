@@ -10,6 +10,8 @@ class HorseServicesController {
 
   _registerRoutes() {
     this.router.post('/', authenticate, this.create.bind(this));
+    // Public endpoint for getting horse services by road (active only)
+    this.router.get('/road/:roadId', this.getByRoad.bind(this));
     this.router.get('/', this.findAll.bind(this));
     this.router.get('/:id', this.findById.bind(this));
     this.router.put('/:id', authenticate, this.update.bind(this));
@@ -34,6 +36,10 @@ class HorseServicesController {
 
   async remove(req, res, next) {
     try { await horseServicesService.remove(parseInt(req.params.id)); res.json({ message: 'Horse service deleted' }); } catch (e) { next(e); }
+  }
+
+  async getByRoad(req, res, next) {
+    try { res.json(await horseServicesService.getByRoad(parseInt(req.params.roadId))); } catch (e) { next(e); }
   }
 }
 

@@ -23,7 +23,14 @@ class RoadsController {
   }
 
   async findAll(req, res, next) {
-    try { res.json(await roadsService.findAll(parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10, req.query.tourismPlaceId)); } catch (e) { next(e); }
+    try {
+      // If tourismPlaceId is provided, use getByTourism which filters by active status
+      if (req.query.tourismPlaceId) {
+        res.json(await roadsService.getByTourism(parseInt(req.query.tourismPlaceId)));
+      } else {
+        res.json(await roadsService.findAll(parseInt(req.query.skip) || 0, parseInt(req.query.take) || 10));
+      }
+    } catch (e) { next(e); }
   }
 
   async findById(req, res, next) {
