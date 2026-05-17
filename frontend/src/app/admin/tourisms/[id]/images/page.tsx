@@ -140,16 +140,33 @@ export default function TourismImagesPage() {
   };
 
   const handleEdit = async () => {
-    if (!token || !editingImage || !editUrl.trim()) return;
+    if (!token || !editingImage) return;
+    const pendingFile = (window as any).__pendingTourismEditFile as File | undefined;
+    if (!pendingFile && !editUrl.trim()) { toast.error('Please select an image file'); return; }
     try {
       setEditLoading(true);
-      await AdminTourismService.updateTourismImage(token, tourismId, editingImage.id, {
-        imageUrl: editUrl.trim(),
-        title: editTitle || undefined,
-        description: editDescription || undefined,
-      });
+      let imageUrl = editUrl.trim();
+      if (pendingFile) {
+        // Upload new image file
+        imageUrl = await AdminImageUploadService.uploadTourismGalleryImage(token, tourismId, pendingFile, editTitle || undefined, editDescription || undefined);
+        // Update the image record with new URL
+        await AdminTourismService.updateTourismImage(token, tourismId, editingImage.id, {
+          imageUrl,
+          title: editTitle || undefined,
+          description: editDescription || undefined,
+        });
+      } else {
+        // Just update metadata (title/description)
+        await AdminTourismService.updateTourismImage(token, tourismId, editingImage.id, {
+          imageUrl: editUrl.trim(),
+          title: editTitle || undefined,
+          description: editDescription || undefined,
+        });
+      }
+      (window as any).__pendingTourismEditFile = undefined;
       setEditingImage(null);
       await loadImages();
+      toast.success("Image updated");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update");
     } finally {
@@ -322,27 +339,67 @@ export default function TourismImagesPage() {
             <h3 className="text-sm font-black text-gray-900 mb-4">Edit Image</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Image URL <span className="text-red-500">*</span></label>
-                <input type="text" value={editUrl} onChange={e => setEditUrl(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400" />
+                <label className="block text-xs font-bold text-gray-700 mb-2">Image <span className="text-red-500">*</span></label>
+                {editUrl && (
+                  <div className="mb-3 relative group">
+                    <img src={editUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    {/* Remove button - X style */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditUrl('');
+                        (window as any).__pendingTourismEditFile = null;
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all"
+                      title="Remove image"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
+                {/* Upload/Change button */}
+                <div className="flex items-center gap-2">
+                  <input id="tourism-edit-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      (window as any).__pendingTourismEditFile = file;
+                      setEditUrl(URL.createObjectURL(file));
+                      e.target.value = '';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('tourism-edit-input')?.click()}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors flex items-center gap-1.5"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>{editUrl ? 'Change' : 'Upload'}</span>
+                  </button>
+                  <span className="text-xs text-gray-400">JPG, PNG, GIF, WebP — max 10MB</span>
+                </div>
               </div>
-              {editUrl && (
-                <img src={editUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              )}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Title</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Title (optional)</label>
                 <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)}
+                  placeholder="e.g., Bete Giorgis Church"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Description (optional)</label>
                 <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={2}
+                  placeholder="Brief description of this image..."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 resize-none" />
               </div>
             </div>
             <div className="flex gap-2 mt-4 justify-end">
-              <button onClick={() => setEditingImage(null)}
+              <button onClick={() => { setEditingImage(null); (window as any).__pendingTourismEditFile = undefined; }}
                 className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
               <button onClick={handleEdit} disabled={editLoading || !editUrl.trim()}
                 className="bg-purple-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-purple-700 disabled:opacity-50">
