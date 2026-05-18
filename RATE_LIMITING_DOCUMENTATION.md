@@ -59,26 +59,35 @@ message: "Too many requests from this IP, please try again later."
 
 ### 2. **Authentication Rate Limiters**
 
-#### a) Login Limiter ⭐ **USERNAME-BASED**
+#### a) Login Limiter ⭐ **IP + USER-AGENT (DEVICE FINGERPRINTING)**
 **Purpose:** Prevent brute force password attacks
 
 ```javascript
 windowMs: 15 minutes
-max: 5 login attempts PER USER
-tracking: Username (or email)
+max: 5 login attempts PER DEVICE
+tracking: IP + User-Agent (device fingerprint)
 skipSuccessfulRequests: true
-message: "Too many login attempts for this account. Please try again after 15 minutes."
+message: "Too many login attempts from this device. Please try again after 15 minutes."
 ```
 
 **Applied to:** `POST /api/auth/login`
 
-**Use case:** Limits failed login attempts per user account, allowing multiple users at same location (office, hotel, café) to login independently
+**Use case:** Limits failed login attempts per device, allowing multiple devices at same location (office, hotel, café) to login independently
 
-**Why Username-based:**
-- ✅ **10 users at same location** can each try 5 times independently
+**Why IP + User-Agent (Device Fingerprinting):**
+- ✅ **10 users at same location** with different devices can each try 5 times
+- ✅ **Each device tracked separately** by IP + browser signature
 - ✅ **Shared IP addresses** (offices, hotels, cafés) don't block everyone
-- ✅ **Still prevents brute force** on individual accounts
-- ✅ **Fallback to IP + User-Agent** if no username provided
+- ✅ **Still prevents brute force** - attacker can't bypass by changing username
+- ✅ **Industry standard** - Used by GitHub, Twitter, Booking.com
+
+**Example at an office:**
+```
+Phone (Chrome):   197.156.89.45-ChromeMobile     → 5 attempts
+Laptop (Firefox): 197.156.89.45-FirefoxDesktop   → 5 attempts
+Tablet (Safari):  197.156.89.45-SafariiPad       → 5 attempts
+Desktop (Edge):   197.156.89.45-EdgeWindows      → 5 attempts
+```
 
 ---
 

@@ -54,22 +54,17 @@ const RATE_LIMIT_CONFIG = {
   }
 };
 
-// Special key generator for login (Username-based)
-// This prevents one user from blocking others at the same location
-// Each user gets their own 5 attempts regardless of IP or device
-// If no username provided (first attempt), falls back to IP + User-Agent
+// Special key generator for login (IP + User-Agent combination)
+// This prevents one device from blocking others at the same location
+// Each device (phone, laptop, tablet) gets its own limit
+// Example:
+//   Phone (Chrome):   197.156.89.45-ChromeMobile     → 5 attempts
+//   Laptop (Firefox): 197.156.89.45-FirefoxDesktop   → 5 attempts
+//   Tablet (Safari):  197.156.89.45-SafariiPad       → 5 attempts
 const loginKeyGenerator = (req) => {
-  // Try to get username from request body
-  const username = req.body?.username || req.body?.email;
-  
-  if (username) {
-    // Track by username - each user gets their own limit
-    return `user-${username}`;
-  }
-  
-  // Fallback to IP + User-Agent for requests without username
   const ip = req.ip || req.connection.remoteAddress || 'unknown';
   const userAgent = req.headers['user-agent'] || 'unknown';
+  // Create a simple hash of user-agent to keep key short
   const agentHash = userAgent.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '');
   return `${ip}-${agentHash}`;
 };
@@ -96,22 +91,27 @@ const globalLimiter = rateLimit({
 /**
  * Strict rate limiter for login attempts
  * Prevents brute force attacks
- * Uses USERNAME to track each user separately
- * This allows multiple users at same location to login independently
- * Each user gets 5 attempts regardless of IP or device
+ * Uses IP + User-Agent (device fingerprint) to track each device separately
+ * This allows multiple devices at same location to login independently
+ * 
+ * Example at an office with 10 users:
+ *   User 1 Phone (Chrome):   5 attempts
+ *   User 2 Laptop (Firefox): 5 attempts
+ *   User 3 Tablet (Safari):  5 attempts
+ *   ... each device gets 5 attempts
  */
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,  // 15 minutes
   max: RATE_LIMITS.login,     // From env or default 5
   skipSuccessfulRequests: true, // Don't count successful logins
-  keyGenerator: loginKeyGenerator, // Use username-based tracking
-  message: 'Too many login attempts for this account. Please try again after 15 minutes.',
+  keyGenerator: loginKeyGenerator, // Use IP + Device fingerprint
+  message: 'Too many login attempts from this device. Please try again after 15 minutes.',
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     res.status(429).json({
       error: 'Too many requests',
-      message: 'Too many login attempts for this account. Please try again after 15 minutes.',
+      message: 'Too many login attempts from this device. Please try again after 15 minutes.',
       retryAfter: res.getHeader('Retry-After')
     });
   }
