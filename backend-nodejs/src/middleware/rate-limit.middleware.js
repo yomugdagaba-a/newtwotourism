@@ -54,6 +54,26 @@ const RATE_LIMIT_CONFIG = {
   }
 };
 
+// Special key generator for login (Username-based)
+// This prevents one user from blocking others at the same location
+// Each user gets their own 5 attempts regardless of IP or device
+// If no username provided (first attempt), falls back to IP + User-Agent
+const loginKeyGenerator = (req) => {
+  // Try to get username from request body
+  const username = req.body?.username || req.body?.email;
+  
+  if (username) {
+    // Track by username - each user gets their own limit
+    return `user-${username}`;
+  }
+  
+  // Fallback to IP + User-Agent for requests without username
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const agentHash = userAgent.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '');
+  return `${ip}-${agentHash}`;
+};
+
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. GLOBAL API RATE LIMITER
 // ══════════════════════════════════════════════════════════════════════════════
@@ -76,13 +96,25 @@ const globalLimiter = rateLimit({
 /**
  * Strict rate limiter for login attempts
  * Prevents brute force attacks
+ * Uses USERNAME to track each user separately
+ * This allows multiple users at same location to login independently
+ * Each user gets 5 attempts regardless of IP or device
  */
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,  // 15 minutes
   max: RATE_LIMITS.login,     // From env or default 5
   skipSuccessfulRequests: true, // Don't count successful logins
-  message: 'Too many login attempts. Please try again after 15 minutes.',
-  ...RATE_LIMIT_CONFIG
+  keyGenerator: loginKeyGenerator, // Use username-based tracking
+  message: 'Too many login attempts for this account. Please try again after 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      message: 'Too many login attempts for this account. Please try again after 15 minutes.',
+      retryAfter: res.getHeader('Retry-After')
+    });
+  }
 });
 
 /**

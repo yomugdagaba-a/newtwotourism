@@ -59,19 +59,26 @@ message: "Too many requests from this IP, please try again later."
 
 ### 2. **Authentication Rate Limiters**
 
-#### a) Login Limiter
+#### a) Login Limiter ⭐ **USERNAME-BASED**
 **Purpose:** Prevent brute force password attacks
 
 ```javascript
 windowMs: 15 minutes
-max: 5 login attempts
+max: 5 login attempts PER USER
+tracking: Username (or email)
 skipSuccessfulRequests: true
-message: "Too many login attempts. Please try again after 15 minutes."
+message: "Too many login attempts for this account. Please try again after 15 minutes."
 ```
 
 **Applied to:** `POST /api/auth/login`
 
-**Use case:** Limits failed login attempts while allowing successful logins
+**Use case:** Limits failed login attempts per user account, allowing multiple users at same location (office, hotel, café) to login independently
+
+**Why Username-based:**
+- ✅ **10 users at same location** can each try 5 times independently
+- ✅ **Shared IP addresses** (offices, hotels, cafés) don't block everyone
+- ✅ **Still prevents brute force** on individual accounts
+- ✅ **Fallback to IP + User-Agent** if no username provided
 
 ---
 
