@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const prisma = require('./lib/prisma');
+const { initializeRedis, closeRedis } = require('./lib/redis');
 
 const app = express();
 const PORT = process.env.PORT || 9001;
@@ -200,6 +201,9 @@ const certPath = path.resolve(__dirname, '../certificates/localhost.pem');
 const keyPath = path.resolve(__dirname, '../certificates/localhost-key.pem');
 
 async function start() {
+  // Initialize Redis for rate limiting
+  await initializeRedis();
+  
   await initBookingStatuses();
   await cleanupBlobUrls();
 
@@ -234,6 +238,21 @@ async function start() {
 if (require.main === module) {
   start().catch(err => { console.error('Startup error:', err); process.exit(1); });
 }
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received - shutting down gracefully');
+  const { closeRedis } = require('./lib/redis');
+  await closeRedis();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received - shutting down gracefully');
+  const { closeRedis } = require('./lib/redis');
+  await closeRedis();
+  process.exit(0);
+});
 
 // Export app for Supertest integration tests
 module.exports = app;

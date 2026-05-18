@@ -6,9 +6,66 @@
  * - DDoS attacks
  * - API abuse
  * - Resource exhaustion
+ * 
+ * Uses Redis for distributed rate limiting (falls back to in-memory if Redis unavailable)
  */
 
 const rateLimit = require('express-rate-limit');
+const RedisStore = require('rate-limit-redis').default;
+const { getRedisClient, isRedisConnected } = require('../lib/redis');
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REDIS STORE FACTORY
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Cache stores so we don't create a new one on every request
+const storeCache = {};
+
+/**
+ * Get Redis store for rate limiting (lazy - created on first use after Redis is ready)
+ * Falls back to in-memory if Redis is not available
+ */
+function getStore(prefix = 'rl') {
+  // If Redis is not connected, return undefined (use in-memory)
+  if (!isRedisConnected()) {
+    return undefined;
+  }
+
+  // Return cached store if already created
+  if (storeCache[prefix]) {
+    return storeCache[prefix];
+  }
+
+  // Create and cache a new Redis store
+  const redisClient = getRedisClient();
+  storeCache[prefix] = new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: `rl:${prefix}:`,
+  });
+
+  return storeCache[prefix];
+}
+
+/**
+ * Create a rate limiter that uses Redis store lazily
+ * This wrapper ensures Redis store is used once Redis is connected
+ */
+function createLimiter(options) {
+  const { storePrefix, ...rateLimitOptions } = options;
+  
+  return (req, res, next) => {
+    // Get store at request time (Redis may have connected after startup)
+    const store = getStore(storePrefix);
+    
+    // Create limiter with current store
+    const limiter = rateLimit({
+      ...rateLimitOptions,
+      store,
+    });
+    
+    return limiter(req, res, next);
+  };
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION FROM ENVIRONMENT VARIABLES
@@ -57,23 +114,12 @@ const RATE_LIMIT_CONFIG = {
 // Special key generator for login (IP + User-Agent combination)
 // This prevents one device from blocking others at the same location
 // Each device (phone, laptop, tablet) gets its own limit
-// Example:
-//   Phone (Chrome):   197.156.89.45-ChromeMobile     → 5 attempts
-//   Laptop (Firefox): 197.156.89.45-FirefoxDesktop   → 5 attempts
-//   Tablet (Safari):  197.156.89.45-SafariiPad       → 5 attempts
 const loginKeyGenerator = (req) => {
   const ip = req.ip || req.connection.remoteAddress || 'unknown';
   const userAgent = req.headers['user-agent'] || 'unknown';
   // Create a simple hash of user-agent to keep key short
   const agentHash = userAgent.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '');
-  const key = `${ip}-${agentHash}`;
-  
-  // Debug logging to verify it's working
-  console.log('🔑 Rate Limit Key:', key);
-  console.log('   IP:', ip);
-  console.log('   User-Agent:', userAgent.substring(0, 100));
-  
-  return key;
+  return `${ip}-${agentHash}`;
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -84,9 +130,10 @@ const loginKeyGenerator = (req) => {
  * Global rate limiter for all API endpoints
  * Prevents general API abuse
  */
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: RATE_LIMITS.global,    // From env or default 1000
+const globalLimiter = createLimiter({
+  storePrefix: 'global',
+  windowMs: 15 * 60 * 1000,
+  max: RATE_LIMITS.global,
   message: 'Too many requests from this IP, please try again later.',
   ...RATE_LIMIT_CONFIG
 });
@@ -100,19 +147,13 @@ const globalLimiter = rateLimit({
  * Prevents brute force attacks
  * Uses IP + User-Agent (device fingerprint) to track each device separately
  * This allows multiple devices at same location to login independently
- * 
- * Example at an office with 10 users:
- *   User 1 Phone (Chrome):   5 attempts
- *   User 2 Laptop (Firefox): 5 attempts
- *   User 3 Tablet (Safari):  5 attempts
- *   ... each device gets 5 attempts
  */
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: RATE_LIMITS.login,     // From env or default 5
-  skipSuccessfulRequests: true, // Don't count successful logins
-  keyGenerator: loginKeyGenerator, // Use IP + Device fingerprint
-  message: 'Too many login attempts from this device. Please try again after 15 minutes.',
+const loginLimiter = createLimiter({
+  storePrefix: 'login',
+  windowMs: 15 * 60 * 1000,
+  max: RATE_LIMITS.login,
+  skipSuccessfulRequests: true,
+  keyGenerator: loginKeyGenerator,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -124,35 +165,26 @@ const loginLimiter = rateLimit({
   }
 });
 
-/**
- * Rate limiter for registration
- * Prevents spam account creation
- */
-const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,  // 1 hour
-  max: RATE_LIMITS.register,  // From env or default 3
+const registerLimiter = createLimiter({
+  storePrefix: 'register',
+  windowMs: 60 * 60 * 1000,
+  max: RATE_LIMITS.register,
   message: 'Too many accounts created from this IP. Please try again after an hour.',
   ...RATE_LIMIT_CONFIG
 });
 
-/**
- * Rate limiter for password reset requests
- * Prevents email flooding
- */
-const passwordResetLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,  // 1 hour
-  max: RATE_LIMITS.passwordReset, // From env or default 3
+const passwordResetLimiter = createLimiter({
+  storePrefix: 'password-reset',
+  windowMs: 60 * 60 * 1000,
+  max: RATE_LIMITS.passwordReset,
   message: 'Too many password reset requests. Please try again after an hour.',
   ...RATE_LIMIT_CONFIG
 });
 
-/**
- * Rate limiter for email verification
- * Prevents email flooding
- */
-const emailVerificationLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: RATE_LIMITS.emailVerification, // From env or default 5
+const emailVerificationLimiter = createLimiter({
+  storePrefix: 'email-verify',
+  windowMs: 15 * 60 * 1000,
+  max: RATE_LIMITS.emailVerification,
   message: 'Too many verification requests. Please try again after 15 minutes.',
   ...RATE_LIMIT_CONFIG
 });
@@ -161,35 +193,26 @@ const emailVerificationLimiter = rateLimit({
 // 3. RESOURCE CREATION RATE LIMITERS
 // ══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Rate limiter for creating bookings
- * Prevents spam bookings
- */
-const bookingCreationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,  // 1 hour
-  max: RATE_LIMITS.booking,   // From env or default 10
+const bookingCreationLimiter = createLimiter({
+  storePrefix: 'booking',
+  windowMs: 60 * 60 * 1000,
+  max: RATE_LIMITS.booking,
   message: 'Too many booking requests. Please try again later.',
   ...RATE_LIMIT_CONFIG
 });
 
-/**
- * Rate limiter for file uploads
- * Prevents storage abuse
- */
-const fileUploadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: RATE_LIMITS.fileUpload, // From env or default 20
+const fileUploadLimiter = createLimiter({
+  storePrefix: 'upload',
+  windowMs: 15 * 60 * 1000,
+  max: RATE_LIMITS.fileUpload,
   message: 'Too many file uploads. Please try again later.',
   ...RATE_LIMIT_CONFIG
 });
 
-/**
- * Rate limiter for creating ratings/reviews
- * Prevents spam reviews
- */
-const ratingCreationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,  // 1 hour
-  max: RATE_LIMITS.rating,    // From env or default 10
+const ratingCreationLimiter = createLimiter({
+  storePrefix: 'rating',
+  windowMs: 60 * 60 * 1000,
+  max: RATE_LIMITS.rating,
   message: 'Too many rating submissions. Please try again later.',
   ...RATE_LIMIT_CONFIG
 });
@@ -198,13 +221,10 @@ const ratingCreationLimiter = rateLimit({
 // 4. ADMIN OPERATION RATE LIMITERS
 // ══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Rate limiter for admin operations
- * More lenient for authenticated admins
- */
-const adminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: RATE_LIMITS.admin,     // From env or default 500
+const adminLimiter = createLimiter({
+  storePrefix: 'admin',
+  windowMs: 15 * 60 * 1000,
+  max: RATE_LIMITS.admin,
   message: 'Too many admin requests. Please try again later.',
   ...RATE_LIMIT_CONFIG
 });
@@ -213,13 +233,10 @@ const adminLimiter = rateLimit({
 // 5. PUBLIC READ RATE LIMITERS
 // ══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Rate limiter for public read endpoints
- * More lenient for browsing
- */
-const publicReadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: 500,                   // 500 requests per 15 minutes
+const publicReadLimiter = createLimiter({
+  storePrefix: 'public',
+  windowMs: 15 * 60 * 1000,
+  max: 500,
   message: 'Too many requests. Please try again later.',
   ...RATE_LIMIT_CONFIG
 });
