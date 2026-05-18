@@ -1,8 +1,10 @@
 /**
- * Redis Client Configuration
- * 
- * Provides Redis connection for rate limiting and caching
- * Falls back to in-memory storage if Redis is not available
+ * Redis Client
+ *
+ * Connects using REDIS_URL (preferred) or individual REDIS_HOST/PORT/PASSWORD vars.
+ * Leapcell Redis requires TLS — the URL must use rediss:// (double-s).
+ *
+ * Falls back to in-memory rate limiting if Redis is not configured or unreachable.
  */
 
 const redis = require('redis');
@@ -10,75 +12,65 @@ const redis = require('redis');
 let redisClient = null;
 let isRedisAvailable = false;
 
-/**
- * Initialize Redis client
- * @returns {Promise<Object>} Redis client or null
- */
 async function initializeRedis() {
-  // Skip Redis if not configured
-  if (!process.env.REDIS_URL && !process.env.REDIS_HOST) {
+  const redisUrl  = process.env.REDIS_URL;
+  const redisHost = process.env.REDIS_HOST;
+
+  if (!redisUrl && !redisHost) {
     console.log('⚠️  Redis not configured - using in-memory rate limiting');
     return null;
   }
 
   try {
-    // Create Redis client
-    const client = redis.createClient({
-      url: process.env.REDIS_URL || undefined,
-      socket: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT) || 6379,
-        connectTimeout: 5000,
-        // Enable TLS if REDIS_URL uses rediss:// or REDIS_TLS=true
-        tls: process.env.REDIS_URL?.startsWith('rediss://') || process.env.REDIS_TLS === 'true' || true,
-        rejectUnauthorized: false, // Required for Leapcell self-signed certs
-        reconnectStrategy: (retries) => {
-          if (retries > 3) {
-            console.error('❌ Redis connection failed after 3 retries');
-            return new Error('Redis connection failed');
-          }
-          return Math.min(retries * 100, 3000);
-        }
-      },
-      password: process.env.REDIS_PASSWORD || undefined,
-    });
+    let clientOptions;
 
-    // Error handling
-    client.on('error', (err) => {
-      console.error('❌ Redis Client Error:', err.message);
-      isRedisAvailable = false;
-    });
+    if (redisUrl) {
+      // Use URL directly — rediss:// enables TLS automatically in the redis package
+      clientOptions = {
+        url: redisUrl,
+        socket: {
+          connectTimeout: 8000,
+          tls: redisUrl.startsWith('rediss://'),
+          rejectUnauthorized: false,
+          reconnectStrategy: (retries) => {
+            if (retries > 3) return new Error('Redis max retries reached');
+            return Math.min(retries * 200, 2000);
+          },
+        },
+      };
+    } else {
+      // Individual host/port/password vars
+      clientOptions = {
+        socket: {
+          host: redisHost,
+          port: parseInt(process.env.REDIS_PORT) || 6379,
+          connectTimeout: 8000,
+          tls: process.env.REDIS_TLS === 'true',
+          rejectUnauthorized: false,
+          reconnectStrategy: (retries) => {
+            if (retries > 3) return new Error('Redis max retries reached');
+            return Math.min(retries * 200, 2000);
+          },
+        },
+        password: process.env.REDIS_PASSWORD || undefined,
+      };
+    }
 
-    client.on('connect', () => {
-      console.log('🔄 Redis connecting...');
-    });
+    const client = redis.createClient(clientOptions);
 
-    client.on('ready', () => {
-      console.log('✅ Redis connected and ready');
-      isRedisAvailable = true;
-    });
+    client.on('error',       (err) => { console.error('❌ Redis error:', err.message); isRedisAvailable = false; });
+    client.on('ready',       ()    => { console.log('✅ Redis connected and ready'); isRedisAvailable = true; });
+    client.on('reconnecting',()    => { console.log('🔄 Redis reconnecting...'); });
+    client.on('end',         ()    => { console.log('⚠️  Redis connection closed'); isRedisAvailable = false; });
 
-    client.on('reconnecting', () => {
-      console.log('🔄 Redis reconnecting...');
-    });
-
-    client.on('end', () => {
-      console.log('⚠️  Redis connection closed');
-      isRedisAvailable = false;
-    });
-
-    // Connect to Redis
     await client.connect();
-    
-    // Test connection
     await client.ping();
-    
-    redisClient = client;
+
+    redisClient    = client;
     isRedisAvailable = true;
-    
     console.log('✅ Redis initialized successfully');
     return client;
-    
+
   } catch (error) {
     console.error('❌ Failed to initialize Redis:', error.message);
     console.log('⚠️  Falling back to in-memory rate limiting');
@@ -87,39 +79,14 @@ async function initializeRedis() {
   }
 }
 
-/**
- * Get Redis client
- * @returns {Object|null} Redis client or null
- */
-function getRedisClient() {
-  return redisClient;
-}
+function getRedisClient()   { return redisClient; }
+function isRedisConnected() { return isRedisAvailable && redisClient && redisClient.isOpen; }
 
-/**
- * Check if Redis is available
- * @returns {boolean} True if Redis is connected
- */
-function isRedisConnected() {
-  return isRedisAvailable && redisClient && redisClient.isOpen;
-}
-
-/**
- * Close Redis connection
- */
 async function closeRedis() {
   if (redisClient) {
-    try {
-      await redisClient.quit();
-      console.log('✅ Redis connection closed gracefully');
-    } catch (error) {
-      console.error('❌ Error closing Redis:', error.message);
-    }
+    try { await redisClient.quit(); console.log('✅ Redis closed'); }
+    catch (e) { console.error('❌ Error closing Redis:', e.message); }
   }
 }
 
-module.exports = {
-  initializeRedis,
-  getRedisClient,
-  isRedisConnected,
-  closeRedis
-};
+module.exports = { initializeRedis, getRedisClient, isRedisConnected, closeRedis };

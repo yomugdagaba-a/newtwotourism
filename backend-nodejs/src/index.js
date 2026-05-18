@@ -35,10 +35,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting — protect against abuse
-const { globalLimiter } = require('./middleware/rate-limit.middleware');
-app.use('/api', globalLimiter);
-
 // Audit middleware — automatically logs all POST/PUT/PATCH/DELETE requests
 const { auditMiddleware } = require('./middleware/audit.middleware');
 app.use(auditMiddleware);
@@ -201,9 +197,13 @@ const certPath = path.resolve(__dirname, '../certificates/localhost.pem');
 const keyPath = path.resolve(__dirname, '../certificates/localhost-key.pem');
 
 async function start() {
-  // Initialize Redis for rate limiting
+  // Initialize Redis FIRST — rate-limit middleware reads Redis state at require() time
   await initializeRedis();
-  
+
+  // Register global rate limiter AFTER Redis is ready
+  const { globalLimiter } = require('./middleware/rate-limit.middleware');
+  app.use('/api', globalLimiter);
+
   await initBookingStatuses();
   await cleanupBlobUrls();
 
