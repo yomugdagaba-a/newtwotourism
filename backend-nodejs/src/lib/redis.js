@@ -21,11 +21,23 @@ async function initializeRedis() {
     return null;
   }
 
+  // Debug: log the URL format (hide password)
+  if (redisUrl) {
+    try {
+      const parsed = new URL(redisUrl);
+      console.log(`🔄 Connecting to Redis: ${parsed.protocol}//${parsed.hostname}:${parsed.port}`);
+    } catch (e) {
+      console.error(`❌ REDIS_URL is not a valid URL. Value starts with: "${redisUrl.substring(0, 20)}..."`);
+      console.error('   Make sure REDIS_URL uses format: rediss://default:PASSWORD@HOST:PORT');
+      console.log('⚠️  Falling back to in-memory rate limiting');
+      return null;
+    }
+  }
+
   try {
     let clientOptions;
 
     if (redisUrl) {
-      // Use URL directly — rediss:// enables TLS automatically in the redis package
       clientOptions = {
         url: redisUrl,
         socket: {
