@@ -66,7 +66,14 @@ const loginKeyGenerator = (req) => {
   const userAgent = req.headers['user-agent'] || 'unknown';
   // Create a simple hash of user-agent to keep key short
   const agentHash = userAgent.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '');
-  return `${ip}-${agentHash}`;
+  const key = `${ip}-${agentHash}`;
+  
+  // Debug logging to verify it's working
+  console.log('🔑 Rate Limit Key:', key);
+  console.log('   IP:', ip);
+  console.log('   User-Agent:', userAgent.substring(0, 100));
+  
+  return key;
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
