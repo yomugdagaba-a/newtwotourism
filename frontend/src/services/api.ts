@@ -1,5 +1,5 @@
 // src/services/api.ts
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tourismsystem.onrender.com/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://newtwotourism-yomugdagaba9439-uhal9g6y.leapcell.dev/api';
 
 interface ApiResponse<T> {
   data: T;

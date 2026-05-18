@@ -7,6 +7,7 @@ const { authenticate } = require('../middleware/auth.middleware');
 const { validate } = require('../middleware/validate');
 const { CreateBookingDto, UpdateBookingDto } = require('../dto/booking.dto');
 const bookingsService = require('../services/bookings.service');
+const { bookingCreationLimiter, fileUploadLimiter } = require('../middleware/rate-limit.middleware');
 
 class BookingsController {
   constructor() {
@@ -48,7 +49,7 @@ class BookingsController {
     this.router.post('/:id/approve', authenticate, this.approveBooking.bind(this));
     this.router.post('/:id/reject', authenticate, this.rejectBooking.bind(this));
     this.router.post('/:id/receipt', authenticate, this.uploadReceiptUrl.bind(this));
-    this.router.post('/:id/receipt/upload', authenticate, this._upload.single('file'), this.uploadReceiptFile.bind(this));
+    this.router.post('/:id/receipt/upload', authenticate, fileUploadLimiter, this._upload.single('file'), this.uploadReceiptFile.bind(this));
     this.router.post('/:id/problem', authenticate, this.reportProblem.bind(this));
     this.router.post('/:id/hide', authenticate, this.hideFromClient.bind(this));
     this.router.post('/:id/message', authenticate, this.sendMessage.bind(this));
@@ -56,7 +57,7 @@ class BookingsController {
     this.router.post('/:id/messages', authenticate, this.sendMessageGeneric.bind(this));
 
     // CRUD
-    this.router.post('/', authenticate, validate(CreateBookingDto), this.create.bind(this));
+    this.router.post('/', authenticate, bookingCreationLimiter, validate(CreateBookingDto), this.create.bind(this));
     this.router.get('/', this.findAll.bind(this));
     this.router.get('/:id', this.findById.bind(this));
     this.router.put('/:id/status', authenticate, this.updateStatus.bind(this));

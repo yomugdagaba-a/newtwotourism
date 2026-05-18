@@ -16,6 +16,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { adminLimiter, fileUploadLimiter } = require('../middleware/rate-limit.middleware');
 
 const ALLOWED_IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 

@@ -34,6 +34,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Rate limiting — protect against abuse
+const { globalLimiter } = require('./middleware/rate-limit.middleware');
+app.use('/api', globalLimiter);
+
 // Audit middleware — automatically logs all POST/PUT/PATCH/DELETE requests
 const { auditMiddleware } = require('./middleware/audit.middleware');
 app.use(auditMiddleware);
@@ -153,7 +157,8 @@ app.post('/api/tourisms/:tourismId/rate', _authenticate, async (req, res, next) 
 app.use('/api/map-points', require('./controllers/map-points.controller'));
 
 // Admin (all sub-resources consolidated under /api/admin)
-app.use('/api/admin', require('./controllers/admin.controller'));
+const { adminLimiter } = require('./middleware/rate-limit.middleware');
+app.use('/api/admin', adminLimiter, require('./controllers/admin.controller'));
 
 // Audit (authenticated, not admin-only)
 app.use('/api/audit', require('./controllers/audit.controller'));

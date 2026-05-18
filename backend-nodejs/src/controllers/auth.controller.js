@@ -8,6 +8,12 @@ const {
   PasswordResetRequestDto, PasswordResetConfirmDto, EmailVerificationRequestDto,
 } = require('../dto/auth.dto');
 const authService = require('../services/auth.service');
+const {
+  loginLimiter,
+  registerLimiter,
+  passwordResetLimiter,
+  emailVerificationLimiter
+} = require('../middleware/rate-limit.middleware');
 
 class AuthController {
   constructor() {
@@ -16,22 +22,22 @@ class AuthController {
   }
 
   _registerRoutes() {
-    this.router.post('/register', validate(RegisterDto), this.register.bind(this));
-    this.router.post('/login', validate(LoginDto), this.login.bind(this));
+    this.router.post('/register', registerLimiter, validate(RegisterDto), this.register.bind(this));
+    this.router.post('/login', loginLimiter, validate(LoginDto), this.login.bind(this));
     this.router.post('/refresh', validate(RefreshTokenDto), this.refresh.bind(this));
     this.router.post('/logout', authenticate, this.logout.bind(this));
     this.router.post('/revoke-token', authenticate, this.logout.bind(this));
 
     // Password reset
-    this.router.post('/reset-password', validate(PasswordResetRequestDto), this.initiatePasswordReset.bind(this));
+    this.router.post('/reset-password', passwordResetLimiter, validate(PasswordResetRequestDto), this.initiatePasswordReset.bind(this));
     this.router.post('/reset-password/confirm', validate(PasswordResetConfirmDto), this.confirmPasswordReset.bind(this));
     this.router.get('/reset-password/validate', this.validateResetToken.bind(this));
 
     // Email verification
-    this.router.post('/send-verification', validate(EmailVerificationRequestDto), this.sendVerification.bind(this));
+    this.router.post('/send-verification', emailVerificationLimiter, validate(EmailVerificationRequestDto), this.sendVerification.bind(this));
     this.router.post('/verify-email', this.verifyEmail.bind(this));
     this.router.post('/verify-email-otp', this.verifyEmailWithOtp.bind(this));
-    this.router.post('/resend-verification', this.resendVerification.bind(this));
+    this.router.post('/resend-verification', emailVerificationLimiter, this.resendVerification.bind(this));
     this.router.get('/verify-email/validate', this.validateVerificationToken.bind(this));
     this.router.get('/email-verified', this.checkEmailVerified.bind(this));
     this.router.get('/validate-refresh-token', this.validateRefreshToken.bind(this));

@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { authenticate } = require('../middleware/auth.middleware');
 const ratingsService = require('../services/ratings.service');
+const { ratingCreationLimiter } = require('../middleware/rate-limit.middleware');
 
 class RatingsController {
   constructor() {
@@ -10,12 +11,12 @@ class RatingsController {
 
   _registerRoutes() {
     // Body-based endpoints
-    this.router.post('/tourism', authenticate, this.rateTourismByBody.bind(this));
-    this.router.post('/hotel', authenticate, this.rateHotelByBody.bind(this));
+    this.router.post('/tourism', authenticate, ratingCreationLimiter, this.rateTourismByBody.bind(this));
+    this.router.post('/hotel', authenticate, ratingCreationLimiter, this.rateHotelByBody.bind(this));
 
     // Param-based endpoints
-    this.router.post('/tourism/:tourismPlaceId', authenticate, this.rateTourismByParam.bind(this));
-    this.router.post('/hotel/:hotelId', authenticate, this.rateHotelByParam.bind(this));
+    this.router.post('/tourism/:tourismPlaceId', authenticate, ratingCreationLimiter, this.rateTourismByParam.bind(this));
+    this.router.post('/hotel/:hotelId', authenticate, ratingCreationLimiter, this.rateHotelByParam.bind(this));
 
     // Summaries — must be before generic list routes
     this.router.get('/tourism/:tourismPlaceId/summary', this.getTourismSummary.bind(this));

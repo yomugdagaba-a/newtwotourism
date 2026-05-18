@@ -4,7 +4,6 @@ LEAPCELL DEPLOYMENT CONFIGURATION
 In the Leapcell dashboard, configure these settings:
 
 1. BUILD SETTINGS:
-   - Root Directory: Leave empty (use root)
    - Build Command: npm install && cd backend-nodejs && npx prisma generate && npx prisma migrate deploy
    - Start Command: npm start
    - Port: 3001

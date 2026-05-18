@@ -238,7 +238,7 @@ export const schemas = {
     description: [
       rules.required('Description'),
       rules.minLength('Description', 20),
-      rules.maxLength('Description', 2000)
+      rules.maxLength('Description', 3000)
     ],
     wereda: [rules.required('Wereda')],
     kebele: [rules.required('Kebele')],
@@ -255,7 +255,7 @@ export const schemas = {
     ],
     description: [
       rules.minLength('Description', 10),
-      rules.maxLength('Description', 2000)
+      rules.maxLength('Description', 3000)
     ],
     tourismPlaceId: [rules.required('Tourism place')],
     starRating: [
@@ -312,7 +312,7 @@ export const schemas = {
     name: [
       rules.required('Service name'),
       rules.minLength('Service name', 3),
-      rules.maxLength('Service name', 100)
+      rules.maxLength('Service name', 50)
     ],
     contactPhone: [
       rules.required('Contact phone'),
@@ -340,7 +340,7 @@ export const schemas = {
     ],
     numberOfRooms: [
       rules.min('Rooms', 1),
-      rules.max('Rooms', 10)
+      rules.max('Rooms', 20)
     ]
   },
 
@@ -355,7 +355,7 @@ export const schemas = {
     fullName: [
       rules.required('Full name'),
       rules.minLength('Full name', 2),
-      rules.maxLength('Full name', 100)
+      rules.maxLength('Full name', 50)
     ],
     email: [
       rules.required('Email'),
