@@ -29,6 +29,9 @@ async function initializeRedis() {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT) || 6379,
         connectTimeout: 5000,
+        // Enable TLS if REDIS_URL uses rediss:// or REDIS_TLS=true
+        tls: process.env.REDIS_URL?.startsWith('rediss://') || process.env.REDIS_TLS === 'true' || true,
+        rejectUnauthorized: false, // Required for Leapcell self-signed certs
         reconnectStrategy: (retries) => {
           if (retries > 3) {
             console.error('❌ Redis connection failed after 3 retries');
