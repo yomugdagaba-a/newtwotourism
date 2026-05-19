@@ -594,10 +594,21 @@ export default function OwnerBookingsPage() {
 
                     {/* Messages — identical to client page */}
                     <div className="rounded-2xl overflow-hidden">
-                      {/* Chat Header */}
-                      <div className="px-4 py-3 flex items-center gap-2 bg-white">
-                        <span className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">M</span>
-                        <h4 className="text-gray-800 font-semibold text-sm">Messages ({selectedBooking.messages?.length || 0})</h4>
+                      {/* Chat Header with online status */}
+                      <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">M</span>
+                          <h4 className="text-gray-800 font-semibold text-sm">Messages ({selectedBooking.messages?.length || 0})</h4>
+                        </div>
+                        {/* Online status indicator — prominent */}
+                        {selectedBooking?.client?.id && (
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-2.5 h-2.5 rounded-full ${onlineUsers.has(Number(selectedBooking.client.id)) ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                            <span className={`text-xs font-semibold ${onlineUsers.has(Number(selectedBooking.client.id)) ? 'text-green-600' : 'text-gray-400'}`}>
+                              {onlineUsers.has(Number(selectedBooking.client.id)) ? 'Client online' : 'Client offline'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       {/* Chat Body */}
                       <div
@@ -627,25 +638,18 @@ export default function OwnerBookingsPage() {
                       <div className="flex flex-col gap-1 px-3 py-2.5 bg-white border-t border-gray-100">
                         {/* Typing indicator — client is typing */}
                         {clientTyping && clientTyping.bookingId === selectedBooking?.bookingId && (
-                          <div className="flex items-center gap-1.5 px-1 pb-1">
-                            <span className="text-xs text-gray-400 italic">
+                          <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 rounded-lg">
+                            <span className="text-xs text-gray-500 font-medium italic">
                               {clientTyping.name} is typing
                             </span>
-                            <span className="flex gap-0.5">
-                              <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                              <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                              <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <span className="flex gap-0.5 items-center">
+                              <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                             </span>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          {/* Online status of client */}
-                          {selectedBooking?.client?.id && (
-                            <span
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${onlineUsers.has(Number(selectedBooking.client.id)) ? 'bg-green-500' : 'bg-gray-300'}`}
-                              title={onlineUsers.has(Number(selectedBooking.client.id)) ? 'Client is online' : 'Client is offline'}
-                            />
-                          )}
                           <input
                             type="text"
                             value={newMessage}
