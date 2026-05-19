@@ -10,6 +10,10 @@ const { initializeRedis, closeRedis } = require('./lib/redis');
 const app = express();
 const PORT = process.env.PORT || 9001;
 
+// Trust the first proxy (Leapcell reverse proxy)
+// This makes req.ip return the real client IP from X-Forwarded-For header
+app.set('trust proxy', 1);
+
 // Security headers
 app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
