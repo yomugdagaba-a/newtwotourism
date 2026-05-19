@@ -49,9 +49,36 @@ const TYPING_TIMEOUT_MS = 3000;
 function attachWebSocketServer(httpServer) {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', async (ws, req) => {
     let userId = null;
     let userName = '';
+
+    // Try to authenticate immediately from URL query param token
+    // This allows the connection to be authenticated without waiting for auth message
+    try {
+      const url = new URL(req.url, 'http://localhost');
+      const tokenFromUrl = url.searchParams.get('token');
+      if (tokenFromUrl) {
+        const payload = jwt.verify(tokenFromUrl, process.env.JWT_SECRET || 'your-secret-key');
+        userId = payload.userId;
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { fullName: true, username: true },
+          });
+          userName = user?.fullName || user?.username || `User ${userId}`;
+        } catch { userName = `User ${userId}`; }
+
+        const existing = _connections.get(userId);
+        if (existing && existing.ws !== ws && existing.ws.readyState === existing.ws.OPEN) {
+          existing.ws.close();
+        }
+        _connections.set(userId, { ws, name: userName });
+        _send(ws, { type: 'connected', userId, name: userName });
+        _broadcastOnlineStatus(userId, userName, true);
+        console.log(`🔌 WS: user ${userId} (${userName}) connected via URL token`);
+      }
+    } catch { /* token from URL invalid or missing — wait for auth message */ }
 
     ws.on('message', async (raw) => {
       let msg;
@@ -150,6 +177,7 @@ function attachWebSocketServer(httpServer) {
   });
 
   console.log('✅ WebSocket server ready on /ws');
+  wss.on('error', (err) => console.error('❌ WebSocket server error:', err.message));
   return wss;
 }
 

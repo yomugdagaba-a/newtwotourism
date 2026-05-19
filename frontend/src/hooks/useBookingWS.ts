@@ -30,7 +30,14 @@ export type WsPayload = Record<string, unknown>;
 export type WsCallback = (event: WsEventType, data: WsPayload) => void;
 
 // Derive WebSocket URL from the API base URL
+// Can be overridden with NEXT_PUBLIC_WS_URL env variable
 function getWsUrl(token: string): string {
+  // Allow explicit override for platforms like Leapcell
+  const explicitWsUrl = process.env.NEXT_PUBLIC_WS_URL;
+  if (explicitWsUrl) {
+    return `${explicitWsUrl}?token=${encodeURIComponent(token)}`;
+  }
+
   const base = API_BASE_URL.replace(/\/api$/, '');
   const wsBase = base.replace(/^https?:\/\//, (match) =>
     match === 'https://' ? 'wss://' : 'ws://'
@@ -58,12 +65,13 @@ export function useBookingWS(
     if (typeof WebSocket === 'undefined') return; // SSR guard
 
     const url = getWsUrl(token);
+    console.log('🔌 WS: connecting to', url.replace(/token=[^&]+/, 'token=***'));
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('🔌 WS: connected');
-      // Authenticate immediately after connection
+      console.log('🔌 WS: connected, sending auth...');
+      // Authenticate immediately after connection (backup to URL token)
       ws.send(JSON.stringify({ type: 'auth', token }));
     };
 
