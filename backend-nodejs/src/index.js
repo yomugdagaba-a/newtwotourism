@@ -6,6 +6,7 @@ const fs = require('fs');
 const https = require('https');
 const prisma = require('./lib/prisma');
 const { initializeRedis, closeRedis } = require('./lib/redis');
+const { attachWebSocketServer } = require('./services/ws.service');
 
 const app = express();
 const PORT = process.env.PORT || 9001;
@@ -242,14 +243,17 @@ async function start() {
 
   if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
     const httpsOptions = { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) };
-    https.createServer(httpsOptions, app).listen(PORT, '0.0.0.0', () => {
+    const server = https.createServer(httpsOptions, app);
+    attachWebSocketServer(server);
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(`Backend running on: https://localhost:${PORT}`);
     });
   } else {
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`Backend running on: http://localhost:${PORT}`);
       console.log(`Uploads directory: ${path.resolve(uploadsDir)}`);
     });
+    attachWebSocketServer(server);
   }
 }
 

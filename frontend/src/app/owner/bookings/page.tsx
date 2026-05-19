@@ -1,13 +1,13 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { BookingService, Booking, BOOKING_STATUS } from "@/services/booking.service";
 import { useToast } from "@/components/common/Toast";
 import { useConfirm } from "@/components/common/ConfirmDialog";
 import AvatarDropdown from "@/components/common/AvatarDropdown";
-import { useBookingSSE } from "@/hooks/useBookingSSE";
+import { useBookingWS } from "@/hooks/useBookingWS";
 
 export default function OwnerBookingsPage() {
   const router = useRouter();
@@ -31,19 +31,30 @@ export default function OwnerBookingsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Real-time state
+  const [clientTyping, setClientTyping] = useState<{ bookingId: number; name: string } | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Map<number, string>>(new Map());
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectedBookingRef = useRef<Booking | null>(null);
+
+  // Keep ref in sync via effect, not during render
+  useEffect(() => {
+    selectedBookingRef.current = selectedBooking;
+  });
+
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!isHydrated) return;
     if (!isAuthenticated) { router.push("/auth/login"); return; }
     loadBookings(true);
-    // Keep polling as fallback (reduced to 60s since SSE handles real-time)
+    // Fallback polling every 60s (WebSocket handles real-time)
     const interval = setInterval(() => loadBookings(false), 60000);
     return () => clearInterval(interval);
   }, [isAuthenticated, isHydrated]);
 
-  // SSE: real-time booking updates
-  useBookingSSE(isAuthenticated ? token : null, (event, data) => {
+  // WebSocket: real-time booking updates, messages, typing, online status
+  const { sendTyping } = useBookingWS(isAuthenticated ? token : null, (event, data) => {
     const booking = (data as { booking?: Booking }).booking;
     const message = (data as { message?: string }).message || '';
 
@@ -53,7 +64,7 @@ export default function OwnerBookingsPage() {
           if (prev.some(b => b.bookingId === booking.bookingId)) return prev;
           return [booking, ...prev];
         });
-        toast.success(`🔔 New booking: ${message}`);
+        toast.success(`🔔 New booking from ${(data as { clientName?: string }).clientName || 'client'}`);
       }
     } else if (event === 'booking_update') {
       if (booking) {
@@ -64,7 +75,6 @@ export default function OwnerBookingsPage() {
         if (message) toast.info(`🔔 ${message}`);
       }
     } else if (event === 'booking_message') {
-      // Client sent a new message — update the conversation in real-time
       if (booking) {
         setBookings(prev => prev.map(b => b.bookingId === booking.bookingId ? booking : b));
         setSelectedBooking(prev =>
@@ -72,10 +82,45 @@ export default function OwnerBookingsPage() {
         );
         const senderName = (data as { senderName?: string }).senderName || 'Client';
         const msg = (data as { message?: string }).message || '';
-        toast.info(`💬 New message from ${senderName}: "${msg.substring(0, 40)}${msg.length > 40 ? '...' : ''}"`);
+        toast.info(`💬 ${senderName}: "${msg.substring(0, 40)}${msg.length > 40 ? '...' : ''}"`);
       }
+    } else if (event === 'typing') {
+      const bookingId = data.bookingId as number;
+      const name = data.name as string;
+      const isTyping = data.isTyping as boolean;
+      if (isTyping) {
+        setClientTyping({ bookingId, name });
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => setClientTyping(null), 4000);
+      } else {
+        if (selectedBookingRef.current?.bookingId === bookingId) {
+          setClientTyping(null);
+        }
+      }
+    } else if (event === 'online') {
+      const onlineUserId = data.userId as number;
+      const name = data.name as string;
+      const online = data.online as boolean;
+      setOnlineUsers(prev => {
+        const next = new Map(prev);
+        if (online) next.set(onlineUserId, name);
+        else next.delete(onlineUserId);
+        return next;
+      });
     }
   });
+
+  // Send typing signal when owner types
+  const handleMessageChange = useCallback((value: string) => {
+    setNewMessage(value);
+    if (selectedBooking) {
+      sendTyping(selectedBooking.bookingId, value.length > 0);
+    }
+  }, [selectedBooking, sendTyping]);
+
+  const stopTyping = useCallback(() => {
+    if (selectedBooking) sendTyping(selectedBooking.bookingId, false);
+  }, [selectedBooking, sendTyping]);
 
   const filterCounts: Record<string, number> = {
     ALL: bookings.length,
@@ -119,6 +164,7 @@ export default function OwnerBookingsPage() {
 
   const handleSendMessage = async () => {
     if (!token || !userId || !selectedBooking || !newMessage.trim()) return;
+    stopTyping(); // stop typing indicator before sending
     try {
       const updated = await BookingService.ownerSendMessage(token, selectedBooking.bookingId, newMessage, userId);
       updateBookingInList(updated); setSelectedBooking(updated); setNewMessage("");
@@ -578,24 +624,46 @@ export default function OwnerBookingsPage() {
                         })}
                       </div>
                       {/* Input Bar */}
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-white border-t border-gray-100">
-                        <input
-                          type="text"
-                          value={newMessage}
-                          onChange={e => setNewMessage(e.target.value)}
-                          placeholder="Write a message..."
-                          className="flex-1 rounded-full px-4 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none border border-gray-100 bg-gray-50"
-                          onKeyPress={e => e.key === "Enter" && handleSendMessage()}
-                        />
-                        <button
-                          onClick={handleSendMessage}
-                          disabled={!newMessage.trim()}
-                          className="w-9 h-9 rounded-full flex items-center justify-center bg-purple-600 hover:bg-purple-700 disabled:opacity-40 transition-all flex-shrink-0"
-                        >
-                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                          </svg>
-                        </button>
+                      <div className="flex flex-col gap-1 px-3 py-2.5 bg-white border-t border-gray-100">
+                        {/* Typing indicator — client is typing */}
+                        {clientTyping && clientTyping.bookingId === selectedBooking?.bookingId && (
+                          <div className="flex items-center gap-1.5 px-1 pb-1">
+                            <span className="text-xs text-gray-400 italic">
+                              {clientTyping.name} is typing
+                            </span>
+                            <span className="flex gap-0.5">
+                              <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          {/* Online status of client */}
+                          {selectedBooking?.client?.id && (
+                            <span
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${onlineUsers.has(selectedBooking.client.id) ? 'bg-green-500' : 'bg-gray-300'}`}
+                              title={onlineUsers.has(selectedBooking.client.id) ? 'Client is online' : 'Client is offline'}
+                            />
+                          )}
+                          <input
+                            type="text"
+                            value={newMessage}
+                            onChange={e => handleMessageChange(e.target.value)}
+                            placeholder="Write a message..."
+                            className="flex-1 rounded-full px-4 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none border border-gray-100 bg-gray-50"
+                            onKeyPress={e => e.key === "Enter" && handleSendMessage()}
+                          />
+                          <button
+                            onClick={handleSendMessage}
+                            disabled={!newMessage.trim()}
+                            className="w-9 h-9 rounded-full flex items-center justify-center bg-purple-600 hover:bg-purple-700 disabled:opacity-40 transition-all flex-shrink-0"
+                          >
+                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
 

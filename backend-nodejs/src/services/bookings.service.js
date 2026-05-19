@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const emailService = require('./email-gmail.service');
-const sseService = require('./sse.service');
+const sseService = require('./sse.service');   // kept as fallback for browsers that block WS
+const wsService = require('./ws.service');     // primary real-time channel
 
 const INCLUDE = {
   hotel: { include: { owner: true } },
@@ -89,16 +90,18 @@ class BookingsService {
       include: INCLUDE,
     });
     const result = this._transform(booking);
-    // Notify the hotel owner in real-time about the new booking
+    // Notify the hotel owner in real-time about the new booking (WS primary, SSE fallback)
     if (result.hotel?.ownerId) {
-      sseService.sendToUsers([result.hotel.ownerId], 'booking_new', {
+      const payload = {
         bookingId:  result.bookingId,
         hotelName:  result.hotel.name,
         clientName: result.client?.fullName || result.client?.username,
         message:    `New booking request from ${result.client?.fullName || result.client?.username}`,
         booking:    result,
         timestamp:  new Date().toISOString(),
-      });
+      };
+      wsService.notifyNewBooking(result.hotel.ownerId, payload);
+      sseService.sendToUsers([result.hotel.ownerId], 'booking_new', payload); // SSE fallback
     }
     return result;
   }
@@ -196,7 +199,9 @@ class BookingsService {
     await this._addMessage(bookingId, ownerId, 'Request accepted', true);
     if (booking.user.email) emailService.sendBookingAcceptedNotification(booking.user.email, booking.hotel.name, bookingId).catch(() => {});
     const result = this._transform(updated);
-    sseService.notifyBookingUpdate(result, 'booking_update', `Your booking at ${booking.hotel.name} was accepted`);
+    const msg = `Your booking at ${booking.hotel.name} was accepted`;
+    wsService.notifyBookingUpdate(result, msg);
+    sseService.notifyBookingUpdate(result, 'booking_update', msg);
     return result;
   }
 
@@ -212,7 +217,9 @@ class BookingsService {
     await this._addMessage(bookingId, ownerId, `Cost proposed: ${cost} ETB`, true);
     if (booking.user.email) emailService.sendCostProposedNotification(booking.user.email, booking.hotel.name, cost, bookingId).catch(() => {});
     const result = this._transform(updated);
-    sseService.notifyBookingUpdate(result, 'booking_update', `Cost of ${cost} ETB proposed for your booking at ${booking.hotel.name}`);
+    const msg = `Cost of ${cost} ETB proposed for your booking at ${booking.hotel.name}`;
+    wsService.notifyBookingUpdate(result, msg);
+    sseService.notifyBookingUpdate(result, 'booking_update', msg);
     return result;
   }
 
@@ -231,7 +238,9 @@ class BookingsService {
       }).catch(() => {});
     }
     const result = this._transform(updated);
-    sseService.notifyBookingUpdate(result, 'booking_update', `Receipt uploaded for booking at ${booking.hotel.name}`);
+    const msg = `Receipt uploaded for booking at ${booking.hotel.name}`;
+    wsService.notifyBookingUpdate(result, msg);
+    sseService.notifyBookingUpdate(result, 'booking_update', msg);
     return result;
   }
 
@@ -246,7 +255,9 @@ class BookingsService {
     await this._addMessage(bookingId, ownerId, 'Booking approved', true);
     if (booking.user.email) emailService.sendBookingApprovedNotification(booking.user.email, booking.hotel.name, bookingId).catch(() => {});
     const result = this._transform(updated);
-    sseService.notifyBookingUpdate(result, 'booking_update', `Your booking at ${booking.hotel.name} was approved!`);
+    const msg = `Your booking at ${booking.hotel.name} was approved!`;
+    wsService.notifyBookingUpdate(result, msg);
+    sseService.notifyBookingUpdate(result, 'booking_update', msg);
     return result;
   }
 
@@ -262,7 +273,9 @@ class BookingsService {
     await this._addMessage(bookingId, ownerId, `Rejected: ${reason}`, true);
     if (booking.user.email) emailService.sendBookingRejectedNotification(booking.user.email, booking.hotel.name, reason, bookingId).catch(() => {});
     const result = this._transform(updated);
-    sseService.notifyBookingUpdate(result, 'booking_update', `Your booking at ${booking.hotel.name} was rejected`);
+    const msg = `Your booking at ${booking.hotel.name} was rejected`;
+    wsService.notifyBookingUpdate(result, msg);
+    sseService.notifyBookingUpdate(result, 'booking_update', msg);
     return result;
   }
 
