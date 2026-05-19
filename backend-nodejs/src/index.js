@@ -56,6 +56,18 @@ try {
 }
 app.use('/uploads', express.static(uploadsDir));
 
+// Debug endpoint to check IP detection (trust proxy)
+app.get('/api/debug/ip', (req, res) => {
+  res.json({
+    'req.ip': req.ip,
+    'req.ips': req.ips,
+    'x-forwarded-for': req.headers['x-forwarded-for'] || 'not set',
+    'x-real-ip': req.headers['x-real-ip'] || 'not set',
+    'trust proxy setting': app.get('trust proxy'),
+    'user-agent': req.headers['user-agent'],
+  });
+});
+
 // Debug endpoint to check environment variables
 app.get('/api/debug/env', (req, res) => {
   try {
