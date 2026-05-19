@@ -73,6 +73,18 @@ export function useBookingWS(
       console.log('🔌 WS: connected, sending auth...');
       // Authenticate immediately after connection (backup to URL token)
       ws.send(JSON.stringify({ type: 'auth', token }));
+
+      // Send periodic ping to keep connection alive and maintain online status
+      const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        } else {
+          clearInterval(pingInterval);
+        }
+      }, 20000); // ping every 20 seconds
+
+      // Store interval on ws object for cleanup
+      (ws as WebSocket & { _pingInterval?: ReturnType<typeof setInterval> })._pingInterval = pingInterval;
     };
 
     ws.onmessage = (e) => {
@@ -88,6 +100,10 @@ export function useBookingWS(
     };
 
     ws.onclose = () => {
+      // Clear ping interval
+      const pingInterval = (ws as WebSocket & { _pingInterval?: ReturnType<typeof setInterval> })._pingInterval;
+      if (pingInterval) clearInterval(pingInterval);
+
       wsRef.current = null;
       if (!mountedRef.current) return;
       console.log('🔌 WS: disconnected, reconnecting in 3s...');
@@ -105,6 +121,8 @@ export function useBookingWS(
       mountedRef.current = false;
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       if (wsRef.current) {
+        const pingInterval = (wsRef.current as WebSocket & { _pingInterval?: ReturnType<typeof setInterval> })._pingInterval;
+        if (pingInterval) clearInterval(pingInterval);
         wsRef.current.onclose = null; // prevent reconnect on intentional close
         wsRef.current.close();
         wsRef.current = null;

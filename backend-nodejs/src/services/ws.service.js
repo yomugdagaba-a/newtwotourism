@@ -169,6 +169,11 @@ function attachWebSocketServer(httpServer) {
       // ── ping/pong ────────────────────────────────────────────────────────
       if (msg.type === 'ping') {
         _send(ws, { type: 'pong' });
+        // Re-broadcast this user's online status on every ping
+        // This keeps online status accurate even after server restarts
+        if (userId) {
+          _broadcastOnlineStatus(userId, userName, true);
+        }
         return;
       }
     });
