@@ -98,7 +98,7 @@ export default function OwnerBookingsPage() {
         }
       }
     } else if (event === 'online') {
-      const onlineUserId = data.userId as number;
+      const onlineUserId = Number(data.userId);
       const name = data.name as string;
       const online = data.online as boolean;
       setOnlineUsers(prev => {
@@ -642,8 +642,8 @@ export default function OwnerBookingsPage() {
                           {/* Online status of client */}
                           {selectedBooking?.client?.id && (
                             <span
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${onlineUsers.has(selectedBooking.client.id) ? 'bg-green-500' : 'bg-gray-300'}`}
-                              title={onlineUsers.has(selectedBooking.client.id) ? 'Client is online' : 'Client is offline'}
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${onlineUsers.has(Number(selectedBooking.client.id)) ? 'bg-green-500' : 'bg-gray-300'}`}
+                              title={onlineUsers.has(Number(selectedBooking.client.id)) ? 'Client is online' : 'Client is offline'}
                             />
                           )}
                           <input

@@ -99,7 +99,7 @@ export default function ClientBookingsPage() {
     }
 
     if (event === 'online') {
-      const onlineUserId = data.userId as number;
+      const onlineUserId = Number(data.userId);
       const name = data.name as string;
       const online = data.online as boolean;
       setOnlineUsers(prev => {
@@ -628,8 +628,8 @@ export default function ClientBookingsPage() {
                           {/* Online status of owner */}
                           {selectedBooking?.hotel?.ownerId && (
                             <span
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${onlineUsers.has(selectedBooking.hotel.ownerId) ? 'bg-green-500' : 'bg-gray-300'}`}
-                              title={onlineUsers.has(selectedBooking.hotel.ownerId) ? 'Owner is online' : 'Owner is offline'}
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${onlineUsers.has(Number(selectedBooking.hotel.ownerId)) ? 'bg-green-500' : 'bg-gray-300'}`}
+                              title={onlineUsers.has(Number(selectedBooking.hotel.ownerId)) ? 'Owner is online' : 'Owner is offline'}
                             />
                           )}
                           <input

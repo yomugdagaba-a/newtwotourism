@@ -76,6 +76,14 @@ function attachWebSocketServer(httpServer) {
         _connections.set(userId, { ws, name: userName });
         _send(ws, { type: 'connected', userId, name: userName });
         _broadcastOnlineStatus(userId, userName, true);
+
+        // Send current online users to the newly connected user
+        for (const [connUserId, conn] of _connections) {
+          if (connUserId !== userId) {
+            _send(ws, { type: 'online', userId: connUserId, name: conn.name, online: true });
+          }
+        }
+
         console.log(`🔌 WS: user ${userId} (${userName}) connected via URL token`);
       }
     } catch { /* token from URL invalid or missing — wait for auth message */ }
@@ -108,6 +116,14 @@ function attachWebSocketServer(httpServer) {
           _connections.set(userId, { ws, name: userName });
           _send(ws, { type: 'connected', userId, name: userName });
           _broadcastOnlineStatus(userId, userName, true);
+
+          // Send current online users to the newly connected user
+          for (const [connUserId, conn] of _connections) {
+            if (connUserId !== userId) {
+              _send(ws, { type: 'online', userId: connUserId, name: conn.name, online: true });
+            }
+          }
+
           console.log(`🔌 WS: user ${userId} (${userName}) connected`);
 
         } catch {
