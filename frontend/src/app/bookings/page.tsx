@@ -586,13 +586,15 @@ export default function ClientBookingsPage() {
                           <span className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">M</span>
                           <h4 className="text-gray-800 font-semibold text-sm">Messages ({selectedBooking.messages?.length || 0})</h4>
                         </div>
-                        {/* Online status indicator — prominent */}
+                        {/* Online status indicator — dot only, no text when offline */}
                         {selectedBooking?.hotel?.ownerId && (
                           <div className="flex items-center gap-1.5">
-                            <span className={`w-2.5 h-2.5 rounded-full ${onlineUsers.has(Number(selectedBooking.hotel.ownerId)) ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
-                            <span className={`text-xs font-semibold ${onlineUsers.has(Number(selectedBooking.hotel.ownerId)) ? 'text-green-600' : 'text-gray-400'}`}>
-                              {onlineUsers.has(Number(selectedBooking.hotel.ownerId)) ? 'Owner online' : 'Owner offline'}
-                            </span>
+                            {onlineUsers.has(Number(selectedBooking.hotel.ownerId)) && (
+                              <>
+                                <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+                                <span className="text-xs font-semibold text-green-600">Owner online</span>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>

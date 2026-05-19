@@ -1,17 +1,13 @@
 /**
- * useBookingWS
+ * useBookingWS — Singleton WebSocket per browser tab
  *
- * Single WebSocket connection that handles ALL real-time booking features:
- *   - booking_new      → owner sees new booking instantly
- *   - booking_update   → status changes (accept, reject, cost, approve)
- *   - booking_message  → new message in conversation
- *   - typing           → "Owner is typing..." / "Client is typing..."
- *   - online           → green dot (user is online/offline)
+ * Uses a module-level singleton to ensure only ONE WebSocket connection
+ * exists per browser tab, regardless of React re-renders or token refreshes.
  *
- * Falls back gracefully:
- *   - No token → does not connect
- *   - Connection drops → auto-reconnects after 3 seconds
- *   - Server unreachable → silent fallback (SSE still works)
+ * Handles:
+ *   - booking_new, booking_update, booking_message
+ *   - typing indicator
+ *   - online/offline status
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -29,112 +25,129 @@ export type WsEventType =
 export type WsPayload = Record<string, unknown>;
 export type WsCallback = (event: WsEventType, data: WsPayload) => void;
 
-// Derive WebSocket URL from the API base URL
-// Can be overridden with NEXT_PUBLIC_WS_URL env variable
+// ── Module-level singleton ────────────────────────────────────────────────────
+// One WS per browser tab — survives React re-renders and token refreshes
+let _ws: WebSocket | null = null;
+let _wsToken: string | null = null;
+let _pingInterval: ReturnType<typeof setInterval> | null = null;
+let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+const _listeners: Set<WsCallback> = new Set();
+let _destroyed = false;
+
 function getWsUrl(token: string): string {
-  // Allow explicit override for platforms like Leapcell
   const explicitWsUrl = process.env.NEXT_PUBLIC_WS_URL;
-  if (explicitWsUrl) {
-    return `${explicitWsUrl}?token=${encodeURIComponent(token)}`;
-  }
+  if (explicitWsUrl) return `${explicitWsUrl}?token=${encodeURIComponent(token)}`;
 
   const base = API_BASE_URL.replace(/\/api$/, '');
-  const wsBase = base.replace(/^https?:\/\//, (match) =>
-    match === 'https://' ? 'wss://' : 'ws://'
-  );
+  const wsBase = base.replace(/^https?:\/\//, (m) => m === 'https://' ? 'wss://' : 'ws://');
   return `${wsBase}/ws?token=${encodeURIComponent(token)}`;
 }
+
+function _clearPing() {
+  if (_pingInterval) { clearInterval(_pingInterval); _pingInterval = null; }
+}
+
+function _clearReconnect() {
+  if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+}
+
+function _startPing() {
+  _clearPing();
+  _pingInterval = setInterval(() => {
+    if (_ws && _ws.readyState === WebSocket.OPEN) {
+      _ws.send(JSON.stringify({ type: 'ping' }));
+    }
+  }, 20000);
+}
+
+function _dispatch(type: WsEventType, data: WsPayload) {
+  _listeners.forEach(cb => { try { cb(type, data); } catch { /* ignore */ } });
+}
+
+function _connect(token: string) {
+  if (_destroyed) return;
+
+  // Don't reconnect if already open with same token
+  if (_ws && _ws.readyState === WebSocket.OPEN && _wsToken === token) return;
+
+  // Close existing connection cleanly
+  if (_ws) {
+    _ws.onclose = null;
+    _ws.onerror = null;
+    _ws.close();
+    _ws = null;
+  }
+
+  _clearPing();
+  _wsToken = token;
+
+  const url = getWsUrl(token);
+  const ws = new WebSocket(url);
+  _ws = ws;
+
+  ws.onopen = () => {
+    if (_ws !== ws) return; // stale connection
+    ws.send(JSON.stringify({ type: 'auth', token }));
+    _startPing();
+  };
+
+  ws.onmessage = (e) => {
+    if (_ws !== ws) return;
+    try {
+      const msg = JSON.parse(e.data) as { type: WsEventType } & WsPayload;
+      const { type, ...data } = msg;
+      if (type) _dispatch(type, data);
+    } catch { /* ignore */ }
+  };
+
+  ws.onerror = () => { /* handled by onclose */ };
+
+  ws.onclose = () => {
+    if (_ws !== ws) return; // stale
+    _ws = null;
+    _clearPing();
+    if (_destroyed) return;
+    _reconnectTimer = setTimeout(() => {
+      if (!_destroyed && _wsToken) _connect(_wsToken);
+    }, 3000);
+  };
+}
+
+function _ensureConnected(token: string) {
+  _clearReconnect();
+  _connect(token);
+}
+
+// ── React hook ────────────────────────────────────────────────────────────────
 
 export function useBookingWS(
   token: string | null | undefined,
   onEvent: WsCallback
 ) {
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mountedRef = useRef(true);
   const onEventRef = useRef(onEvent);
 
-  // Keep ref in sync with latest callback via effect (not during render)
+  useEffect(() => { onEventRef.current = onEvent; });
+
+  // Register this component's callback
   useEffect(() => {
-    onEventRef.current = onEvent;
-  });
+    if (!token) return;
 
-  // ── Connect ────────────────────────────────────────────────────────────────
-  const connect = useCallback(() => {
-    if (!mountedRef.current || !token) return;
-    if (typeof WebSocket === 'undefined') return; // SSR guard
+    const cb: WsCallback = (event, data) => onEventRef.current(event, data);
+    _listeners.add(cb);
+    _destroyed = false;
 
-    const url = getWsUrl(token);
-    console.log('🔌 WS: connecting to', url.replace(/token=[^&]+/, 'token=***'));
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    // Connect or reuse existing connection
+    _ensureConnected(token);
 
-    ws.onopen = () => {
-      console.log('🔌 WS: connected, sending auth...');
-      // Authenticate immediately after connection (backup to URL token)
-      ws.send(JSON.stringify({ type: 'auth', token }));
-
-      // Send periodic ping to keep connection alive and maintain online status
-      const pingInterval = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ping' }));
-        } else {
-          clearInterval(pingInterval);
-        }
-      }, 20000); // ping every 20 seconds
-
-      // Store interval on ws object for cleanup
-      (ws as WebSocket & { _pingInterval?: ReturnType<typeof setInterval> })._pingInterval = pingInterval;
-    };
-
-    ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data) as { type: WsEventType } & WsPayload;
-        const { type, ...data } = msg;
-        if (type) onEventRef.current(type, data);
-      } catch { /* ignore malformed */ }
-    };
-
-    ws.onerror = () => {
-      // onerror is always followed by onclose, handle there
-    };
-
-    ws.onclose = () => {
-      // Clear ping interval
-      const pingInterval = (ws as WebSocket & { _pingInterval?: ReturnType<typeof setInterval> })._pingInterval;
-      if (pingInterval) clearInterval(pingInterval);
-
-      wsRef.current = null;
-      if (!mountedRef.current) return;
-      console.log('🔌 WS: disconnected, reconnecting in 3s...');
-      reconnectTimer.current = setTimeout(() => {
-        if (mountedRef.current) connect();
-      }, 3000);
+    return () => {
+      _listeners.delete(cb);
+      // Don't close the WS on unmount — keep it alive for the tab
     };
   }, [token]);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    connect();
-
-    return () => {
-      mountedRef.current = false;
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-      if (wsRef.current) {
-        const pingInterval = (wsRef.current as WebSocket & { _pingInterval?: ReturnType<typeof setInterval> })._pingInterval;
-        if (pingInterval) clearInterval(pingInterval);
-        wsRef.current.onclose = null; // prevent reconnect on intentional close
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [connect]);
-
-  // ── Send typing signal ─────────────────────────────────────────────────────
   const sendTyping = useCallback((bookingId: number, isTyping: boolean) => {
-    const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'typing', bookingId, isTyping }));
+    if (_ws && _ws.readyState === WebSocket.OPEN) {
+      _ws.send(JSON.stringify({ type: 'typing', bookingId, isTyping }));
     }
   }, []);
 
