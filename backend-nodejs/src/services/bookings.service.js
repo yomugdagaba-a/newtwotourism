@@ -268,7 +268,25 @@ class BookingsService {
 
   async sendMessage(bookingId, userId, message, isFromOwner = false) {
     const booking = await this._addMessage(bookingId, userId, message, isFromOwner);
-    return this._transform(booking);
+    const result = this._transform(booking);
+
+    // Push the new message to the other party in real-time
+    const clientId = result.client?.id;
+    const ownerId  = result.hotel?.ownerId;
+    // Notify the recipient (not the sender)
+    const recipientId = isFromOwner ? clientId : ownerId;
+    if (recipientId) {
+      sseService.sendToUsers([recipientId], 'booking_message', {
+        bookingId:  result.bookingId,
+        hotelName:  result.hotel?.name,
+        senderName: isFromOwner ? (result.hotel?.ownerName || 'Owner') : (result.client?.fullName || result.client?.username || 'Client'),
+        message,
+        isFromOwner,
+        booking:    result,
+        timestamp:  new Date().toISOString(),
+      });
+    }
+    return result;
   }
 
   async reportProblem(bookingId, problem) {

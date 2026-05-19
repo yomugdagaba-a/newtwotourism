@@ -61,6 +61,13 @@ export function useBookingSSE(token: string | null | undefined, onEvent: SseCall
         } catch { /* ignore parse errors */ }
       });
 
+      es.addEventListener('booking_message', (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          onEvent('booking_message', data);
+        } catch { /* ignore parse errors */ }
+      });
+
       es.onerror = () => {
         es.close();
         esRef.current = null;

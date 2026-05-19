@@ -48,19 +48,27 @@ export default function ClientBookingsPage() {
     if (!booking) return;
 
     if (event === 'booking_update') {
-      // Update the booking in the list instantly
       setBookings(prev => {
         const exists = prev.some(b => b.bookingId === booking.bookingId);
-        if (!exists) return prev; // not our booking, ignore
+        if (!exists) return prev;
         return prev.map(b => b.bookingId === booking.bookingId ? booking : b);
       });
-      // Update selected booking if it's the one that changed
       setSelectedBooking(prev =>
         prev?.bookingId === booking.bookingId ? booking : prev
       );
-      // Show toast notification
       const message = (data as { message?: string }).message || 'Booking updated';
       toast.info(`🔔 ${message}`);
+    }
+
+    if (event === 'booking_message') {
+      // Update the booking messages in real-time
+      setBookings(prev => prev.map(b => b.bookingId === booking.bookingId ? booking : b));
+      setSelectedBooking(prev =>
+        prev?.bookingId === booking.bookingId ? booking : prev
+      );
+      const senderName = (data as { senderName?: string }).senderName || 'Owner';
+      const msg = (data as { message?: string }).message || '';
+      toast.info(`💬 New message from ${senderName}: "${msg.substring(0, 40)}${msg.length > 40 ? '...' : ''}"`);
     }
   });
 

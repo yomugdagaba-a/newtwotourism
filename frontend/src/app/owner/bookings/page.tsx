@@ -48,23 +48,31 @@ export default function OwnerBookingsPage() {
     const message = (data as { message?: string }).message || '';
 
     if (event === 'booking_new') {
-      // New booking arrived — add it to the top of the list
       if (booking) {
         setBookings(prev => {
-          // Avoid duplicates (in case polling also fetched it)
           if (prev.some(b => b.bookingId === booking.bookingId)) return prev;
           return [booking, ...prev];
         });
         toast.success(`🔔 New booking: ${message}`);
       }
     } else if (event === 'booking_update') {
-      // Status changed (e.g. client uploaded receipt)
       if (booking) {
         setBookings(prev => prev.map(b => b.bookingId === booking.bookingId ? booking : b));
         setSelectedBooking(prev =>
           prev?.bookingId === booking.bookingId ? booking : prev
         );
         if (message) toast.info(`🔔 ${message}`);
+      }
+    } else if (event === 'booking_message') {
+      // Client sent a new message — update the conversation in real-time
+      if (booking) {
+        setBookings(prev => prev.map(b => b.bookingId === booking.bookingId ? booking : b));
+        setSelectedBooking(prev =>
+          prev?.bookingId === booking.bookingId ? booking : prev
+        );
+        const senderName = (data as { senderName?: string }).senderName || 'Client';
+        const msg = (data as { message?: string }).message || '';
+        toast.info(`💬 New message from ${senderName}: "${msg.substring(0, 40)}${msg.length > 40 ? '...' : ''}"`);
       }
     }
   });
