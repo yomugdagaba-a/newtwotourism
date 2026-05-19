@@ -138,6 +138,9 @@ app.use('/api/hotels', hotelsController);
 // Bookings
 app.use('/api/bookings', require('./controllers/bookings.controller'));
 
+// SSE — real-time booking updates (GET /api/sse/bookings?token=<jwt>)
+app.use('/api/sse', require('./controllers/sse.controller'));
+
 // Roads
 app.use('/api/roads', roadsController);
 

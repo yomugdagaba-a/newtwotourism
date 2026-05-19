@@ -7,6 +7,7 @@ import { BookingService, Booking, BOOKING_STATUS } from "@/services/booking.serv
 import { useToast } from "@/components/common/Toast";
 import { useConfirm } from "@/components/common/ConfirmDialog";
 import AvatarDropdown from "@/components/common/AvatarDropdown";
+import { useBookingSSE } from "@/hooks/useBookingSSE";
 
 export default function OwnerBookingsPage() {
   const router = useRouter();
@@ -36,9 +37,37 @@ export default function OwnerBookingsPage() {
     if (!isHydrated) return;
     if (!isAuthenticated) { router.push("/auth/login"); return; }
     loadBookings(true);
-    const interval = setInterval(() => loadBookings(false), 15000);
+    // Keep polling as fallback (reduced to 60s since SSE handles real-time)
+    const interval = setInterval(() => loadBookings(false), 60000);
     return () => clearInterval(interval);
   }, [isAuthenticated, isHydrated]);
+
+  // SSE: real-time booking updates
+  useBookingSSE(isAuthenticated ? token : null, (event, data) => {
+    const booking = (data as { booking?: Booking }).booking;
+    const message = (data as { message?: string }).message || '';
+
+    if (event === 'booking_new') {
+      // New booking arrived — add it to the top of the list
+      if (booking) {
+        setBookings(prev => {
+          // Avoid duplicates (in case polling also fetched it)
+          if (prev.some(b => b.bookingId === booking.bookingId)) return prev;
+          return [booking, ...prev];
+        });
+        toast.success(`🔔 New booking: ${message}`);
+      }
+    } else if (event === 'booking_update') {
+      // Status changed (e.g. client uploaded receipt)
+      if (booking) {
+        setBookings(prev => prev.map(b => b.bookingId === booking.bookingId ? booking : b));
+        setSelectedBooking(prev =>
+          prev?.bookingId === booking.bookingId ? booking : prev
+        );
+        if (message) toast.info(`🔔 ${message}`);
+      }
+    }
+  });
 
   const filterCounts: Record<string, number> = {
     ALL: bookings.length,
