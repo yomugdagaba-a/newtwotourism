@@ -1,67 +1,56 @@
-const prisma = require('../lib/prisma');
+const { roadRepository, tourismRepository } = require('../repositories');
 const { toRoadDto, fromRoadDto } = require('../dto/road.dto');
-
-const INCLUDE = { tourismPlace: true };
 
 class RoadsService {
   async create(data) {
-    const tp = await prisma.tourismPlace.findUnique({ where: { id: parseInt(data.tourismPlaceId) } });
+    const tp = await tourismRepository.findById(parseInt(data.tourismPlaceId));
     if (!tp) throw Object.assign(new Error('Invalid tourism place ID'), { status: 400 });
-    const road = await prisma.roadInfo.create({
-      data: { tourismPlaceId: parseInt(data.tourismPlaceId), ...fromRoadDto(data, null) },
-      include: INCLUDE,
-    });
-    return toRoadDto(road);
+    const road = await roadRepository.create({ tourismPlaceId: parseInt(data.tourismPlaceId), ...fromRoadDto(data, null) });
+    const full = await roadRepository.findById(road.id, { tourismPlace: true });
+    return toRoadDto(full);
   }
 
   async findAll(skip = 0, take = 10, tourismPlaceId) {
-    const where = tourismPlaceId ? { tourismPlaceId: parseInt(tourismPlaceId) } : {};
-    const [roads, total] = await Promise.all([
-      prisma.roadInfo.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: INCLUDE }),
-      prisma.roadInfo.count({ where }),
-    ]);
-    return { content: roads.map(toRoadDto), totalElements: total, totalPages: Math.ceil(total / parseInt(take)) };
+    const result = await roadRepository.findAllWithServices(parseInt(skip), parseInt(take), tourismPlaceId);
+    return { content: result.data.map(toRoadDto), totalElements: result.total, totalPages: Math.ceil(result.total / parseInt(take)) };
   }
 
   async findById(id) {
-    const road = await prisma.roadInfo.findUnique({ where: { id }, include: INCLUDE });
+    const road = await roadRepository.findById(id, { tourismPlace: true });
     if (!road) throw Object.assign(new Error('Road not found'), { status: 404 });
     return toRoadDto(road);
   }
 
   async getByTourism(tourismPlaceId) {
-    const roads = await prisma.roadInfo.findMany({ where: { tourismPlaceId: parseInt(tourismPlaceId), active: true }, include: INCLUDE });
+    const roads = await roadRepository.getByTourism(parseInt(tourismPlaceId));
     return roads.map(toRoadDto);
   }
 
   async getAllByTourism(tourismPlaceId) {
-    // Admin endpoint - shows all roads (active and inactive)
-    const roads = await prisma.roadInfo.findMany({ where: { tourismPlaceId: parseInt(tourismPlaceId) }, include: INCLUDE });
+    const roads = await roadRepository.getAllByTourism(parseInt(tourismPlaceId));
     return roads.map(toRoadDto);
   }
 
   async update(id, data) {
-    const road = await prisma.roadInfo.findUnique({ where: { id } });
+    const road = await roadRepository.findById(id);
     if (!road) throw Object.assign(new Error('Road not found'), { status: 404 });
-    const updated = await prisma.roadInfo.update({ where: { id }, data: fromRoadDto(data, road), include: INCLUDE });
-    return toRoadDto(updated);
+    const updated = await roadRepository.update(id, fromRoadDto(data, road));
+    const full = await roadRepository.findById(id, { tourismPlace: true });
+    return toRoadDto(full);
   }
 
   async remove(id) {
-    const road = await prisma.roadInfo.findUnique({ where: { id } });
+    const road = await roadRepository.findById(id);
     if (!road) throw Object.assign(new Error('Road not found'), { status: 404 });
-    await prisma.roadInfo.delete({ where: { id } });
+    await roadRepository.delete(id);
   }
 
   async toggleActive(id) {
-    const road = await prisma.roadInfo.findUnique({ where: { id } });
+    const road = await roadRepository.findById(id);
     if (!road) throw Object.assign(new Error('Road not found'), { status: 404 });
-    const updated = await prisma.roadInfo.update({
-      where: { id },
-      data: { active: !road.active },
-      include: INCLUDE,
-    });
-    return toRoadDto(updated);
+    const updated = await roadRepository.toggleActive(id);
+    const full = await roadRepository.findById(id, { tourismPlace: true });
+    return toRoadDto(full);
   }
 }
 

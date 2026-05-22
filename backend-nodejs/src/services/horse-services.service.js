@@ -1,4 +1,4 @@
-const prisma = require('../lib/prisma');
+const { horseServiceRepository } = require('../repositories');
 
 class HorseServicesService {
   _toDto(s) {
@@ -29,55 +29,48 @@ class HorseServicesService {
   }
 
   async create(data) {
-    const s = await prisma.horseService.create({ data: this._toDb(data, null) });
+    const s = await horseServiceRepository.create(this._toDb(data, null));
     return this._toDto(s);
   }
 
   async findAll(skip = 0, take = 10) {
-    const [services, total] = await Promise.all([
-      prisma.horseService.findMany({ skip: parseInt(skip), take: parseInt(take) }),
-      prisma.horseService.count(),
-    ]);
-    return { services: services.map(s => this._toDto(s)), total };
+    const result = await horseServiceRepository.findAll(parseInt(skip), parseInt(take));
+    return { services: result.data.map(s => this._toDto(s)), total: result.total };
   }
 
   async findById(id) {
-    const s = await prisma.horseService.findUnique({ where: { id } });
+    const s = await horseServiceRepository.findById(id);
     if (!s) throw Object.assign(new Error('Horse service not found'), { status: 404 });
     return this._toDto(s);
   }
 
   async getByRoad(roadId) {
-    const services = await prisma.horseService.findMany({ where: { roadInfoId: parseInt(roadId), active: true } });
+    const services = await horseServiceRepository.getByRoad(parseInt(roadId));
     return services.map(s => this._toDto(s));
   }
 
   async getAllByRoad(roadId) {
-    // Admin endpoint - shows all horse services (active and inactive)
-    const services = await prisma.horseService.findMany({ where: { roadInfoId: parseInt(roadId) } });
+    const services = await horseServiceRepository.findMany({ roadInfoId: parseInt(roadId) });
     return services.map(s => this._toDto(s));
   }
 
   async update(id, data) {
-    const existing = await prisma.horseService.findUnique({ where: { id } });
+    const existing = await horseServiceRepository.findById(id);
     if (!existing) throw Object.assign(new Error('Horse service not found'), { status: 404 });
-    const s = await prisma.horseService.update({ where: { id }, data: this._toDb(data, existing) });
+    const s = await horseServiceRepository.update(id, this._toDb(data, existing));
     return this._toDto(s);
   }
 
   async remove(id) {
-    const existing = await prisma.horseService.findUnique({ where: { id } });
+    const existing = await horseServiceRepository.findById(id);
     if (!existing) throw Object.assign(new Error('Horse service not found'), { status: 404 });
-    await prisma.horseService.delete({ where: { id } });
+    await horseServiceRepository.delete(id);
   }
 
   async toggleActive(id) {
-    const service = await prisma.horseService.findUnique({ where: { id } });
+    const service = await horseServiceRepository.findById(id);
     if (!service) throw Object.assign(new Error('Horse service not found'), { status: 404 });
-    const updated = await prisma.horseService.update({
-      where: { id },
-      data: { active: !service.active },
-    });
+    const updated = await horseServiceRepository.toggleActive(id);
     return this._toDto(updated);
   }
 }

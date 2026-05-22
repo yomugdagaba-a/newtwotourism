@@ -1,183 +1,134 @@
-const prisma = require('../lib/prisma');
-
-const INCLUDE_FULL = { images: { orderBy: { displayOrder: 'asc' } }, ratings: { include: { user: true } }, bookings: true, tourismPlace: true };
-const INCLUDE_LIST = { images: { orderBy: { displayOrder: 'asc' } }, ratings: true };
+const { hotelRepository, imageRepository } = require('../repositories');
 
 class HotelsService {
-  // ── Private Helpers ────────────────────────────────────────────────────────
-
   async _saveImages(hotelId, mainImageUrl, images) {
-    const imgs = [];
-    if (mainImageUrl?.trim()) imgs.push({ hotelId, imageUrl: mainImageUrl.trim(), displayOrder: 0 });
-    if (images?.length) {
-      images.forEach((url, i) => {
-        if (url?.trim()) imgs.push({ hotelId, imageUrl: url.trim(), displayOrder: mainImageUrl ? i + 1 : i });
-      });
+    if (mainImageUrl?.trim()) {
+      await imageRepository.createHotelImage({ hotelId, imageUrl: mainImageUrl.trim(), displayOrder: 0 });
     }
-    for (const img of imgs) await prisma.hotelImage.create({ data: img });
+    if (images?.length) {
+      for (let i = 0; i < images.length; i++) {
+        if (images[i]?.trim()) {
+          await imageRepository.createHotelImage({ hotelId, imageUrl: images[i].trim(), displayOrder: mainImageUrl ? i + 1 : i });
+        }
+      }
+    }
   }
-
-  // ── CRUD ───────────────────────────────────────────────────────────────────
 
   async create(data, ownerId) {
     const { images, mainImageUrl, ...rest } = data;
-    const hotel = await prisma.hotel.create({ data: { ...rest, ownerId } });
+    const hotel = await hotelRepository.create({ ...rest, ownerId });
     await this._saveImages(hotel.id, mainImageUrl, images);
-    return prisma.hotel.findUnique({ where: { id: hotel.id }, include: INCLUDE_FULL });
+    return await hotelRepository.findByIdWithDetails(hotel.id);
   }
 
-  async findAll(skip = 0, take = 10, tourismPlaceId, includeInactive = false) {
-    const where = tourismPlaceId
-      ? { tourismPlaceId: parseInt(tourismPlaceId), ...(includeInactive ? {} : { active: true }) }
-      : (includeInactive ? {} : { active: true });
-    const [hotels, total] = await Promise.all([
-      prisma.hotel.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: INCLUDE_LIST }),
-      prisma.hotel.count({ where }),
-    ]);
-    const enriched = hotels.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
-    return { hotels: enriched, total };
+  async findAll(skip = 0, take = 10, tourismPlaceId) {
+    const result = await hotelRepository.findAllWithDetails(parseInt(skip), parseInt(take), tourismPlaceId);
+    const enriched = result.data.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
+    return { hotels: enriched, total: result.total };
   }
 
   async getAllHotels(skip = 0, take = 10) {
-    // Admin endpoint - returns ALL hotels (active and inactive)
-    const [hotels, total] = await Promise.all([
-      prisma.hotel.findMany({ skip: parseInt(skip), take: parseInt(take), include: INCLUDE_LIST }),
-      prisma.hotel.count(),
-    ]);
-    const enriched = hotels.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
-    return { hotels: enriched, total };
+    const result = await hotelRepository.findAll(parseInt(skip), parseInt(take), {}, { images: true, ratings: true });
+    const enriched = result.data.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
+    return { hotels: enriched, total: result.total };
   }
 
   async findById(id) {
-    const hotel = await prisma.hotel.findUnique({ where: { id }, include: INCLUDE_FULL });
+    const hotel = await hotelRepository.findByIdWithDetails(id);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
     return { ...hotel, imageUrl: hotel.images?.[0]?.imageUrl || null };
   }
 
   async getByTourism(tourismPlaceId) {
-    const hotels = await prisma.hotel.findMany({ where: { tourismPlaceId, active: true }, include: INCLUDE_LIST });
-    return hotels.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
+    const result = await hotelRepository.findAll(0, 100, { tourismPlaceId, active: true }, { images: true, ratings: true });
+    return result.data.map(h => ({ ...h, imageUrl: h.images?.[0]?.imageUrl || null }));
   }
 
   async update(id, data) {
-    const hotel = await prisma.hotel.findUnique({ where: { id } });
+    const hotel = await hotelRepository.findById(id);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
     const { images, mainImageUrl, imageUrl, ...rest } = data;
-    await prisma.hotel.update({ where: { id }, data: rest });
+    await hotelRepository.update(id, rest);
 
     if (mainImageUrl !== undefined && images !== undefined) {
-      // Both provided — full replacement of all images
-      await prisma.hotelImage.deleteMany({ where: { hotelId: id } });
+      await imageRepository.deleteMany({ hotelId: id });
       await this._saveImages(id, mainImageUrl, images);
     } else if (mainImageUrl !== undefined) {
-      // Only main image — replace displayOrder=0 only, keep gallery intact
-      await prisma.hotelImage.deleteMany({ where: { hotelId: id, displayOrder: 0 } });
+      await imageRepository.deleteMany({ hotelId: id, displayOrder: 0 });
       if (mainImageUrl.trim()) {
-        await prisma.hotelImage.create({ data: { hotelId: id, imageUrl: mainImageUrl.trim(), displayOrder: 0 } });
+        await imageRepository.createHotelImage({ hotelId: id, imageUrl: mainImageUrl.trim(), displayOrder: 0 });
       }
     } else if (images !== undefined) {
-      // Only gallery images — delete non-main images and re-save
-      await prisma.hotelImage.deleteMany({ where: { hotelId: id, displayOrder: { gt: 0 } } });
-      if (images?.length) {
-        images.forEach(async (url, i) => {
-          if (url?.trim()) await prisma.hotelImage.create({ data: { hotelId: id, imageUrl: url.trim(), displayOrder: i + 1 } });
-        });
+      await imageRepository.deleteMany({ hotelId: id, displayOrder: { gt: 0 } });
+      for (let i = 0; i < images.length; i++) {
+        if (images[i]?.trim()) {
+          await imageRepository.createHotelImage({ hotelId: id, imageUrl: images[i].trim(), displayOrder: i + 1 });
+        }
       }
     }
 
-    return prisma.hotel.findUnique({ where: { id }, include: INCLUDE_FULL });
+    return await hotelRepository.findByIdWithDetails(id);
   }
 
   async remove(id) {
-    const hotel = await prisma.hotel.findUnique({ where: { id } });
+    const hotel = await hotelRepository.findById(id);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
-    return prisma.hotel.delete({ where: { id } });
+    return await hotelRepository.delete(id);
   }
 
   async search(q = '', skip = 0, take = 10) {
-    const where = { active: true, OR: [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] };
-    const [hotels, total] = await Promise.all([
-      prisma.hotel.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: INCLUDE_LIST }),
-      prisma.hotel.count({ where }),
-    ]);
-    return { hotels, total };
+    const result = await hotelRepository.search(q, parseInt(skip), parseInt(take));
+    return { hotels: result.data, total: result.total };
   }
 
   async getByOwner(ownerId, skip = 0, take = 10) {
-    const [hotels, total] = await Promise.all([
-      prisma.hotel.findMany({ where: { ownerId }, skip: parseInt(skip), take: parseInt(take), include: INCLUDE_LIST }),
-      prisma.hotel.count({ where: { ownerId } }),
-    ]);
-    return { hotels, total };
+    return await hotelRepository.getByOwner(parseInt(ownerId), parseInt(skip), parseInt(take));
   }
 
-  // ── Image Management ───────────────────────────────────────────────────────
-
   async checkUserRating(hotelId, userId) {
-    const rating = await prisma.hotelRating.findFirst({ where: { hotelId, userId } });
+    const { ratingRepository } = require('../repositories');
+    const rating = await ratingRepository.checkHotelRating(hotelId, userId);
     return { hasRated: !!rating, rating };
   }
 
   async addImage(hotelId, imageUrl) {
-    const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
+    const hotel = await hotelRepository.findById(hotelId);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
-    return prisma.hotelImage.create({ data: { hotelId, imageUrl } });
+    return await imageRepository.createHotelImage({ hotelId, imageUrl });
   }
 
   async updateImage(imageId, data) {
-    return prisma.hotelImage.update({ where: { id: imageId }, data });
+    return await imageRepository.updateHotelImage(imageId, data);
   }
 
   async removeImage(imageId) {
-    return prisma.hotelImage.delete({ where: { id: imageId } });
+    return await imageRepository.deleteHotelImage(imageId);
   }
 
   async setMainImage(hotelId, imageUrl) {
-    const hotel = await prisma.hotel.findUnique({ where: { id: hotelId }, include: { images: true } });
+    const hotel = await hotelRepository.findByIdWithDetails(hotelId);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
-    
-    // Find the image that should become main
     const targetImage = hotel.images.find(img => img.imageUrl === imageUrl);
     if (!targetImage) throw Object.assign(new Error('Image not found'), { status: 404 });
-    
-    // Get current main image (displayOrder = 0)
-    const currentMain = hotel.images.find(img => img.displayOrder === 0);
-    
-    // Update target image to displayOrder 0
-    await prisma.hotelImage.update({
-      where: { id: targetImage.id },
-      data: { displayOrder: 0 }
-    });
-    
-    // If there was a previous main image, move it to gallery
-    if (currentMain && currentMain.id !== targetImage.id) {
-      await prisma.hotelImage.update({
-        where: { id: currentMain.id },
-        data: { displayOrder: hotel.images.length }
-      });
-    }
-    
-    return prisma.hotel.findUnique({ where: { id: hotelId }, include: { images: true } });
+    return await imageRepository.setHotelMainImage(hotelId, targetImage.id);
   }
 
-  // ── Owner Management ───────────────────────────────────────────────────────
-
   async assignOwner(hotelId, userId) {
-    const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
+    const hotel = await hotelRepository.findById(hotelId);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
-    return prisma.hotel.update({ where: { id: hotelId }, data: { ownerId: userId }, include: INCLUDE_LIST });
+    return await hotelRepository.assignOwner(hotelId, userId);
   }
 
   async removeOwner(hotelId) {
-    const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
+    const hotel = await hotelRepository.findById(hotelId);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
-    return prisma.hotel.update({ where: { id: hotelId }, data: { ownerId: null }, include: INCLUDE_LIST });
+    return await hotelRepository.removeOwner(hotelId);
   }
 
   async toggleActive(id) {
-    const hotel = await prisma.hotel.findUnique({ where: { id } });
+    const hotel = await hotelRepository.findById(id);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
-    return prisma.hotel.update({ where: { id }, data: { active: !hotel.active } });
+    return await hotelRepository.toggleActive(id);
   }
 }
 

@@ -1,4 +1,4 @@
-const prisma = require('../lib/prisma');
+const { ratingRepository, tourismRepository, hotelRepository } = require('../repositories');
 
 class RatingsService {
   _calcSummary(ratings) {
@@ -11,42 +11,42 @@ class RatingsService {
 
   async rateTourism(tourismPlaceId, userId, rating, comment) {
     if (rating < 1 || rating > 5) throw Object.assign(new Error('Rating must be between 1 and 5'), { status: 400 });
-    const place = await prisma.tourismPlace.findUnique({ where: { id: tourismPlaceId } });
+    const place = await tourismRepository.findById(tourismPlaceId);
     if (!place) throw Object.assign(new Error('Tourism place not found'), { status: 404 });
-    return prisma.tourismRating.upsert({
-      where: { tourismPlaceId_userId: { tourismPlaceId, userId } },
-      update: { rating, comment }, create: { tourismPlaceId, userId, rating, comment },
-      include: { user: true },
-    });
+    const existing = await ratingRepository.checkTourismRating(tourismPlaceId, userId);
+    if (existing) {
+      return await ratingRepository.updateTourismRating(tourismPlaceId, userId, rating, comment);
+    }
+    return await ratingRepository.createTourismRating({ tourismPlaceId, userId, rating, comment });
   }
 
   async rateHotel(hotelId, userId, rating, comment) {
     if (rating < 1 || rating > 5) throw Object.assign(new Error('Rating must be between 1 and 5'), { status: 400 });
-    const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
+    const hotel = await hotelRepository.findById(hotelId);
     if (!hotel) throw Object.assign(new Error('Hotel not found'), { status: 404 });
-    return prisma.hotelRating.upsert({
-      where: { hotelId_userId: { hotelId, userId } },
-      update: { rating, comment }, create: { hotelId, userId, rating, comment },
-      include: { user: true },
-    });
+    const existing = await ratingRepository.checkHotelRating(hotelId, userId);
+    if (existing) {
+      return await ratingRepository.updateHotelRating(hotelId, userId, rating, comment);
+    }
+    return await ratingRepository.createHotelRating({ hotelId, userId, rating, comment });
   }
 
   async getTourismRatings(tourismPlaceId, skip = 0, take = 10) {
-    return prisma.tourismRating.findMany({ where: { tourismPlaceId }, skip: parseInt(skip), take: parseInt(take), include: { user: true } });
+    const result = await ratingRepository.getTourismRatings(tourismPlaceId, parseInt(skip), parseInt(take));
+    return result.ratings;
   }
 
   async getHotelRatings(hotelId, skip = 0, take = 10) {
-    return prisma.hotelRating.findMany({ where: { hotelId }, skip: parseInt(skip), take: parseInt(take), include: { user: true } });
+    const result = await ratingRepository.getHotelRatings(hotelId, parseInt(skip), parseInt(take));
+    return result.ratings;
   }
 
   async getTourismRatingSummary(tourismPlaceId) {
-    const ratings = await prisma.tourismRating.findMany({ where: { tourismPlaceId } });
-    return this._calcSummary(ratings);
+    return await ratingRepository.getTourismRatingSummary(tourismPlaceId);
   }
 
   async getHotelRatingSummary(hotelId) {
-    const ratings = await prisma.hotelRating.findMany({ where: { hotelId } });
-    return this._calcSummary(ratings);
+    return await ratingRepository.getHotelRatingSummary(hotelId);
   }
 }
 

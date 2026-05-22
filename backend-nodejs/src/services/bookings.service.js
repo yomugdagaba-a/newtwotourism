@@ -1,18 +1,9 @@
-const prisma = require('../lib/prisma');
+const { bookingRepository, bookingMessageRepository, authRepository } = require('../repositories');
 const emailService = require('./email-gmail.service');
-const sseService = require('./sse.service');   // kept as fallback for browsers that block WS
-const wsService = require('./ws.service');     // primary real-time channel
-
-const INCLUDE = {
-  hotel: { include: { owner: true } },
-  user: true,
-  status: true,
-  messages: { include: { user: true }, orderBy: { createdAt: 'asc' } },
-};
+const sseService = require('./sse.service');
+const wsService = require('./ws.service');
 
 class BookingsService {
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
   _formatDate(dt) {
     if (!dt) return null;
     const s = dt instanceof Date ? dt.toISOString() : String(dt);
@@ -56,75 +47,63 @@ class BookingsService {
   }
 
   async _getOrCreateStatus(name) {
+    const prisma = require('../lib/prisma');
     let s = await prisma.bookingStatusEntity.findUnique({ where: { name } });
     if (!s) s = await prisma.bookingStatusEntity.create({ data: { name } });
     return s;
   }
 
   async _addMessage(bookingId, userId, message, isFromOwner) {
-    await prisma.bookingMessage.create({ data: { bookingId, userId, message, isFromOwner } });
-    return prisma.hotelBooking.findUnique({ where: { id: bookingId }, include: INCLUDE });
+    await bookingMessageRepository.createMessage({ bookingId, userId, message, isFromOwner });
+    return await bookingRepository.findByIdWithDetails(bookingId);
   }
-
-  // ── CRUD ───────────────────────────────────────────────────────────────────
 
   async create(data, userId) {
     const status = await this._getOrCreateStatus('REQUESTED');
     const checkIn = data.checkIn && data.checkIn.length === 10 ? `${data.checkIn}T00:00:00Z` : data.checkIn;
     const checkOut = data.checkOut && data.checkOut.length === 10 ? `${data.checkOut}T00:00:00Z` : data.checkOut;
-    const booking = await prisma.hotelBooking.create({
-      data: {
-        hotelId: parseInt(data.hotelId), userId, statusId: status.id,
-        checkIn: new Date(checkIn), checkOut: new Date(checkOut),
-        numberOfGuests: parseInt(data.numberOfGuests),
-        numberOfRooms: data.numberOfRooms ? parseInt(data.numberOfRooms) : null,
-        specialRequests: data.specialRequests || null,
-        clientPhone: data.clientPhone || null,
-        clientEmail: data.clientEmail || null,
-        totalCost: data.totalCost ? parseFloat(data.totalCost) : null,
-        receiptImageUrl: data.receiptImageUrl || null,
-        rejectionReason: data.rejectionReason || null,
-        problemReport: data.problemReport || null,
-        problemReported: data.problemReported || false,
-      },
-      include: INCLUDE,
+    const booking = await bookingRepository.create({
+      hotelId: parseInt(data.hotelId), userId, statusId: status.id,
+      checkIn: new Date(checkIn), checkOut: new Date(checkOut),
+      numberOfGuests: parseInt(data.numberOfGuests),
+      numberOfRooms: data.numberOfRooms ? parseInt(data.numberOfRooms) : null,
+      specialRequests: data.specialRequests || null,
+      clientPhone: data.clientPhone || null,
+      clientEmail: data.clientEmail || null,
+      totalCost: data.totalCost ? parseFloat(data.totalCost) : null,
+      receiptImageUrl: data.receiptImageUrl || null,
+      rejectionReason: data.rejectionReason || null,
+      problemReport: data.problemReport || null,
+      problemReported: data.problemReported || false,
     });
-    const result = this._transform(booking);
-    // Notify the hotel owner in real-time about the new booking (WS primary, SSE fallback)
+    const full = await bookingRepository.findByIdWithDetails(booking.id);
+    const result = this._transform(full);
     if (result.hotel?.ownerId) {
       const payload = {
-        bookingId:  result.bookingId,
-        hotelName:  result.hotel.name,
+        bookingId: result.bookingId, hotelName: result.hotel.name,
         clientName: result.client?.fullName || result.client?.username,
-        message:    `New booking request from ${result.client?.fullName || result.client?.username}`,
-        booking:    result,
-        timestamp:  new Date().toISOString(),
+        message: `New booking request from ${result.client?.fullName || result.client?.username}`,
+        booking: result, timestamp: new Date().toISOString(),
       };
       wsService.notifyNewBooking(result.hotel.ownerId, payload);
-      sseService.sendToUsers([result.hotel.ownerId], 'booking_new', payload); // SSE fallback
+      sseService.sendToUsers([result.hotel.ownerId], 'booking_new', payload);
     }
     return result;
   }
 
   async findAll(skip = 0, take = 10, hotelId, userId) {
-    const where = {};
-    if (hotelId) where.hotelId = parseInt(hotelId);
-    if (userId) where.userId = parseInt(userId);
-    const [bookings, total] = await Promise.all([
-      prisma.hotelBooking.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: INCLUDE }),
-      prisma.hotelBooking.count({ where }),
-    ]);
-    return { bookings: bookings.map(b => this._transform(b)), total };
+    const result = await bookingRepository.findAllWithDetails(parseInt(skip), parseInt(take), hotelId, userId);
+    return { bookings: result.data.map(b => this._transform(b)), total: result.total };
   }
 
   async findById(id) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id }, include: INCLUDE });
+    const booking = await bookingRepository.findByIdWithDetails(id);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     return this._transform(booking);
   }
 
   async update(id, data) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id } });
+    const booking = await bookingRepository.findById(id);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     const updateData = {};
     if (data.checkIn !== undefined) updateData.checkIn = new Date(data.checkIn.length === 10 ? `${data.checkIn}T00:00:00Z` : data.checkIn);
@@ -139,65 +118,51 @@ class BookingsService {
     if (data.rejectionReason !== undefined) updateData.rejectionReason = data.rejectionReason;
     if (data.problemReport !== undefined) updateData.problemReport = data.problemReport;
     if (data.problemReported !== undefined) updateData.problemReported = data.problemReported;
-    const updated = await prisma.hotelBooking.update({ where: { id }, data: updateData, include: INCLUDE });
+    await bookingRepository.update(id, updateData);
+    const updated = await bookingRepository.findByIdWithDetails(id);
     return this._transform(updated);
   }
 
   async updateStatus(id, statusName) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id } });
+    const booking = await bookingRepository.findById(id);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     const status = await this._getOrCreateStatus(statusName);
-    const updated = await prisma.hotelBooking.update({ where: { id }, data: { statusId: status.id }, include: INCLUDE });
+    await bookingRepository.updateStatus(id, status.id);
+    const updated = await bookingRepository.findByIdWithDetails(id);
     return this._transform(updated);
   }
 
   async remove(id) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id } });
+    const booking = await bookingRepository.findById(id);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
-    return prisma.hotelBooking.delete({ where: { id } });
+    return await bookingRepository.delete(id);
   }
 
-  async getByUser(userId, skip = 0, take = 100) {
-    const bookings = await prisma.hotelBooking.findMany({
-      where: { userId, hiddenFromClient: false },
-      skip: parseInt(skip), take: parseInt(take),
-      include: INCLUDE, orderBy: { createdAt: 'desc' },
-    });
+  async getByUser(userId) {
+    const bookings = await bookingRepository.getByUser(userId);
     return bookings.map(b => this._transform(b));
   }
 
   async getByHotel(hotelId, skip = 0, take = 10) {
-    const bookings = await prisma.hotelBooking.findMany({
-      where: { hotelId }, skip: parseInt(skip), take: parseInt(take),
-      include: INCLUDE, orderBy: { createdAt: 'desc' },
-    });
-    return bookings.map(b => this._transform(b));
+    const result = await bookingRepository.getByHotel(parseInt(hotelId), parseInt(skip), parseInt(take));
+    return result.data.map(b => this._transform(b));
   }
 
   async getByOwner(ownerId) {
-    const bookings = await prisma.hotelBooking.findMany({
-      where: { 
-        hotel: { ownerId },
-        hiddenFromOwner: false  // Don't show bookings hidden by owner
-      }, 
-      include: INCLUDE, 
-      orderBy: { createdAt: 'desc' },
-    });
+    const bookings = await bookingRepository.getByOwner(ownerId);
     return bookings.map(b => this._transform(b));
   }
 
-  // ── Workflow Actions ───────────────────────────────────────────────────────
-
   async acceptRequest(bookingId, ownerId) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id: bookingId }, include: { hotel: true, user: true } });
+    const booking = await bookingRepository.findByIdWithDetails(bookingId);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     if (booking.hotel.ownerId !== ownerId) throw Object.assign(new Error('Not authorized'), { status: 403 });
-    const currentStatus = await prisma.bookingStatusEntity.findUnique({ where: { id: booking.statusId } });
-    if (!currentStatus || currentStatus.name !== 'REQUESTED') throw Object.assign(new Error(`Cannot accept booking in ${currentStatus?.name || 'unknown'} status`), { status: 400 });
+    if (booking.status?.name !== 'REQUESTED') throw Object.assign(new Error(`Cannot accept booking in ${booking.status?.name} status`), { status: 400 });
     const status = await this._getOrCreateStatus('OWNER_ACCEPTED');
-    const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { statusId: status.id }, include: INCLUDE });
+    await bookingRepository.updateStatus(bookingId, status.id);
     await this._addMessage(bookingId, ownerId, 'Request accepted', true);
-    if (booking.user.email) emailService.sendBookingAcceptedNotification(booking.user.email, booking.hotel.name, bookingId).catch(() => {});
+    if (booking.user?.email) emailService.sendBookingAcceptedNotification(booking.user.email, booking.hotel.name, bookingId).catch(() => {});
+    const updated = await bookingRepository.findByIdWithDetails(bookingId);
     const result = this._transform(updated);
     const msg = `Your booking at ${booking.hotel.name} was accepted`;
     wsService.notifyBookingUpdate(result, msg);
@@ -206,16 +171,16 @@ class BookingsService {
   }
 
   async proposeCost(bookingId, cost, ownerId) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id: bookingId }, include: { hotel: true, user: true } });
+    const booking = await bookingRepository.findByIdWithDetails(bookingId);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     if (booking.hotel.ownerId !== ownerId) throw Object.assign(new Error('Not authorized'), { status: 403 });
-    const currentStatus = await prisma.bookingStatusEntity.findUnique({ where: { id: booking.statusId } });
     const allowed = ['REQUESTED', 'OWNER_ACCEPTED', 'COST_PROPOSED'];
-    if (!currentStatus || !allowed.includes(currentStatus.name)) throw Object.assign(new Error(`Cannot propose cost in ${currentStatus?.name || 'unknown'} status`), { status: 400 });
+    if (!allowed.includes(booking.status?.name)) throw Object.assign(new Error(`Cannot propose cost in ${booking.status?.name} status`), { status: 400 });
     const status = await this._getOrCreateStatus('COST_PROPOSED');
-    const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { totalCost: cost, statusId: status.id }, include: INCLUDE });
+    await bookingRepository.update(bookingId, { totalCost: cost, statusId: status.id });
     await this._addMessage(bookingId, ownerId, `Cost proposed: ${cost} ETB`, true);
-    if (booking.user.email) emailService.sendCostProposedNotification(booking.user.email, booking.hotel.name, cost, bookingId).catch(() => {});
+    if (booking.user?.email) emailService.sendCostProposedNotification(booking.user.email, booking.hotel.name, cost, bookingId).catch(() => {});
+    const updated = await bookingRepository.findByIdWithDetails(bookingId);
     const result = this._transform(updated);
     const msg = `Cost of ${cost} ETB proposed for your booking at ${booking.hotel.name}`;
     wsService.notifyBookingUpdate(result, msg);
@@ -224,19 +189,14 @@ class BookingsService {
   }
 
   async uploadReceipt(bookingId, receiptUrl, userId) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id: bookingId }, include: { hotel: true, user: true } });
+    const booking = await bookingRepository.findByIdWithDetails(bookingId);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     if (booking.userId !== userId) throw Object.assign(new Error('Not authorized'), { status: 403 });
-    const currentStatus = await prisma.bookingStatusEntity.findUnique({ where: { id: booking.statusId } });
-    if (!currentStatus || currentStatus.name !== 'COST_PROPOSED') throw Object.assign(new Error(`Cannot upload receipt in ${currentStatus?.name || 'unknown'} status. Must be in COST_PROPOSED status`), { status: 400 });
+    if (booking.status?.name !== 'COST_PROPOSED') throw Object.assign(new Error(`Cannot upload receipt in ${booking.status?.name} status`), { status: 400 });
     const status = await this._getOrCreateStatus('PAID');
-    const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { receiptImageUrl: receiptUrl, statusId: status.id }, include: INCLUDE });
+    await bookingRepository.update(bookingId, { receiptImageUrl: receiptUrl, statusId: status.id });
     await this._addMessage(bookingId, userId, 'Receipt uploaded', false);
-    if (booking.hotel.ownerId) {
-      prisma.user.findUnique({ where: { id: booking.hotel.ownerId } }).then(owner => {
-        if (owner?.email) emailService.sendReceiptUploadedNotification(owner.email, booking.hotel.name, bookingId).catch(() => {});
-      }).catch(() => {});
-    }
+    const updated = await bookingRepository.findByIdWithDetails(bookingId);
     const result = this._transform(updated);
     const msg = `Receipt uploaded for booking at ${booking.hotel.name}`;
     wsService.notifyBookingUpdate(result, msg);
@@ -245,15 +205,15 @@ class BookingsService {
   }
 
   async approveBooking(bookingId, ownerId) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id: bookingId }, include: { hotel: true, user: true } });
+    const booking = await bookingRepository.findByIdWithDetails(bookingId);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     if (booking.hotel.ownerId !== ownerId) throw Object.assign(new Error('Not authorized'), { status: 403 });
-    const currentStatus = await prisma.bookingStatusEntity.findUnique({ where: { id: booking.statusId } });
-    if (!currentStatus || currentStatus.name !== 'PAID') throw Object.assign(new Error(`Cannot approve booking in ${currentStatus?.name || 'unknown'} status. Must be in PAID status`), { status: 400 });
+    if (booking.status?.name !== 'PAID') throw Object.assign(new Error(`Cannot approve booking in ${booking.status?.name} status`), { status: 400 });
     const status = await this._getOrCreateStatus('APPROVED');
-    const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { statusId: status.id }, include: INCLUDE });
+    await bookingRepository.updateStatus(bookingId, status.id);
     await this._addMessage(bookingId, ownerId, 'Booking approved', true);
-    if (booking.user.email) emailService.sendBookingApprovedNotification(booking.user.email, booking.hotel.name, bookingId).catch(() => {});
+    if (booking.user?.email) emailService.sendBookingApprovedNotification(booking.user.email, booking.hotel.name, bookingId).catch(() => {});
+    const updated = await bookingRepository.findByIdWithDetails(bookingId);
     const result = this._transform(updated);
     const msg = `Your booking at ${booking.hotel.name} was approved!`;
     wsService.notifyBookingUpdate(result, msg);
@@ -262,16 +222,16 @@ class BookingsService {
   }
 
   async rejectBooking(bookingId, reason, ownerId) {
-    const booking = await prisma.hotelBooking.findUnique({ where: { id: bookingId }, include: { hotel: true, user: true } });
+    const booking = await bookingRepository.findByIdWithDetails(bookingId);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
     if (booking.hotel.ownerId !== ownerId) throw Object.assign(new Error('Not authorized'), { status: 403 });
-    const currentStatus = await prisma.bookingStatusEntity.findUnique({ where: { id: booking.statusId } });
     const rejectable = ['REQUESTED', 'OWNER_ACCEPTED', 'COST_PROPOSED', 'PAID'];
-    if (!currentStatus || !rejectable.includes(currentStatus.name)) throw Object.assign(new Error(`Cannot reject booking in ${currentStatus?.name || 'unknown'} status`), { status: 400 });
+    if (!rejectable.includes(booking.status?.name)) throw Object.assign(new Error(`Cannot reject booking in ${booking.status?.name} status`), { status: 400 });
     const status = await this._getOrCreateStatus('REJECTED');
-    const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { statusId: status.id, rejectionReason: reason }, include: INCLUDE });
+    await bookingRepository.update(bookingId, { statusId: status.id, rejectionReason: reason });
     await this._addMessage(bookingId, ownerId, `Rejected: ${reason}`, true);
-    if (booking.user.email) emailService.sendBookingRejectedNotification(booking.user.email, booking.hotel.name, reason, bookingId).catch(() => {});
+    if (booking.user?.email) emailService.sendBookingRejectedNotification(booking.user.email, booking.hotel.name, reason, bookingId).catch(() => {});
+    const updated = await bookingRepository.findByIdWithDetails(bookingId);
     const result = this._transform(updated);
     const msg = `Your booking at ${booking.hotel.name} was rejected`;
     wsService.notifyBookingUpdate(result, msg);
@@ -282,78 +242,55 @@ class BookingsService {
   async sendMessage(bookingId, userId, message, isFromOwner = false) {
     const booking = await this._addMessage(bookingId, userId, message, isFromOwner);
     const result = this._transform(booking);
-
-    // Push the new message to the other party in real-time
     const clientId = result.client?.id;
-    const ownerId  = result.hotel?.ownerId;
-    // Notify the recipient (not the sender)
+    const ownerId = result.hotel?.ownerId;
     const recipientId = isFromOwner ? clientId : ownerId;
     if (recipientId) {
       sseService.sendToUsers([recipientId], 'booking_message', {
-        bookingId:  result.bookingId,
-        hotelName:  result.hotel?.name,
+        bookingId: result.bookingId, hotelName: result.hotel?.name,
         senderName: isFromOwner ? (result.hotel?.ownerName || 'Owner') : (result.client?.fullName || result.client?.username || 'Client'),
-        message,
-        isFromOwner,
-        booking:    result,
-        timestamp:  new Date().toISOString(),
+        message, isFromOwner, booking: result, timestamp: new Date().toISOString(),
       });
     }
     return result;
   }
 
   async reportProblem(bookingId, problem) {
-    const updated = await prisma.hotelBooking.update({ where: { id: bookingId }, data: { problemReport: problem, problemReported: true }, include: INCLUDE });
+    await bookingRepository.reportProblem(bookingId, problem);
+    const updated = await bookingRepository.findByIdWithDetails(bookingId);
     return this._transform(updated);
   }
 
   async getAllAdmin(page = 0, size = 20) {
     const p = parseInt(page) || 0;
     const s = parseInt(size) || 20;
-    const [bookings, total] = await Promise.all([
-      prisma.hotelBooking.findMany({ skip: p * s, take: s, include: INCLUDE, orderBy: { createdAt: 'desc' } }),
-      prisma.hotelBooking.count(),
-    ]);
-    return { content: bookings.map(b => this._transform(b)), totalElements: total, totalPages: Math.ceil(total / s) };
+    const result = await bookingRepository.findAllWithDetails(p * s, s);
+    return { content: result.data.map(b => this._transform(b)), totalElements: result.total, totalPages: Math.ceil(result.total / s) };
   }
 
   async getProblemBookings() {
-    const bookings = await prisma.hotelBooking.findMany({
-      where: { problemReported: true }, include: INCLUDE, orderBy: { createdAt: 'desc' },
-    });
+    const bookings = await bookingRepository.getProblemBookings();
     return bookings.map(b => this._transform(b));
   }
 
   async resolveBooking(id, resolution) {
-    const updated = await prisma.hotelBooking.update({ where: { id }, data: { problemReport: resolution }, include: INCLUDE });
+    await bookingRepository.update(id, { problemReport: resolution });
+    const updated = await bookingRepository.findByIdWithDetails(id);
     return this._transform(updated);
   }
 
   async hideFromClient(id, userId) {
-    const booking = await prisma.hotelBooking.findUnique({ 
-      where: { id },
-      include: { hotel: true }
-    });
+    const booking = await bookingRepository.findByIdWithDetails(id);
     if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
-    
-    // Determine if the user is the client or the owner
     const isClient = booking.userId === userId;
     const isOwner = booking.hotel?.ownerId === userId;
-    
-    if (!isClient && !isOwner) {
-      throw Object.assign(new Error('Not authorized'), { status: 403 });
+    if (!isClient && !isOwner) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    if (isClient) {
+      await bookingRepository.hideFromClient(id);
+    } else {
+      await bookingRepository.hideFromOwner(id);
     }
-    
-    // Hide from the appropriate view
-    const updateData = isClient 
-      ? { hiddenFromClient: true }
-      : { hiddenFromOwner: true };
-    
-    const updated = await prisma.hotelBooking.update({ 
-      where: { id }, 
-      data: updateData, 
-      include: INCLUDE 
-    });
+    const updated = await bookingRepository.findByIdWithDetails(id);
     return this._transform(updated);
   }
 }

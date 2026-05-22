@@ -1,62 +1,49 @@
-const prisma = require('../lib/prisma');
+const { languageGuiderRepository } = require('../repositories');
 
 class LanguageGuidersService {
   async create(data) {
-    return prisma.languageGuider.create({ data });
+    return await languageGuiderRepository.create(data);
   }
 
   async findAll(skip = 0, take = 10) {
-    const [guiders, total] = await Promise.all([
-      prisma.languageGuider.findMany({ skip: parseInt(skip), take: parseInt(take) }),
-      prisma.languageGuider.count(),
-    ]);
-    return { guiders, total };
+    const result = await languageGuiderRepository.findAllWithTourism(parseInt(skip), parseInt(take));
+    return { guiders: result.data, total: result.total };
   }
 
   async findById(id) {
-    const g = await prisma.languageGuider.findUnique({ where: { id } });
+    const g = await languageGuiderRepository.findById(id);
     if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
     return g;
   }
 
   async update(id, data) {
-    const g = await prisma.languageGuider.findUnique({ where: { id } });
+    const g = await languageGuiderRepository.findById(id);
     if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
-    return prisma.languageGuider.update({ where: { id }, data });
+    return await languageGuiderRepository.update(id, data);
   }
 
   async remove(id) {
-    const g = await prisma.languageGuider.findUnique({ where: { id } });
+    const g = await languageGuiderRepository.findById(id);
     if (!g) throw Object.assign(new Error('Language guider not found'), { status: 404 });
-    return prisma.languageGuider.delete({ where: { id } });
+    return await languageGuiderRepository.delete(id);
   }
 
   async findByLanguage(language) {
-    return prisma.languageGuider.findMany({ where: { languages: { has: language } } });
+    return await languageGuiderRepository.findByLanguage(language);
   }
 
   async findByTourismPlace(tourismPlaceId) {
-    return prisma.languageGuider.findMany({
-      where: { tourismPlaceId: parseInt(tourismPlaceId), active: true },
-      orderBy: { name: 'asc' },
-    });
+    return await languageGuiderRepository.findByTourismPlace(parseInt(tourismPlaceId));
   }
 
   async findAllByTourismPlace(tourismPlaceId) {
-    // Admin endpoint - shows all guiders (active and inactive)
-    return prisma.languageGuider.findMany({
-      where: { tourismPlaceId: parseInt(tourismPlaceId) },
-      orderBy: { name: 'asc' },
-    });
+    return await languageGuiderRepository.findMany({ tourismPlaceId: parseInt(tourismPlaceId) });
   }
 
   async toggleActive(id) {
-    const guider = await prisma.languageGuider.findUnique({ where: { id } });
+    const guider = await languageGuiderRepository.findById(id);
     if (!guider) throw Object.assign(new Error('Language guider not found'), { status: 404 });
-    return prisma.languageGuider.update({
-      where: { id },
-      data: { active: !guider.active },
-    });
+    return await languageGuiderRepository.toggleActive(id);
   }
 }
 

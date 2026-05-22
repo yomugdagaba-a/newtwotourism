@@ -1,50 +1,43 @@
-const prisma = require('../lib/prisma');
+const { mapPointRepository } = require('../repositories');
 
 class MapPointsService {
   async create(data) {
-    return prisma.mapPoint.create({ data });
+    return await mapPointRepository.create(data);
   }
 
   async findAll(skip = 0, take = 10) {
-    const [points, total] = await Promise.all([
-      prisma.mapPoint.findMany({ skip: parseInt(skip), take: parseInt(take), include: { tourismPlace: true } }),
-      prisma.mapPoint.count(),
-    ]);
-    return { points, total };
+    const result = await mapPointRepository.findAllWithTourism(parseInt(skip), parseInt(take));
+    return { points: result.data, total: result.total };
   }
 
   async findById(id) {
-    const point = await prisma.mapPoint.findUnique({ where: { id }, include: { tourismPlace: true } });
+    const point = await mapPointRepository.findById(id, { tourismPlace: true });
     if (!point) throw Object.assign(new Error('Map point not found'), { status: 404 });
     return point;
   }
 
   async getByTourism(tourismPlaceId) {
-    return prisma.mapPoint.findMany({ where: { tourismPlaceId: parseInt(tourismPlaceId) } });
+    return await mapPointRepository.getByTourism(parseInt(tourismPlaceId));
   }
 
   async getByType(type) {
-    return prisma.mapPoint.findMany({ where: { type: type.toUpperCase() } });
+    return await mapPointRepository.getByType(type.toUpperCase());
   }
 
   async update(id, data) {
-    const point = await prisma.mapPoint.findUnique({ where: { id } });
+    const point = await mapPointRepository.findById(id);
     if (!point) throw Object.assign(new Error('Map point not found'), { status: 404 });
-    return prisma.mapPoint.update({ where: { id }, data });
+    return await mapPointRepository.update(id, data);
   }
 
   async remove(id) {
-    const point = await prisma.mapPoint.findUnique({ where: { id } });
+    const point = await mapPointRepository.findById(id);
     if (!point) throw Object.assign(new Error('Map point not found'), { status: 404 });
-    return prisma.mapPoint.delete({ where: { id } });
+    return await mapPointRepository.delete(id);
   }
 
   calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return mapPointRepository.calculateDistance(lat1, lon1, lat2, lon2);
   }
 }
 

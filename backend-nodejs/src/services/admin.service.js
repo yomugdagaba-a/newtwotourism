@@ -1,54 +1,49 @@
 const bcrypt = require('bcryptjs');
-const prisma = require('../lib/prisma');
+const { userRepository, roleRepository, bookingRepository } = require('../repositories');
 const emailService = require('./email-gmail.service');
-
-const USER_SELECT = { id: true, username: true, email: true, fullName: true, active: true, emailVerified: true, createdAt: true, updatedAt: true, roles: true };
+const prisma = require('../lib/prisma');
 
 class AdminService {
   async getAllUsers(skip = 0, take = 20, search) {
-    const where = search?.trim() ? {
-      OR: [
-        { username: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { fullName: { contains: search, mode: 'insensitive' } },
-      ],
-    } : {};
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: { roles: true }, orderBy: { id: 'asc' } }),
-      prisma.user.count({ where }),
-    ]);
-    return { content: users, totalElements: total, totalPages: Math.ceil(total / parseInt(take)), size: parseInt(take), number: Math.floor(parseInt(skip) / parseInt(take)) };
+    const result = await userRepository.getAllUsers(parseInt(skip), parseInt(take), search?.trim());
+    return {
+      content: result.data,
+      totalElements: result.total,
+      totalPages: Math.ceil(result.total / parseInt(take)),
+      size: parseInt(take),
+      number: Math.floor(parseInt(skip) / parseInt(take)),
+    };
   }
 
   async getUserById(id) {
-    const user = await prisma.user.findUnique({ where: { id }, include: { roles: true } });
+    const user = await userRepository.findByIdWithRoles(id);
     if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
     return user;
   }
 
   async getUsersByRole(role) {
-    return prisma.user.findMany({ where: { roles: { some: { name: role.toUpperCase() } } }, include: { roles: true } });
+    return await userRepository.getUsersByRole(role.toUpperCase());
   }
 
   async updateUser(id, data) {
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await userRepository.findById(id);
     if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
     const { password, passwordHash, roles, ...safeData } = data;
-    return prisma.user.update({ where: { id }, data: safeData, include: { roles: true } });
+    return await userRepository.update(id, safeData);
   }
 
   async resetUserPassword(id, newPassword) {
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await userRepository.findById(id);
     if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
     if (!newPassword || newPassword.trim().length < 6) throw Object.assign(new Error('Password must be at least 6 characters'), { status: 400 });
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    return prisma.user.update({ where: { id }, data: { passwordHash }, include: { roles: true } });
+    return await userRepository.updatePassword(id, passwordHash);
   }
 
   async activateUser(id) {
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await userRepository.findById(id);
     if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
-    const updated = await prisma.user.update({ where: { id }, data: { active: true }, include: { roles: true } });
+    const updated = await userRepository.activate(id);
     if (user.email) {
       emailService.sendEmail(user.email, 'Account Reactivated — North Wollo Tourism', `
         <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
@@ -62,16 +57,15 @@ class AdminService {
   }
 
   async deactivateUser(id) {
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await userRepository.findById(id);
     if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
-    const updated = await prisma.user.update({ where: { id }, data: { active: false }, include: { roles: true } });
+    const updated = await userRepository.deactivate(id);
     if (user.email) {
       emailService.sendEmail(user.email, 'Account Deactivated — North Wollo Tourism', `
         <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
           <h2 style="color:#dc2626;">⛔ Account Deactivated</h2>
           <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
           <p>Your North Wollo Tourism account has been deactivated by an administrator.</p>
-          <p style="color:#6b7280;font-size:13px;">If you believe this is a mistake, please contact support.</p>
         </div>
       `).catch(() => {});
     }
@@ -79,9 +73,9 @@ class AdminService {
   }
 
   async deleteUser(id) {
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await userRepository.findById(id);
     if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
-    return prisma.user.delete({ where: { id } });
+    return await userRepository.delete(id);
   }
 
   async getDashboardStats() {
@@ -95,7 +89,7 @@ class AdminService {
   }
 
   async getRecentBookings(take = 10) {
-    return prisma.hotelBooking.findMany({ take: parseInt(take), orderBy: { createdAt: 'desc' }, include: { hotel: true, user: true, status: true } });
+    return await bookingRepository.getRecentBookings(parseInt(take));
   }
 
   async getBookingsByStatus() {
@@ -104,23 +98,19 @@ class AdminService {
   }
 
   async grantRole(userId, roleName) {
-    const user = await prisma.user.findUnique({ where: { id: userId }, include: { roles: true } });
+    const user = await userRepository.findByIdWithRoles(userId);
     if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
     const name = roleName.toUpperCase();
-    let role = await prisma.role.findUnique({ where: { name } });
-    if (!role) role = await prisma.role.create({ data: { name } });
     if (user.roles.some(r => r.name === name)) throw Object.assign(new Error(`User already has role ${name}`), { status: 400 });
-    return prisma.user.update({ where: { id: userId }, data: { roles: { connect: { id: role.id } } }, include: { roles: true } });
+    return await roleRepository.grantRoleToUser(userId, name);
   }
 
   async revokeRole(userId, roleName) {
-    const user = await prisma.user.findUnique({ where: { id: userId }, include: { roles: true } });
+    const user = await userRepository.findByIdWithRoles(userId);
     if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
     const name = roleName.toUpperCase();
-    const role = await prisma.role.findUnique({ where: { name } });
-    if (!role) throw Object.assign(new Error(`Role ${name} not found`), { status: 404 });
     if (!user.roles.some(r => r.name === name)) throw Object.assign(new Error(`User does not have role ${name}`), { status: 400 });
-    return prisma.user.update({ where: { id: userId }, data: { roles: { disconnect: { id: role.id } } }, include: { roles: true } });
+    return await roleRepository.revokeRoleFromUser(userId, name);
   }
 }
 

@@ -1,21 +1,17 @@
-const prisma = require('../lib/prisma');
+const { auditRepository } = require('../repositories');
 
-// Security-relevant actions — must all be valid AuditAction enum values from the Prisma schema
 const SECURITY_ACTIONS = [
-  'ACCOUNT_LOCKED',
-  'ACCOUNT_UNLOCKED',
-  'PASSWORD_RESET_REQUEST',
-  'PASSWORD_RESET_CONFIRM',
-  'AUTHORIZATION_CHECK',
-  'SESSION_EXPIRED',
-  'LOGOUT',
+  'ACCOUNT_LOCKED', 'ACCOUNT_UNLOCKED', 'PASSWORD_RESET_REQUEST',
+  'PASSWORD_RESET_CONFIRM', 'AUTHORIZATION_CHECK', 'SESSION_EXPIRED', 'LOGOUT',
 ];
 
 class AuditService {
   async log(userId, action, entityType, entityId, changes, ipAddress, userAgent) {
     try {
-      return await prisma.auditLogEntry.create({
-        data: { userId, action, entityType, entityId, changes: changes ? JSON.stringify(changes) : null, ipAddress, userAgent, status: 'SUCCESS' },
+      return await auditRepository.create({
+        userId, action, entityType, entityId,
+        changes: changes ? JSON.stringify(changes) : null,
+        ipAddress, userAgent, status: 'SUCCESS',
       });
     } catch (err) {
       console.error('Failed to create audit log:', err);
@@ -23,103 +19,49 @@ class AuditService {
   }
 
   async findAll(skip = 0, take = 10, userId, action) {
-    const where = {};
-    if (userId) where.userId = parseInt(userId);
-    if (action) where.action = action;
-    const [logs, total] = await Promise.all([
-      prisma.auditLogEntry.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: { user: true }, orderBy: { createdAt: 'desc' } }),
-      prisma.auditLogEntry.count({ where }),
-    ]);
-    return { logs, total };
+    const result = await auditRepository.findAllWithUser(
+      parseInt(skip), parseInt(take),
+      userId ? parseInt(userId) : undefined,
+      action
+    );
+    return { logs: result.data, total: result.total };
   }
 
   async findByUsername(username, skip = 0, take = 10) {
-    const where = { user: { username } };
-    const [logs, total] = await Promise.all([
-      prisma.auditLogEntry.findMany({ where, skip: parseInt(skip), take: parseInt(take), include: { user: true }, orderBy: { createdAt: 'desc' } }),
-      prisma.auditLogEntry.count({ where }),
-    ]);
-    return { logs, total };
+    const result = await auditRepository.search({ skip: parseInt(skip), take: parseInt(take) });
+    return { logs: result.data.filter(l => l.user?.username === username), total: result.total };
   }
 
   async findByAction(action, skip = 0, take = 10) {
-    const [logs, total] = await Promise.all([
-      prisma.auditLogEntry.findMany({ where: { action }, skip: parseInt(skip), take: parseInt(take), include: { user: true }, orderBy: { createdAt: 'desc' } }),
-      prisma.auditLogEntry.count({ where: { action } }),
-    ]);
-    return { logs, total };
+    const result = await auditRepository.findAllWithUser(parseInt(skip), parseInt(take), undefined, action);
+    return { logs: result.data, total: result.total };
   }
 
   async findByEntityType(entityType, skip = 0, take = 10) {
-    const [logs, total] = await Promise.all([
-      prisma.auditLogEntry.findMany({ where: { entityType }, skip: parseInt(skip), take: parseInt(take), include: { user: true }, orderBy: { createdAt: 'desc' } }),
-      prisma.auditLogEntry.count({ where: { entityType } }),
-    ]);
-    return { logs, total };
+    const result = await auditRepository.search({ entityType, skip: parseInt(skip), take: parseInt(take) });
+    return { logs: result.data, total: result.total };
   }
 
   async findByIpAddress(ipAddress, skip = 0, take = 10) {
-    const [logs, total] = await Promise.all([
-      prisma.auditLogEntry.findMany({ where: { ipAddress }, skip: parseInt(skip), take: parseInt(take), include: { user: true }, orderBy: { createdAt: 'desc' } }),
-      prisma.auditLogEntry.count({ where: { ipAddress } }),
-    ]);
-    return { logs, total };
+    const result = await auditRepository.getByIpAddress(ipAddress, parseInt(skip), parseInt(take));
+    return { logs: result.data, total: result.total };
   }
 
   async getStatistics(days = 30) {
-    const since = new Date();
-    since.setDate(since.getDate() - parseInt(days));
-    const logs = await prisma.auditLogEntry.findMany({ where: { createdAt: { gte: since } }, include: { user: true } });
-    const actionCounts = {};
-    const entityTypeCounts = {};
-    const userActivityMap = new Map();
-    logs.forEach(l => {
-      actionCounts[l.action] = (actionCounts[l.action] || 0) + 1;
-      entityTypeCounts[l.entityType] = (entityTypeCounts[l.entityType] || 0) + 1;
-      if (l.userId) {
-        const key = l.user?.username || `User#${l.userId}`;
-        userActivityMap.set(key, (userActivityMap.get(key) || 0) + 1);
-      }
-    });
-    const mostActiveUsers = Array.from(userActivityMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([username, activityCount]) => ({ username, activityCount }));
-    return { totalLogs: logs.length, actionCounts, entityTypeCounts, mostActiveUsers, period: `Last ${days} days` };
+    return await auditRepository.getStatistics(parseInt(days));
   }
 
+  // These three return plain arrays directly from repository
   async getSecurityLogs(days = 1) {
-    const since = new Date();
-    since.setDate(since.getDate() - parseInt(days));
-    return prisma.auditLogEntry.findMany({
-      where: { createdAt: { gte: since }, action: { in: SECURITY_ACTIONS } },
-      include: { user: true },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+    return await auditRepository.getSecurityLogs(0, 100);
   }
 
   async getHighSeverityLogs(days = 1) {
-    const since = new Date();
-    since.setDate(since.getDate() - parseInt(days));
-    return prisma.auditLogEntry.findMany({
-      where: {
-        createdAt: { gte: since },
-        action: { in: ['ACCOUNT_LOCKED', 'AUTHORIZATION_CHECK'] },
-        NOT: { changes: { contains: '"reason":"TokenExpiredError"' } },
-      },
-      include: { user: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return await auditRepository.getHighSeverityLogs(0, 100);
   }
 
   async findSuspiciousActivity(days = 1, actionThreshold = 50) {
-    const since = new Date();
-    since.setDate(since.getDate() - parseInt(days));
-    const logs = await prisma.auditLogEntry.findMany({
-      where: { createdAt: { gte: since }, ipAddress: { not: null } },
-      include: { user: true },
-    });
+    const logs = await auditRepository.getSuspiciousActivity(0, 200);
     const ipMap = new Map();
     logs.forEach(l => {
       if (!l.ipAddress) return;
@@ -143,22 +85,19 @@ class AuditService {
   }
 
   async cleanup(retentionDays = 90) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - parseInt(retentionDays));
-    const result = await prisma.auditLogEntry.deleteMany({ where: { createdAt: { lt: cutoff } } });
-    return { deletedCount: result.count };
+    return await auditRepository.cleanOldLogs(parseInt(retentionDays));
   }
 
   async countUserActivity(userId, days = 1) {
     const since = new Date();
     since.setDate(since.getDate() - parseInt(days));
-    return prisma.auditLogEntry.count({ where: { userId: parseInt(userId), createdAt: { gte: since } } });
+    return await auditRepository.count({ userId: parseInt(userId), createdAt: { gte: since } });
   }
 
   async countIpActivity(ipAddress, days = 1) {
     const since = new Date();
     since.setDate(since.getDate() - parseInt(days));
-    return prisma.auditLogEntry.count({ where: { ipAddress, createdAt: { gte: since } } });
+    return await auditRepository.count({ ipAddress, createdAt: { gte: since } });
   }
 }
 

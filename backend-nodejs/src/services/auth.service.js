@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const prisma = require('../lib/prisma');
+const { userRepository, authRepository, roleRepository } = require('../repositories');
 const emailService = require('./email-gmail.service');
 const emailValidator = require('./email-validator.service');
 
@@ -14,8 +14,6 @@ const OTP_EXPIRY_MINUTES = 5;
 const COOLDOWN_SECONDS = 60;
 
 class AuthService {
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
   _parseExpiry(exp) {
     const m = String(exp).match(/^(\d+)([smhd])$/);
     if (!m) return 900;
@@ -28,48 +26,39 @@ class AuthService {
     return String(Math.floor(100000 + Math.random() * 900000));
   }
 
-  // ── Account Security ───────────────────────────────────────────────────────
-
   async shouldBlockIpAddress(ipAddress) {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentAttempts = await prisma.loginAttempt.count({
-      where: { ipAddress, createdAt: { gte: oneHourAgo } },
-    });
-    return recentAttempts >= MAX_IP_ATTEMPTS_PER_HOUR;
+    const attempts = await authRepository.getRecentLoginAttempts(ipAddress, 60);
+    return attempts.length >= MAX_IP_ATTEMPTS_PER_HOUR;
   }
 
   async shouldBlockIdentifier(ipAddress) {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const consecutiveFailures = await prisma.loginAttempt.count({
-      where: { ipAddress, success: false, createdAt: { gte: oneHourAgo } },
-    });
-    return consecutiveFailures >= MAX_FAILED_ATTEMPTS;
+    const attempts = await authRepository.getRecentLoginAttempts(ipAddress, 60);
+    const failures = attempts.filter(a => !a.success);
+    return failures.length >= MAX_FAILED_ATTEMPTS;
   }
 
   async getProgressiveDelay(ipAddress) {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentFailures = await prisma.loginAttempt.count({
-      where: { ipAddress, success: false, createdAt: { gte: oneHourAgo } },
-    });
-    if (recentFailures <= 1) return 0;
-    if (recentFailures === 2) return 1;
-    if (recentFailures === 3) return 2;
-    if (recentFailures === 4) return 4;
-    if (recentFailures === 5) return 8;
-    if (recentFailures === 6) return 16;
+    const attempts = await authRepository.getRecentLoginAttempts(ipAddress, 60);
+    const failures = attempts.filter(a => !a.success).length;
+    if (failures <= 1) return 0;
+    if (failures === 2) return 1;
+    if (failures === 3) return 2;
+    if (failures === 4) return 4;
+    if (failures === 5) return 8;
+    if (failures === 6) return 16;
     return 30;
   }
 
   async detectSuspiciousActivity(ipAddress) {
-    const recentAttempts = await prisma.loginAttempt.count({
-      where: { ipAddress, success: false, createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) } },
-    });
-    return recentAttempts >= 5;
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const attempts = await authRepository.getRecentLoginAttempts(ipAddress, 5);
+    return attempts.filter(a => !a.success).length >= 5;
   }
 
   async sendSecurityAlert(userId, alertType, ipAddress) {
     try {
-      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const user = await userRepository.findById(userId);
       if (!user?.email) return;
       let subject, html;
       switch (alertType) {
@@ -79,7 +68,6 @@ class AuthService {
             <h2 style="color:#dc2626;">🔒 Account Temporarily Locked</h2>
             <p>Your account has been temporarily locked due to multiple failed login attempts from IP: <strong>${ipAddress}</strong>.</p>
             <p>It will automatically unlock in <strong>${LOCKOUT_DURATION_MINUTES} minutes</strong>.</p>
-            <p style="color:#6b7280;font-size:13px;">If this wasn't you, please reset your password immediately.</p>
           </div>`;
           break;
         case 'ACCOUNT_UNLOCKED':
@@ -94,14 +82,12 @@ class AuthService {
           html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
             <h2 style="color:#d97706;">⚠️ Suspicious Activity Detected</h2>
             <p>Suspicious login activity was detected on your account from IP: <strong>${ipAddress}</strong>.</p>
-            <p style="color:#6b7280;font-size:13px;">If this wasn't you, please change your password immediately.</p>
           </div>`;
           break;
         default:
           subject = 'Security Alert — North Wollo Tourism';
           html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
-            <h2 style="color:#dc2626;">Security Alert</h2>
-            <p>${alertType} from IP: ${ipAddress}</p>
+            <h2 style="color:#dc2626;">Security Alert</h2><p>${alertType} from IP: ${ipAddress}</p>
           </div>`;
       }
       await emailService.sendEmail(user.email, subject, html);
@@ -110,27 +96,23 @@ class AuthService {
 
   async lockUserAccount(userId, reason, triggerIpAddress) {
     try {
-      const existing = await prisma.accountLockout.findUnique({ where: { userId } });
+      const existing = await authRepository.findLockout(userId);
       if (existing && existing.lockedUntil > new Date()) return;
       const lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000);
-      await prisma.accountLockout.upsert({ where: { userId }, create: { userId, lockedUntil }, update: { lockedUntil } });
+      await authRepository.createLockout(userId, lockedUntil);
       await this.sendSecurityAlert(userId, 'ACCOUNT_LOCKED', triggerIpAddress);
     } catch (e) { console.error('Failed to lock user account:', e.message); }
   }
 
   async isUserLockedOut(userId) {
     try {
-      const lockout = await prisma.accountLockout.findUnique({ where: { userId } });
-      if (!lockout) return false;
-      if (lockout.lockedUntil > new Date()) return true;
-      await prisma.accountLockout.delete({ where: { userId } });
-      return false;
+      return await authRepository.isAccountLocked(userId);
     } catch (e) { return false; }
   }
 
   async unlockUserAccount(userId) {
     try {
-      await prisma.accountLockout.delete({ where: { userId } });
+      await authRepository.deleteLockout(userId);
       await this.sendSecurityAlert(userId, 'ACCOUNT_UNLOCKED', 'ADMIN');
     } catch (e) { console.error('Failed to unlock user account:', e.message); }
   }
@@ -138,12 +120,11 @@ class AuthService {
   async cleanupOldSecurityRecords(retentionDays = 90) {
     try {
       const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+      const prisma = require('../lib/prisma');
       const result = await prisma.loginAttempt.deleteMany({ where: { createdAt: { lt: cutoff } } });
       return result.count;
     } catch (e) { return 0; }
   }
-
-  // ── Token Generation ───────────────────────────────────────────────────────
 
   async generateTokens(user) {
     const roles = user.roles.map(r => `ROLE_${r.name}`);
@@ -152,9 +133,10 @@ class AuthService {
     const refreshPayload = { ...payload, jti: `${user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
     const refreshToken = jwt.sign(refreshPayload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRATION });
 
-    await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
-    await prisma.refreshToken.create({
-      data: { userId: user.id, token: refreshToken, expiresAt: new Date(Date.now() + 7 * 86400000) },
+    await authRepository.deleteUserRefreshTokens(user.id);
+    await authRepository.createRefreshToken({
+      userId: user.id, token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 86400000),
     });
 
     const expiresIn = this._parseExpiry(JWT_EXPIRATION);
@@ -166,42 +148,30 @@ class AuthService {
     };
   }
 
-  // ── Auth Operations ────────────────────────────────────────────────────────
-
   async register({ username, email, password, fullName }) {
-    const emailValidation = await emailValidator.validateEmail(email, {
-      checkMX: true,
-      blockDisposable: true,
-      checkSuspicious: false,
-      checkTypos: true,
-    });
+    const emailValidation = await emailValidator.validateEmail(email, { checkMX: true, blockDisposable: true, checkSuspicious: false, checkTypos: true });
     if (!emailValidation.valid) throw Object.assign(new Error(emailValidation.errors.join(', ')), { status: 400 });
 
     const normalizedEmail = emailValidation.email;
-    const existing = await prisma.user.findFirst({ where: { OR: [{ username }, { email: normalizedEmail }] } });
-    
+    const existingByUsername = await userRepository.findByUsername(username);
+    const existingByEmail = await userRepository.findByEmail(normalizedEmail);
+    const existing = existingByUsername || existingByEmail;
+
     if (existing) {
-      // If user exists but email is not verified, allow re-registration by deleting the old account
       if (!existing.emailVerified) {
-        console.log(`🔄 Deleting unverified account for re-registration: ${existing.username} (${existing.email})`);
-        
-        // Delete all related records first (due to foreign key constraints)
+        const prisma = require('../lib/prisma');
         await prisma.emailVerificationToken.deleteMany({ where: { userId: existing.id } });
         await prisma.passwordResetToken.deleteMany({ where: { userId: existing.id } });
-        await prisma.refreshToken.deleteMany({ where: { userId: existing.id } });
+        await authRepository.deleteUserRefreshTokens(existing.id);
         await prisma.loginAttempt.deleteMany({ where: { userId: existing.id } });
         await prisma.accountLockout.deleteMany({ where: { userId: existing.id } });
-        
-        // Delete the user
-        await prisma.user.delete({ where: { id: existing.id } });
-        
-        console.log(`✅ Unverified account deleted. User can now re-register.`);
+        await userRepository.delete(existing.id);
       } else {
-        // User exists and is verified - cannot re-register
         throw Object.assign(new Error('Username or email already exists'), { status: 400 });
       }
     }
 
+    const prisma = require('../lib/prisma');
     await prisma.role.upsert({ where: { name: 'CLIENT' }, update: {}, create: { name: 'CLIENT' } });
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -217,35 +187,28 @@ class AuthService {
 
     try {
       const otp = this._generateOtp();
-      await prisma.emailVerificationToken.create({
-        data: { userId: user.id, token: otp, email: normalizedEmail, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) },
-      });
+      await authRepository.createEmailToken({ userId: user.id, token: otp, email: normalizedEmail, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000) });
       const emailTimeout = new Promise(resolve => setTimeout(() => resolve(false), 8000));
       const emailSent = await Promise.race([
         emailService.sendEmailVerificationOtp(normalizedEmail, otp, OTP_EXPIRY_MINUTES, fullName || username),
         emailTimeout,
       ]);
-      if (!emailSent) console.warn(`⚠️ Verification email may not have sent to ${normalizedEmail} (timeout or error)`);
-    } catch (e) {
-      console.error('Verification token creation failed (non-fatal):', e.message);
-    }
+      if (!emailSent) console.warn(`⚠️ Verification email may not have sent to ${normalizedEmail}`);
+    } catch (e) { console.error('Verification token creation failed (non-fatal):', e.message); }
 
     return this.generateTokens(user);
   }
 
   async login({ username, password }, ip = 'unknown', ua = 'unknown') {
     if (await this.shouldBlockIpAddress(ip)) {
-      await prisma.loginAttempt.create({ data: { ipAddress: ip, success: false, reason: 'IP blocked' } });
+      await authRepository.recordLoginAttempt({ ipAddress: ip, success: false, reason: 'IP blocked' });
       throw Object.assign(new Error('Too many requests from this IP address. Please try again later.'), { status: 429 });
     }
 
-    const user = await prisma.user.findFirst({
-      where: { OR: [{ username }, { email: username }] },
-      include: { roles: true },
-    });
+    const user = await userRepository.findByUsername(username) || await userRepository.findByEmail(username);
 
     if (await this.shouldBlockIdentifier(ip)) {
-      await prisma.loginAttempt.create({ data: { userId: user?.id, ipAddress: ip, success: false, reason: 'Identifier blocked' } });
+      await authRepository.recordLoginAttempt({ userId: user?.id, ipAddress: ip, success: false, reason: 'Identifier blocked' });
       throw Object.assign(new Error('Too many failed login attempts. Please try again later.'), { status: 429 });
     }
 
@@ -253,20 +216,20 @@ class AuthService {
     if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay * 1000));
 
     if (user && await this.isUserLockedOut(user.id)) {
-      await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Account locked' } });
+      await authRepository.recordLoginAttempt({ userId: user.id, ipAddress: ip, success: false, reason: 'Account locked' });
       throw Object.assign(new Error('Account is temporarily locked. Please try again later.'), { status: 401 });
     }
 
     if (!user) {
-      await prisma.loginAttempt.create({ data: { ipAddress: ip, success: false, reason: 'User not found' } });
+      await authRepository.recordLoginAttempt({ ipAddress: ip, success: false, reason: 'User not found' });
       throw Object.assign(new Error('Invalid credentials'), { status: 401 });
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Invalid password' } });
-      const oneHourAgo = new Date(Date.now() - 3600000);
-      const failures = await prisma.loginAttempt.count({ where: { userId: user.id, success: false, createdAt: { gte: oneHourAgo } } });
+      await authRepository.recordLoginAttempt({ userId: user.id, ipAddress: ip, success: false, reason: 'Invalid password' });
+      const attempts = await authRepository.getRecentLoginAttempts(ip, 60);
+      const failures = attempts.filter(a => !a.success).length;
       if (failures >= MAX_FAILED_ATTEMPTS) {
         await this.lockUserAccount(user.id, `Account locked due to ${failures} consecutive failed login attempts`, ip);
       }
@@ -274,27 +237,27 @@ class AuthService {
     }
 
     if (!user.active) {
-      await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Inactive account' } });
+      await authRepository.recordLoginAttempt({ userId: user.id, ipAddress: ip, success: false, reason: 'Inactive account' });
       throw Object.assign(new Error('User account is inactive'), { status: 401 });
     }
 
     if (!user.emailVerified) {
-      await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: false, reason: 'Email not verified' } });
-      throw Object.assign(new Error('Please verify your email address before logging in. Check your inbox for the verification code.'), { status: 403 });
+      await authRepository.recordLoginAttempt({ userId: user.id, ipAddress: ip, success: false, reason: 'Email not verified' });
+      throw Object.assign(new Error('Please verify your email address before logging in.'), { status: 403 });
     }
 
     this.detectSuspiciousActivity(ip).then(suspicious => {
       if (suspicious) this.sendSecurityAlert(user.id, 'SUSPICIOUS_ACTIVITY', ip).catch(() => {});
     }).catch(() => {});
 
-    await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: true } });
+    await authRepository.recordLoginAttempt({ userId: user.id, ipAddress: ip, success: true });
     return this.generateTokens(user);
   }
 
   async refreshToken(token) {
     try {
       const payload = jwt.verify(token, JWT_SECRET);
-      const user = await prisma.user.findUnique({ where: { id: payload.userId }, include: { roles: true } });
+      const user = await userRepository.findByIdWithRoles(payload.userId);
       if (!user) throw Object.assign(new Error('User not found'), { status: 401 });
       return this.generateTokens(user);
     } catch (e) {
@@ -303,32 +266,20 @@ class AuthService {
   }
 
   async logout(userId) {
-    await prisma.refreshToken.deleteMany({ where: { userId } });
+    await authRepository.deleteUserRefreshTokens(userId);
   }
 
   async initiatePasswordReset(email, ip, ua) {
-    const emailValidation = await emailValidator.validateEmail(email, {
-      checkMX: false,
-      blockDisposable: true,
-      checkSuspicious: false,
-    });
+    const emailValidation = await emailValidator.validateEmail(email, { checkMX: false, blockDisposable: true, checkSuspicious: false });
     if (!emailValidation.valid) throw Object.assign(new Error(emailValidation.errors.join(', ')), { status: 400 });
 
     const normalizedEmail = emailValidation.email;
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentFailedAttempts = await prisma.loginAttempt.count({
-      where: { ipAddress: ip, success: false, reason: 'Password reset - email not registered', createdAt: { gte: oneHourAgo } },
-    });
-    if (recentFailedAttempts >= 3) throw Object.assign(new Error('Too many failed attempts with unregistered emails. Please try again later.'), { status: 429 });
+    const user = await userRepository.findByEmail(normalizedEmail);
+    if (!user) throw Object.assign(new Error('This email is not registered.'), { status: 404 });
+    if (!user.active) throw Object.assign(new Error('Account is inactive.'), { status: 400 });
+    if (!user.emailVerified) throw Object.assign(new Error('Email address is not verified.'), { status: 403 });
 
-    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (!user) {
-      try { await prisma.loginAttempt.create({ data: { ipAddress: ip, success: false, reason: 'Password reset - email not registered' } }); } catch (e) {}
-      throw Object.assign(new Error('This email is not registered. Please check your email or sign up.'), { status: 404 });
-    }
-    if (!user.active) throw Object.assign(new Error('Account is inactive. Please contact support.'), { status: 400 });
-    if (!user.emailVerified) throw Object.assign(new Error('Email address is not verified. Please verify your email first before resetting password.'), { status: 403 });
-
+    const prisma = require('../lib/prisma');
     const lastToken = await prisma.passwordResetToken.findFirst({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } });
     if (lastToken) {
       const secs = Math.floor((Date.now() - lastToken.createdAt.getTime()) / 1000);
@@ -337,33 +288,31 @@ class AuthService {
 
     await prisma.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
     const otp = this._generateOtp();
-    await prisma.passwordResetToken.create({ data: { userId: user.id, token: otp, expiresAt: new Date(Date.now() + 10 * 60000), ipAddress: ip } });
+    await authRepository.createPasswordToken({ userId: user.id, token: otp, expiresAt: new Date(Date.now() + 10 * 60000), ipAddress: ip });
     await emailService.sendPasswordResetOtp(normalizedEmail, otp, 10);
-
-    try { await prisma.loginAttempt.create({ data: { userId: user.id, ipAddress: ip, success: true, reason: 'Password reset OTP sent' } }); } catch (e) {}
     return { success: true, message: 'A 6-digit OTP has been sent to your email.', expiresInMinutes: 10 };
   }
 
   async confirmPasswordReset({ token, newPassword, email }) {
     if (!/^\d{6}$/.test(token)) throw Object.assign(new Error('Invalid OTP format.'), { status: 400 });
-    const resetToken = await prisma.passwordResetToken.findUnique({ where: { token }, include: { user: true } });
+    const resetToken = await authRepository.findPasswordToken(token);
     if (!resetToken) throw Object.assign(new Error('Invalid or expired OTP.'), { status: 400 });
     if (email && resetToken.user.email !== email.toLowerCase().trim()) throw Object.assign(new Error('Invalid or expired OTP.'), { status: 400 });
     if (resetToken.used || resetToken.expiresAt < new Date()) throw Object.assign(new Error('OTP has expired.'), { status: 400 });
     if (resetToken.attemptCount >= 3) {
-      await prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { used: true } });
+      await authRepository.markPasswordTokenUsed(token);
       throw Object.assign(new Error('Too many failed attempts.'), { status: 400 });
     }
-    await prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { attemptCount: resetToken.attemptCount + 1 } });
+    await authRepository.incrementPasswordTokenAttempt(token);
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash } });
-    await prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { used: true } });
+    await userRepository.updatePassword(resetToken.userId, passwordHash);
+    await authRepository.markPasswordTokenUsed(token);
     return { success: true, message: 'Password has been reset successfully.' };
   }
 
   async validateResetToken(token) {
     if (!/^\d{6}$/.test(token)) return { success: false, message: 'Invalid or expired token' };
-    const t = await prisma.passwordResetToken.findUnique({ where: { token } });
+    const t = await authRepository.findPasswordToken(token);
     if (!t || t.used || t.expiresAt < new Date()) return { success: false, message: 'Invalid or expired token' };
     return { success: true, message: 'Token is valid' };
   }
@@ -373,11 +322,12 @@ class AuthService {
     if (!emailValidation.valid) throw Object.assign(new Error(emailValidation.errors.join(', ')), { status: 400 });
 
     const normalizedEmail = emailValidation.email;
-    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await userRepository.findByEmail(normalizedEmail);
     if (!user) throw Object.assign(new Error('Email address not found.'), { status: 400 });
     if (!user.active) throw Object.assign(new Error('Account is inactive.'), { status: 400 });
     if (user.emailVerified) return { success: true, message: 'Email is already verified.' };
 
+    const prisma = require('../lib/prisma');
     const lastToken = await prisma.emailVerificationToken.findFirst({ where: { email: normalizedEmail }, orderBy: { createdAt: 'desc' } });
     if (lastToken) {
       const secs = Math.floor((Date.now() - lastToken.createdAt.getTime()) / 1000);
@@ -386,61 +336,62 @@ class AuthService {
 
     await prisma.emailVerificationToken.updateMany({ where: { email: normalizedEmail, verified: false }, data: { verified: true } });
     const otp = this._generateOtp();
-    await prisma.emailVerificationToken.create({ data: { userId: user.id, token: otp, email: normalizedEmail, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000), ipAddress: ip, userAgent: ua } });
+    await authRepository.createEmailToken({ userId: user.id, token: otp, email: normalizedEmail, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000), ipAddress: ip, userAgent: ua });
     await emailService.sendEmailVerificationOtp(normalizedEmail, otp, OTP_EXPIRY_MINUTES, user.fullName || user.username);
     return { success: true, message: `OTP sent. Expires in ${OTP_EXPIRY_MINUTES} minutes.`, expiresInMinutes: OTP_EXPIRY_MINUTES };
   }
 
   async verifyEmail(token, ip, ua) {
     if (!/^\d{6}$/.test(token)) throw Object.assign(new Error('Invalid OTP format.'), { status: 400 });
-    const vt = await prisma.emailVerificationToken.findUnique({ where: { token }, include: { user: true } });
+    const vt = await authRepository.findEmailToken(token);
     if (!vt || vt.verified || vt.expiresAt < new Date()) throw Object.assign(new Error('Invalid or expired OTP.'), { status: 400 });
     if (vt.attemptCount >= 3) {
-      await prisma.emailVerificationToken.update({ where: { id: vt.id }, data: { verified: true } });
+      await authRepository.markEmailTokenVerified(token);
       throw Object.assign(new Error('Too many failed attempts.'), { status: 400 });
     }
-    await prisma.emailVerificationToken.update({ where: { id: vt.id }, data: { attemptCount: vt.attemptCount + 1 } });
-    await prisma.user.update({ where: { id: vt.userId }, data: { emailVerified: true, emailVerifiedAt: new Date() } });
-    await prisma.emailVerificationToken.update({ where: { id: vt.id }, data: { verified: true } });
+    await authRepository.incrementEmailTokenAttempt(token);
+    await userRepository.verifyEmail(vt.userId);
+    await authRepository.markEmailTokenVerified(token);
     return { success: true, message: 'Email verified successfully!' };
   }
 
   async verifyEmailWithOtp(email, otp, ip, ua) {
     if (!/^\d{6}$/.test(otp)) throw Object.assign(new Error('Invalid OTP format.'), { status: 400 });
     const normalizedEmail = email?.toLowerCase().trim();
+    const prisma = require('../lib/prisma');
     const vt = await prisma.emailVerificationToken.findFirst({ where: { token: otp, email: normalizedEmail }, include: { user: true } });
     if (!vt || vt.verified || vt.expiresAt < new Date()) throw Object.assign(new Error('Invalid or expired OTP.'), { status: 400 });
     if (vt.attemptCount >= 3) {
-      await prisma.emailVerificationToken.update({ where: { id: vt.id }, data: { verified: true } });
+      await authRepository.markEmailTokenVerified(otp);
       throw Object.assign(new Error('Too many failed attempts.'), { status: 400 });
     }
-    await prisma.emailVerificationToken.update({ where: { id: vt.id }, data: { attemptCount: vt.attemptCount + 1 } });
-    await prisma.user.update({ where: { id: vt.userId }, data: { emailVerified: true, emailVerifiedAt: new Date() } });
-    await prisma.emailVerificationToken.update({ where: { id: vt.id }, data: { verified: true } });
+    await authRepository.incrementEmailTokenAttempt(otp);
+    await userRepository.verifyEmail(vt.userId);
+    await authRepository.markEmailTokenVerified(otp);
     return { success: true, message: 'Email verified successfully!' };
   }
 
   async resendVerificationEmail(userId, ip, ua) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await userRepository.findById(userId);
     if (!user) throw Object.assign(new Error('User not found.'), { status: 400 });
     if (user.emailVerified) return { success: true, message: 'Email is already verified.' };
-    const email = user.email;
-    await prisma.emailVerificationToken.updateMany({ where: { email, verified: false }, data: { verified: true } });
+    const prisma = require('../lib/prisma');
+    await prisma.emailVerificationToken.updateMany({ where: { email: user.email, verified: false }, data: { verified: true } });
     const otp = this._generateOtp();
-    await prisma.emailVerificationToken.create({ data: { userId: user.id, token: otp, email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000), ipAddress: ip, userAgent: ua } });
-    await emailService.sendEmailVerificationOtp(email, otp, OTP_EXPIRY_MINUTES, user.fullName || user.username);
+    await authRepository.createEmailToken({ userId: user.id, token: otp, email: user.email, expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000), ipAddress: ip, userAgent: ua });
+    await emailService.sendEmailVerificationOtp(user.email, otp, OTP_EXPIRY_MINUTES, user.fullName || user.username);
     return { success: true, message: `OTP resent. Expires in ${OTP_EXPIRY_MINUTES} minutes.` };
   }
 
   async validateVerificationToken(token) {
     if (!/^\d{6}$/.test(token)) return { success: false, message: 'Invalid or expired OTP' };
-    const t = await prisma.emailVerificationToken.findUnique({ where: { token } });
+    const t = await authRepository.findEmailToken(token);
     if (!t || t.verified || t.expiresAt < new Date()) return { success: false, message: 'Invalid or expired OTP' };
     return { success: true, message: 'OTP is valid' };
   }
 
   async checkEmailVerified(email) {
-    const user = await prisma.user.findUnique({ where: { email: email?.toLowerCase().trim() } });
+    const user = await userRepository.findByEmail(email?.toLowerCase().trim());
     if (user?.emailVerified) return { success: true, message: 'Email is verified' };
     return { success: false, message: 'Email is not verified' };
   }
