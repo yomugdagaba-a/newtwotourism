@@ -7,11 +7,14 @@ import { HorseServiceSummaryDto } from "@/types/horse";
 import { getHorseServicesByTourism, getHorseServicesByRoad } from "@/services/horse.service";
 import { useAuthStore } from "@/store/useAuthStore";
 import AvatarDropdown from "@/components/common/AvatarDropdown";
+import { useTranslation } from "react-i18next";
+import { useTranslateText } from "@/hooks/useTranslateText";
 
 function HorsersContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { token } = useAuthStore.getState();
+  const { t } = useTranslation();
 
   const tourismIdParam = searchParams.get("tourismId");
   const roadIdParam = searchParams.get("roadId");
@@ -84,10 +87,10 @@ function HorsersContent() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <span className="ml-1 text-gray-900 font-bold text-sm">Horse Services</span>
+        <span className="ml-1 text-gray-900 font-bold text-sm">{t("horse.horseServices")}</span>
         {!loading && !error && (
           <span className="ml-2 text-gray-400 text-sm font-semibold">
-            · {horseServices.length} {horseServices.length === 1 ? 'Service' : 'Services'}
+            · {horseServices.length} {horseServices.length === 1 ? t("horse.horseServices") : t("horse.horseServices")}
           </span>
         )}
         {/* Avatar — top right */}
@@ -100,7 +103,7 @@ function HorsersContent() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin mb-3"></div>
-            <p className="text-sm text-gray-600">Loading...</p>
+            <p className="text-sm text-gray-600">{t("common.loading")}</p>
           </div>
         )
 
@@ -167,14 +170,14 @@ function HorsersContent() {
                       onClick={() => handleCallClick(service.id, service.contactInfo)}
                       className="flex-1 bg-white text-blue-700 py-2 rounded-lg font-bold text-sm hover:bg-blue-50 transition-colors border border-blue-200"
                     >
-                      Call
+                      {t("common.contactUs")}
                     </button>
                     <button
                       disabled
                       className="flex-1 bg-white text-gray-400 py-2 rounded-lg font-normal text-sm cursor-not-allowed border border-gray-200"
                       title="Booking not available"
                     >
-                      Book
+                      {t("horse.bookHorse")}
                     </button>
                   </div>
                 </div>
@@ -189,7 +192,7 @@ function HorsersContent() {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Contact Number</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("common.contactUs")}</h3>
               <button
                 onClick={closePhoneModal}
                 className="text-gray-400 hover:text-gray-600"
@@ -210,7 +213,7 @@ function HorsersContent() {
                   onClick={() => handleCopy(showPhoneModal.serviceId, showPhoneModal.phone)}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors flex-shrink-0"
                 >
-                  {copiedId === showPhoneModal.serviceId ? '✓ Copied' : 'Copy'}
+                  {copiedId === showPhoneModal.serviceId ? '✓ ' + t("common.ok") : t("common.ok")}
                 </button>
               </div>
             </div>
@@ -223,7 +226,7 @@ function HorsersContent() {
               onClick={closePhoneModal}
               className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         </div>

@@ -7,6 +7,7 @@ import TopBar from "@/components/layout/TopBar";
 import Footer from "@/components/layout/Footer";
 import { API_BASE_URL } from "@/services/api";
 import { getImageUrl } from "@/utils/imageUrl";
+import { useTranslation } from "react-i18next";
 
 const TNR = "'Times New Roman', Times, serif";
 
@@ -14,6 +15,7 @@ interface HeroImage { id: number; imageUrl: string; title?: string; description?
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
 
@@ -26,12 +28,12 @@ export default function HomePage() {
   }, []);
 
   const categories = [
-    { id: "HERITAGE", name: "Heritage",  icon: "🏛️", short: "Historic sites, ancient churches & archaeological remains.", accent: "#92400e", border: "#fbbf24", selBorder: "#d97706", bgNorm: "#fffbeb", bgSel: "#fef3c7" },
-    { id: "HIGHLAND", name: "Highland",  icon: "⛰️", short: "Mountain landscapes, plateaus & scenic highland environments.", accent: "#065f46", border: "#6ee7b7", selBorder: "#059669", bgNorm: "#f0fdf4", bgSel: "#d1fae5" },
-    { id: "CAVERN",   name: "Cavern",    icon: "🕳️", short: "Natural caves, underground formations & geological wonders.", accent: "#3b0764", border: "#c4b5fd", selBorder: "#7c3aed", bgNorm: "#faf5ff", bgSel: "#ede9fe" },
-    { id: "AQUATICS", name: "Aquatics",  icon: "💧", short: "Lakes, rivers, waterfalls & water-based natural attractions.", accent: "#0c4a6e", border: "#7dd3fc", selBorder: "#0284c7", bgNorm: "#f0f9ff", bgSel: "#e0f2fe" },
-    { id: "CULTURE",  name: "Culture",   icon: "🎭", short: "Festivals, local customs, crafts & cultural experiences.", accent: "#881337", border: "#fda4af", selBorder: "#e11d48", bgNorm: "#fff1f2", bgSel: "#ffe4e6" },
-    { id: "MODERN",   name: "Modern",    icon: "🏙️", short: "Cities, landmarks, museums, parks & contemporary attractions.", accent: "#1e3a5f", border: "#94a3b8", selBorder: "#475569", bgNorm: "#f8fafc", bgSel: "#e2e8f0" },
+    { id: "HERITAGE", name: t("categories.HERITAGE"), icon: "🏛️", short: t("categories.heritageDesc"), accent: "#92400e", border: "#fbbf24", selBorder: "#d97706", bgNorm: "#fffbeb", bgSel: "#fef3c7" },
+    { id: "HIGHLAND", name: t("categories.HIGHLAND"), icon: "⛰️", short: t("categories.highlandDesc"), accent: "#065f46", border: "#6ee7b7", selBorder: "#059669", bgNorm: "#f0fdf4", bgSel: "#d1fae5" },
+    { id: "CAVERN",   name: t("categories.CAVERN"),   icon: "🕳️", short: t("categories.cavernDesc"),   accent: "#3b0764", border: "#c4b5fd", selBorder: "#7c3aed", bgNorm: "#faf5ff", bgSel: "#ede9fe" },
+    { id: "AQUATICS", name: t("categories.AQUATICS"), icon: "💧", short: t("categories.aquaticsDesc"), accent: "#0c4a6e", border: "#7dd3fc", selBorder: "#0284c7", bgNorm: "#f0f9ff", bgSel: "#e0f2fe" },
+    { id: "CULTURE",  name: t("categories.CULTURE"),  icon: "🎭", short: t("categories.cultureDesc"),  accent: "#881337", border: "#fda4af", selBorder: "#e11d48", bgNorm: "#fff1f2", bgSel: "#ffe4e6" },
+    { id: "MODERN",   name: t("categories.MODERN"),   icon: "🏙️", short: t("categories.modernDesc"),   accent: "#1e3a5f", border: "#94a3b8", selBorder: "#475569", bgNorm: "#f8fafc", bgSel: "#e2e8f0" },
   ];
 
   const toggleCategory = (id: string) =>
@@ -84,12 +86,14 @@ export default function HomePage() {
           {/* Text overlay */}
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-white px-4">
             <h1 style={{ fontFamily: TNR, textShadow: "0 3px 18px rgba(0,0,0,0.65)", letterSpacing: "0.03em", fontWeight: 700 }}
-              className="text-2xl sm:text-4xl md:text-5xl mb-3 leading-tight text-center">
-              Explore North Wollo
+              className="text-2xl sm:text-4xl md:text-5xl mb-3 leading-tight text-center"
+              suppressHydrationWarning>
+              {t("home.heroTitle")}
             </h1>
             <p style={{ fontFamily: TNR, textShadow: "0 2px 8px rgba(0,0,0,0.55)", fontStyle: "italic", fontSize: "1.05rem" }}
-              className="text-gray-100 text-center">
-              Discover heritage, highlands &amp; hidden wonders of Ethiopia
+              className="text-gray-100 text-center"
+              suppressHydrationWarning>
+              {t("home.heroSubtitle")}
             </p>
           </div>
         </div>
@@ -105,29 +109,26 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {/* Plain label — no background */}
             <span style={{ fontFamily: TNR, fontSize: "0.82rem", fontWeight: 600, color: "#6b7280" }} className="flex-shrink-0">
-              {!selectedCategories.length ? "Select Categories:" : `${selectedCategories.length} selected:`}
+              {!selectedCategories.length ? t("home.selectCategories") : `${selectedCategories.length} ${t("home.selected")}`}
             </span>
 
-            {/* View All Places */}
             <Link href="/tourisms"
               style={{ fontFamily: TNR, fontWeight: 700, fontSize: "0.82rem", background: "white", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
               className="px-3 py-1.5 text-blue-600 hover:text-blue-800 rounded-full transition-all flex-shrink-0">
-              View All Places
+              {t("home.viewAllPlaces")}
             </Link>
 
-            {/* Select All */}
             <button onClick={handleSelectAll}
               style={{ fontFamily: TNR, fontSize: "0.82rem", fontWeight: 700, background: "white", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
               className="px-3 py-1.5 text-blue-600 hover:text-blue-800 rounded-full transition-all flex-shrink-0">
-              {selectedCategories.length === categories.length ? "Clear All" : "Select All"}
+              {selectedCategories.length === categories.length ? t("home.clearAll") : t("home.selectAll")}
             </button>
 
-            {/* View Selected — only when categories chosen */}
             {selectedCategories.length > 0 && (
               <button onClick={handleViewSelected}
                 style={{ fontFamily: TNR, fontSize: "0.82rem", fontWeight: 700, background: "white", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
                 className="px-3 py-1.5 text-emerald-600 hover:text-emerald-800 rounded-full transition-all flex-shrink-0">
-                View {selectedCategories.length} Selected
+                {t("home.viewSelected", { count: selectedCategories.length })}
               </button>
             )}
           </div>
@@ -198,10 +199,10 @@ export default function HomePage() {
           }} className="p-3 mt-6">
             <div className="flex flex-wrap items-center gap-4">
               <div style={{ fontFamily: TNR, color: "#1e293b", fontWeight: 700, fontSize: "0.9rem" }}>
-                North Wollo Tourism — Est. 2026
+                {t("common.northWolloTourism")} — Est. 2026
               </div>
               <div className="flex flex-wrap gap-4">
-                {[["2026","Established"],["100%","Local Team"],["50+","Destinations"],["21","Woredas Covered"]].map(([val, lbl]) => (
+                {[["2026", t("home.established")],["100%", t("home.localTeam")],["50+", t("home.destinations")],["21", t("home.woredasCovered")]].map(([val, lbl]) => (
                   <div key={lbl} className="text-center">
                     <div style={{ fontFamily: TNR, color: "#2563eb", fontWeight: 700, fontSize: "1.1rem" }}>{val}</div>
                     <div style={{ fontFamily: TNR, color: "#64748b", fontSize: "12px", fontWeight: 600 }}>{lbl}</div>
@@ -210,7 +211,7 @@ export default function HomePage() {
               </div>
               <div className="flex-1 hidden md:block" />
               <div style={{ fontFamily: TNR, color: "#475569", fontSize: "12px", fontWeight: 600, fontStyle: "italic" }} className="hidden md:block">
-                Full details in the footer below ↓
+                {t("home.footerNote")}
               </div>
             </div>
           </div>
@@ -228,14 +229,14 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-center md:text-left">
             <h3 style={{ fontFamily: TNR, fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.03em", color: "#1e293b" }}>
-              Stay Updated
+              {t("home.stayUpdated")}
             </h3>
             <p style={{ fontFamily: TNR, fontSize: "0.78rem", fontStyle: "italic", color: "#64748b" }} className="mt-0.5">
-              Get the latest news from North Wollo
+              {t("home.newsletterSubtitle")}
             </p>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
-            <input type="email" placeholder="Enter your email"
+            <input type="email" placeholder={t("home.emailPlaceholder")}
               style={{ fontFamily: TNR, background: "rgba(255,255,255,0.8)", border: "1px solid #cbd5e1", fontSize: "0.88rem", color: "#1e293b" }}
               className="flex-1 md:w-56 px-4 py-2.5 rounded-full placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300" />
             <button
@@ -243,7 +244,7 @@ export default function HomePage() {
               onClick={() => router.push('/auth/register')}
               style={{ fontFamily: TNR, fontWeight: 600, fontSize: "0.88rem", background: "linear-gradient(135deg,#2563eb,#1d4ed8)", boxShadow: "0 3px 10px rgba(37,99,235,0.35)" }}
               className="px-5 py-2.5 text-white rounded-full hover:scale-105 transition-all">
-              Subscribe
+              {t("home.subscribe")}
             </button>
           </div>
         </div>

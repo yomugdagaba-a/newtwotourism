@@ -8,6 +8,7 @@ import { AuditStatistics } from '../../types/audit';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import SecurityAlerts from '../../components/admin/SecurityAlerts';
+import { useTranslation } from 'react-i18next';
 
 const AdminDashboard = () => {
   const [auditStats, setAuditStats] = useState<AuditStatistics | null>(null);
@@ -16,6 +17,7 @@ const AdminDashboard = () => {
 
   const { role, isAuthenticated, username, isHydrated } = useAuthStore();
   const router = useRouter();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isHydrated) return; // Wait for store to hydrate from localStorage

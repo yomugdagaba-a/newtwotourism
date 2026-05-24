@@ -8,6 +8,7 @@ import { getRoadInfoByTourism } from "@/services/map.service";
 import { RoadInfoDto } from "@/types/road";
 import RoadInfo from "@/components/road/RoadInfo";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTranslation } from "react-i18next";
 
 function RoadsContent() {
   const searchParams = useSearchParams();
@@ -22,6 +23,7 @@ function RoadsContent() {
   const [error, setError] = useState<string | null>(null);
 
   const token = useAuthStore((state) => state.token ?? undefined);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const load = async () => {
@@ -52,18 +54,18 @@ function RoadsContent() {
           onClick={() => router.back()}
           className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium mb-6 text-lg transition-all"
         >
-          ← Back to Destination
+          ← {t("common.back")}
         </button>
 
         <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-gray-900 to-emerald-700 bg-clip-text text-transparent mb-8">
-          Roads & Travel Routes
+          {t("road.roads")}
         </h1>
 
         {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-              <p className="text-xl text-gray-600">Loading road information...</p>
+              <p className="text-xl text-gray-600">{t("road.loading")}</p>
             </div>
           </div>
         )}
@@ -76,8 +78,8 @@ function RoadsContent() {
 
         {!loading && !error && roads.length === 0 && (
           <div className="text-center py-20">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">No Routes Available</h2>
-            <p className="text-xl text-gray-600 mb-8">No road information for this destination yet.</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t("common.noResults")}</h2>
+            <p className="text-xl text-gray-600 mb-8">{t("road.roadInfo")}</p>
           </div>
         )}
 
@@ -92,7 +94,7 @@ function RoadsContent() {
                   onClick={() => router.push(`/horsers?roadId=${road.id}&tourismId=${tourismId}`)}
                   className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-semibold text-lg transition-all duration-300 transform bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-xl hover:shadow-2xl hover:scale-105 hover:from-purple-600 hover:to-pink-700"
                 >
-                  View Horse Services
+                  {t("horse.horseServices")}
                 </button>
               </div>
 
@@ -102,13 +104,13 @@ function RoadsContent() {
                   onClick={() => router.push(`/roads/${road.id}?tourismId=${tourismId}`)} 
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  View Map Details
+                  {t("road.viewMap")}
                 </button>
                 <button 
                   onClick={() => router.back()} 
                   className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-800 rounded-xl font-semibold hover:bg-gray-50 hover:shadow-lg transition-all"
                 >
-                  ← Back
+                  ← {t("common.back")}
                 </button>
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Modal from "@/components/common/Modal";
+import { useTranslation } from "react-i18next";
 
 interface HotelRatingModalProps {
   isOpen: boolean;
@@ -15,10 +16,11 @@ export default function HotelRatingModal({ isOpen, onClose, hotelId, hotelName, 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [ratingError, setRatingError] = useState("");
+  const { t } = useTranslation();
 
   const handleSubmit = () => {
     if (rating < 1 || rating > 5) {
-      setRatingError("Please select a rating between 1 and 5 stars.");
+      setRatingError(t("tourism.writeReview"));
       return;
     }
     setRatingError("");
@@ -45,13 +47,13 @@ export default function HotelRatingModal({ isOpen, onClose, hotelId, hotelName, 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6 bg-white rounded-3xl max-w-md mx-auto">
-        <h2 className="text-2xl font-bold mb-4">Rate {hotelName}</h2>
+        <h2 className="text-2xl font-bold mb-4">{t("tourism.writeReview")} — {hotelName}</h2>
         <div className="flex gap-2 mb-4 justify-center">{renderStars()}</div>
         {ratingError && <p className="text-red-600 text-sm font-semibold text-center mb-3">{ratingError}</p>}
         <textarea
           className="w-full border rounded-xl p-3 mb-4 text-gray-700"
           rows={4}
-          placeholder="Write your comment..."
+          placeholder={t("booking.writeMessage")}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
@@ -60,13 +62,13 @@ export default function HotelRatingModal({ isOpen, onClose, hotelId, hotelName, 
             onClick={onClose}
             className="px-6 py-2 rounded-xl bg-gray-300 text-gray-800 font-semibold hover:bg-gray-400 transition"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={handleSubmit}
             className="px-6 py-2 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition"
           >
-            Submit
+            {t("common.submit")}
           </button>
         </div>
       </div>

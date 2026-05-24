@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
 import ProfileModal from "@/components/common/ProfileModal";
+import LanguageSwitcher from "@/components/common/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   keyword?: string;
@@ -66,6 +68,7 @@ export default function TopBar({
   const router = useRouter();
   const { isAuthenticated, username, role, browsingMode, logout, isHydrated, setBrowsingMode } = useAuthStore();
   const catDropdownRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -169,7 +172,7 @@ export default function TopBar({
                       : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-100'
                   }`}
                 >
-                  <span>Categories</span>
+                  <span>{t("common.exploreCategories")}</span>
                   <svg className={`w-3 h-3 transition-transform ${catDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -183,15 +186,14 @@ export default function TopBar({
                           onClick={() => { onCategoryToggle ? onCategoryToggle(cat.id) : handleCategoryClick(cat.id); setCatDropdownOpen(false); }}
                           className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold transition-all ${isSelected ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-100"}`}
                         >
-                          <span>{cat.label}</span>
-                          {isSelected && <span className="ml-auto text-blue-600 text-xs">✓</span>}
+                          <span>{t(`categories.${cat.id}`)}</span>
                         </button>
                       );
                     })}
                     {selectedCategories && selectedCategories.length > 0 && onClearCategories && (
                       <button onClick={() => { onClearCategories(); setCatDropdownOpen(false); }}
                         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 border-t border-gray-100 mt-1">
-                        ✕ Clear filter
+                        ✕ {t("common.cancel")}
                       </button>
                     )}
                   </div>
@@ -214,7 +216,7 @@ export default function TopBar({
                           : "bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-100"
                       }`}
                     >
-                      {cat.label}
+                      {t(`categories.${cat.id}`)}
                     </button>
                   );
                 })}
@@ -234,7 +236,8 @@ export default function TopBar({
                     type="text"
                     value={searchValue}
                     onChange={handleSearchInputChange}
-                    placeholder="Search..."
+                    placeholder={t("common.search")}
+                    suppressHydrationWarning
                     className="w-16 sm:w-28 lg:w-40 pl-6 lg:pl-7 pr-1 py-1 lg:py-1.5 bg-gray-50 border border-gray-100 rounded-md lg:rounded-lg focus:ring-1 focus:ring-blue-100 focus:bg-white transition-all text-xs lg:text-sm text-gray-900 placeholder-gray-400 outline-none"
                   />
                   <svg className="absolute left-1.5 lg:left-2 top-1/2 -translate-y-1/2 w-3 h-3 lg:w-3.5 lg:h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -257,11 +260,11 @@ export default function TopBar({
                   <div className="flex items-center gap-0.5">
                     <button onClick={() => setBrowsingMode("OWNER")}
                       className={`px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold rounded lg:rounded-md transition-all whitespace-nowrap ${browsingMode === "OWNER" ? "bg-orange-500 text-white border border-orange-400" : "text-gray-600 hover:bg-gray-100 border border-gray-100"}`}>
-                      Owner
+                      {t("nav.owner")}
                     </button>
                     <button onClick={() => setBrowsingMode("CLIENT")}
                       className={`px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold rounded lg:rounded-md transition-all whitespace-nowrap ${browsingMode === "CLIENT" ? "bg-emerald-500 text-white border border-emerald-400" : "text-gray-600 hover:bg-gray-100 border border-gray-100"}`}>
-                      Client
+                      {t("nav.client")}
                     </button>
                   </div>
                 )}
@@ -270,7 +273,7 @@ export default function TopBar({
                 {(role === "CLIENT" || (role === "HOTEL_OWNER" && browsingMode === "CLIENT")) && (
                   <Link href="/bookings"
                     className="flex items-center px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded lg:rounded-md border border-gray-100 transition-all whitespace-nowrap">
-                    My Bookings
+                    {t("nav.myBookings")}
                   </Link>
                 )}
 
@@ -278,7 +281,7 @@ export default function TopBar({
                 {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
                   <Link href="/owner/bookings"
                     className="flex items-center px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold text-orange-700 hover:bg-orange-50 rounded lg:rounded-md border border-orange-100 transition-all whitespace-nowrap">
-                    Manage
+                    {t("nav.manage")}
                   </Link>
                 )}
 
@@ -286,7 +289,7 @@ export default function TopBar({
                 {role === "ADMIN" && !showAdminMenu && (
                   <Link href="/admin"
                     className="flex items-center px-1.5 lg:px-2.5 py-0.5 lg:py-1 text-[10px] lg:text-xs font-semibold text-purple-700 hover:bg-purple-50 rounded lg:rounded-md border border-purple-100 transition-all whitespace-nowrap">
-                    Admin
+                    {t("nav.admin")}
                   </Link>
                 )}
               </div>
@@ -294,9 +297,12 @@ export default function TopBar({
 
             {/* Auth area — avatar always at rightmost */}
             <div className="flex items-center gap-0.5 shrink-0">
+              {/* Language Switcher — always visible */}
+              <LanguageSwitcher />
+
               {showAuthenticatedUI ? (
                 <>
-                  {/* User avatar + dropdown — circle initial + chevron only */}
+                  {/* User avatar + dropdown */}
                   <div className="relative">
                     <button onClick={() => setOpenMenu(!openMenu)}
                       className="flex items-center gap-0.5 lg:gap-1 px-1 lg:px-1.5 py-0.5 lg:py-1 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100">
@@ -314,24 +320,24 @@ export default function TopBar({
                           <p className="text-sm font-bold text-gray-900">{username}</p>
                           <p className="text-xs text-gray-500">{role}</p>
                         </div>
-                        <button onClick={() => { setShowProfileModal(true); setOpenMenu(false); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">My Profile</button>
-                        <Link href="/" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Home</Link>
-                        <Link href="/tourisms" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Explore</Link>
-                        <Link href="/hotels" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Hotels</Link>
+                        <button onClick={() => { setShowProfileModal(true); setOpenMenu(false); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">{t("nav.myProfile")}</button>
+                        <Link href="/" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.home")}</Link>
+                        <Link href="/tourisms" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.explore")}</Link>
+                        <Link href="/hotels" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.hotels")}</Link>
                         {(role === "CLIENT" || (role === "HOTEL_OWNER" && browsingMode === "CLIENT")) && (
-                          <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>My Bookings</Link>
+                          <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.myBookings")}</Link>
                         )}
                         {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
-                          <Link href="/owner/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Manage Bookings</Link>
+                          <Link href="/owner/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.manageBookings")}</Link>
                         )}
                         {role === "ADMIN" && !showAdminMenu && (
-                          <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Admin Panel</Link>
+                          <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.adminPanel")}</Link>
                         )}
                         {role === "HOTEL_OWNER" && (
-                          <Link href="/owner/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Owner Dashboard</Link>
+                          <Link href="/owner/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.ownerDashboard")}</Link>
                         )}
                         <div className="border-t border-gray-200 mt-1 pt-1">
-                          <button onClick={handleLogout} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</button>
+                          <button onClick={handleLogout} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">{t("nav.logout")}</button>
                         </div>
                       </div>
                     )}
@@ -340,10 +346,10 @@ export default function TopBar({
               ) : mounted ? (
                 <>
                   <button onClick={() => setModalContent("login")} className="px-2 lg:px-3 py-1 lg:py-1.5 text-xs lg:text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 rounded-full border border-gray-100 transition-all whitespace-nowrap">
-                    Sign In
+                    {t("nav.signIn")}
                   </button>
                   <button onClick={() => setModalContent("register")} className="px-2 lg:px-3 py-1 lg:py-1.5 text-xs lg:text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-full border border-blue-400 transition-all whitespace-nowrap">
-                    Join
+                    {t("nav.join")}
                   </button>
                 </>
               ) : (

@@ -21,6 +21,8 @@ import { API_BASE_URL } from "@/services/api";
 import { ModeSwitcherCompact } from "@/components/common/ModeSwitcher";
 import { useToast } from "@/components/common/Toast";
 import { sanitizeInternationalPhone, validateInternationalPhone } from "@/utils/formValidation";
+import { useTranslation } from "react-i18next";
+import { useTranslateText } from "@/hooks/useTranslateText";
 
 type TabType = 'details' | 'booking' | 'my-bookings';
 
@@ -29,6 +31,7 @@ export default function HotelDetailPage() {
   const router = useRouter();
   const { token, isAuthenticated, userId, username, role, browsingMode } = useAuthStore();
   const toast = useToast();
+  const { t } = useTranslation();
   const hotelId = Number(params.id);
 
   // Hotel state
@@ -38,6 +41,10 @@ export default function HotelDetailPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Translate dynamic DB content — placed after hotel state
+  const translatedHotelDescription = useTranslateText(hotel?.description);
+  const translatedHotelPolicies = useTranslateText(hotel?.policies);
   
   // Check if current user is the hotel owner (must be after hotel state)
   const isHotelOwner = hotel?.ownerId === userId;
@@ -306,9 +313,9 @@ export default function HotelDetailPage() {
   const policies = hotel.policies || '';
 
   const navigation = [
-    { id: 'details', label: 'Hotel Details', icon: '', color: 'from-emerald-500 to-teal-500' },
-    { id: 'booking', label: 'New Booking', icon: '', color: 'from-blue-500 to-indigo-500' },
-    { id: 'my-bookings', label: 'My Bookings', icon: '', color: 'from-purple-500 to-pink-500', count: myBookings.length },
+    { id: 'details', label: t("hotel.description"), icon: '', color: 'from-emerald-500 to-teal-500' },
+    { id: 'booking', label: t("hotel.bookNow"), icon: '', color: 'from-blue-500 to-indigo-500' },
+    { id: 'my-bookings', label: t("nav.myBookings"), icon: '', color: 'from-purple-500 to-pink-500', count: myBookings.length },
   ];
 
   // Add owner management link if user is the hotel owner or admin
@@ -317,9 +324,9 @@ export default function HotelDetailPage() {
   ] : [];
 
   const quickActions = [
-    { label: 'Rate Hotel', icon: '★', action: () => isAuthenticated ? setRatingModalOpen(true) : setAuthModal(true), color: 'from-amber-400 to-orange-500' },
-    { label: 'View Reviews', icon: '', action: () => setRatingsViewOpen(true), color: 'from-gray-500 to-gray-700' },
-    { label: 'Call Hotel', icon: '', action: () => contactInfo && window.open(`tel:${contactInfo}`), color: 'from-green-500 to-emerald-600' },
+    { label: t("tourism.writeReview"), icon: '★', action: () => isAuthenticated ? setRatingModalOpen(true) : setAuthModal(true), color: 'from-amber-400 to-orange-500' },
+    { label: t("tourism.ratings"), icon: '', action: () => setRatingsViewOpen(true), color: 'from-gray-500 to-gray-700' },
+    { label: t("common.contactUs"), icon: '', action: () => contactInfo && window.open(`tel:${contactInfo}`), color: 'from-green-500 to-emerald-600' },
   ];
 
   const SidebarContent = () => (
@@ -516,10 +523,10 @@ export default function HotelDetailPage() {
             className="flex items-center gap-0 shrink-0 max-w-[calc(100vw-155px)] sm:max-w-none"
             style={{ overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            <button onClick={() => isAuthenticated ? setBookingModalOpen(true) : setAuthModal(true)} className="flex-shrink-0 px-2 text-gray-800 text-sm font-black hover:text-black transition-all whitespace-nowrap">New Booking</button>
-            <button onClick={() => isAuthenticated ? router.push('/bookings') : setAuthModal(true)} className="flex-shrink-0 px-2 text-gray-800 text-sm font-black hover:text-black transition-all whitespace-nowrap">My Bookings</button>
-            <button onClick={() => isAuthenticated ? setRatingModalOpen(true) : setAuthModal(true)} className="flex-shrink-0 px-2 text-gray-800 text-sm font-black hover:text-black transition-all whitespace-nowrap">Rate Hotel</button>
-            <button onClick={() => setRatingsViewOpen(true)} className="flex-shrink-0 px-2 text-gray-800 text-sm font-black hover:text-black transition-all whitespace-nowrap">View Reviews</button>
+            <button onClick={() => isAuthenticated ? setBookingModalOpen(true) : setAuthModal(true)} className="flex-shrink-0 px-2 text-gray-800 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("hotel.bookNow")}</button>
+            <button onClick={() => isAuthenticated ? router.push('/bookings') : setAuthModal(true)} className="flex-shrink-0 px-2 text-gray-800 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("nav.myBookings")}</button>
+            <button onClick={() => isAuthenticated ? setRatingModalOpen(true) : setAuthModal(true)} className="flex-shrink-0 px-2 text-gray-800 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("tourism.writeReview")}</button>
+            <button onClick={() => setRatingsViewOpen(true)} className="flex-shrink-0 px-2 text-gray-800 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("tourism.ratings")}</button>
           </div>
           {/* Avatar — top right */}
           <div className="flex-shrink-0 ml-1">
@@ -595,13 +602,13 @@ export default function HotelDetailPage() {
 
                 {/* Card 1 — About */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">About:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("hotel.description")}:</h3>
                   <div className="relative">
-                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{hotel.description || "A wonderful place to stay with excellent amenities and service."}</p>
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{translatedHotelDescription || hotel.description || t("tourism.noDescription")}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
                       <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                       <button onClick={() => openDetailModal('description')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                        See More →
+                        {t("common.seeMore")} →
                       </button>
                     </span>
                   </div>
@@ -610,13 +617,13 @@ export default function HotelDetailPage() {
                 {/* Card 2 — Policies (conditional) */}
                 {policies && (
                   <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                    <h3 className="text-gray-900 font-black text-sm mb-1">Policies:</h3>
+                    <h3 className="text-gray-900 font-black text-sm mb-1">{t("hotel.policies")}:</h3>
                     <div className="relative">
-                      <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{policies}</p>
+                      <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{translatedHotelPolicies || policies}</p>
                       <span className="absolute bottom-0 right-0 flex items-end">
                         <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                         <button onClick={() => openDetailModal('policies')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                          See More →
+                          {t("common.seeMore")} →
                         </button>
                       </span>
                     </div>
@@ -625,14 +632,14 @@ export default function HotelDetailPage() {
 
                 {/* Card 3 — Star Rating */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">⭐ Star Rating:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">⭐ {t("hotel.stars")}:</h3>
                   <div className="relative">
                     <div className="text-2xl font-black text-yellow-500 leading-tight">{starRating}/5</div>
-                    <p className="text-gray-500 text-xs font-medium mt-0.5 line-clamp-2">Hotel star rating</p>
+                    <p className="text-gray-500 text-xs font-medium mt-0.5 line-clamp-2">{t("hotel.rating")}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
                       <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                       <button onClick={() => setRatingsViewOpen(true)} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                        See Reviews →
+                        {t("common.seeReviews")} →
                       </button>
                     </span>
                   </div>
@@ -643,7 +650,7 @@ export default function HotelDetailPage() {
               {/* Image Gallery — grid layout, all images visible */}
               {hotel.images && hotel.images.length > 1 && (
                 <div className="bg-white rounded-2xl px-4 py-4 border border-gray-100">
-                  <h3 className="text-gray-900 font-black text-base mb-3">Hotel Images</h3>
+                  <h3 className="text-gray-900 font-black text-base mb-3">{t("hotel.images")}</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {hotel.images.map((img, idx) => {
                       const raw = typeof img === 'string' ? img : (img as any)?.imageUrl || '';
@@ -666,13 +673,13 @@ export default function HotelDetailPage() {
                       onClick={() => setZoomedImageIndex(0)}
                       className="px-4 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 transition-all"
                     >
-                      Zoom Galleries
+                      {t("tourism.images")}
                     </button>
                     <button
                       onClick={() => isAuthenticated ? setBookingModalOpen(true) : setAuthModal(true)}
                       className="px-4 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 transition-all"
                     >
-                      Book Now
+                      {t("hotel.bookNow")}
                     </button>
                   </div>
                 </div>
@@ -681,19 +688,19 @@ export default function HotelDetailPage() {
               {/* No images fallback */}
               {(!hotel.images || hotel.images.length <= 1) && (
                 <div className="bg-white rounded-2xl p-4 border border-gray-100">
-                  <h3 className="text-gray-900 font-black mb-3">Hotel Images</h3>
+                  <h3 className="text-gray-900 font-black mb-3">{t("hotel.images")}</h3>
                   <div className="flex gap-2 justify-end">
                     <button
                       onClick={() => hotel.images && hotel.images.length > 0 && setZoomedImageIndex(0)}
                       className="px-4 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 transition-all"
                     >
-                      Zoom Galleries
+                      {t("tourism.images")}
                     </button>
                     <button
                       onClick={() => isAuthenticated ? setBookingModalOpen(true) : setAuthModal(true)}
                       className="px-4 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 transition-all"
                     >
-                      Book Now
+                      {t("hotel.bookNow")}
                     </button>
                   </div>
                 </div>
@@ -715,8 +722,8 @@ export default function HotelDetailPage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-gray-900">Request a Booking</h2>
-                    <p className="text-gray-500 text-xs font-semibold">Fill in your details for review</p>
+                    <h2 className="text-base font-black text-gray-900">{t("hotel.requestBooking")}</h2>
+                    <p className="text-gray-500 text-xs font-semibold">{t("hotel.fillDetails")}</p>
                   </div>
                 </div>
 
@@ -729,7 +736,7 @@ export default function HotelDetailPage() {
                 <form onSubmit={handleSubmitBooking} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-gray-700 text-xs font-black mb-1">Check-in Date *</label>
+                      <label className="block text-gray-700 text-xs font-black mb-1">{t("booking.checkIn")} *</label>
                       <input
                         type="date"
                         required
@@ -741,7 +748,7 @@ export default function HotelDetailPage() {
                       {formErrors.checkIn && <p className="text-red-500 text-xs mt-1">{formErrors.checkIn}</p>}
                     </div>
                     <div>
-                      <label className="block text-gray-700 text-xs font-black mb-1">Check-out Date *</label>
+                      <label className="block text-gray-700 text-xs font-black mb-1">{t("booking.checkOut")} *</label>
                       <input
                         type="date"
                         required
@@ -756,7 +763,7 @@ export default function HotelDetailPage() {
 
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-gray-700 text-xs font-black mb-1">Guests *</label>
+                      <label className="block text-gray-700 text-xs font-black mb-1">{t("booking.guests")} *</label>
                       <input
                         type="number"
                         required
@@ -769,7 +776,7 @@ export default function HotelDetailPage() {
                       {formErrors.numberOfGuests && <p className="text-red-500 text-xs mt-1">{formErrors.numberOfGuests}</p>}
                     </div>
                     <div>
-                      <label className="block text-gray-700 text-xs font-black mb-1">Rooms</label>
+                      <label className="block text-gray-700 text-xs font-black mb-1">{t("hotel.bedRooms")}</label>
                       <input
                         type="number"
                         min={1}
@@ -783,7 +790,7 @@ export default function HotelDetailPage() {
 
                   {/* Phone Field */}
                   <div>
-                    <label className="block text-gray-700 text-xs font-black mb-1">Phone (International)</label>
+                    <label className="block text-gray-700 text-xs font-black mb-1">{t("hotel.phoneIntl")}</label>
                     <div className="flex gap-2">
                       <select
                         value={phoneCountryCode}
@@ -802,7 +809,7 @@ export default function HotelDetailPage() {
                           setFormData({ ...formData, clientPhone: sanitized }); 
                           setFormErrors({ ...formErrors, clientPhone: '' }); 
                         }}
-                        placeholder="Phone number"
+                        placeholder={t("hotel.phoneNumber")}
                         className={`flex-1 bg-white border rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all ${formErrors.clientPhone ? 'border-red-300 bg-red-50 focus:ring-red-200 focus:border-red-400' : 'border-gray-200 focus:ring-gray-200 focus:border-gray-300'}`}
                       />
                     </div>
@@ -810,23 +817,23 @@ export default function HotelDetailPage() {
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 text-xs font-black mb-1">Email</label>
+                    <label className="block text-gray-700 text-xs font-black mb-1">{t("auth.email")}</label>
                     <input
                       type="email"
                       value={formData.clientEmail}
                       onChange={(e) => { setFormData({ ...formData, clientEmail: e.target.value }); setFormErrors({ ...formErrors, clientEmail: '' }); }}
-                      placeholder="your@email.com"
+                      placeholder={t("hotel.yourEmail")}
                       className={`w-full bg-white border rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all ${formErrors.clientEmail ? 'border-red-300 bg-red-50 focus:ring-red-200 focus:border-red-400' : 'border-gray-200 focus:ring-gray-200 focus:border-gray-300'}`}
                     />
                     {formErrors.clientEmail && <p className="text-red-500 text-xs mt-1">{formErrors.clientEmail}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 text-xs font-black mb-1">Special Requests</label>
+                    <label className="block text-gray-700 text-xs font-black mb-1">{t("booking.specialRequests")}</label>
                     <textarea
                       value={formData.specialRequests}
                       onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
-                      placeholder="Any special requirements..."
+                      placeholder={t("hotel.anySpecialReq")}
                       rows={3}
                       className="w-full bg-white border border-gray-100 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-gray-200 focus:border-gray-300 focus:outline-none transition-all resize-none"
                     />
@@ -838,14 +845,14 @@ export default function HotelDetailPage() {
                       onClick={() => setActiveTab('details')}
                       className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-200 transition-all border border-gray-300"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                     <button
                       type="submit"
                       disabled={submitting}
                       className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-black text-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
                     >
-                      {submitting ? 'Submitting...' : '✓ Submit Booking'}
+                      {submitting ? t("booking.submitting") : `✓ ${t("hotel.submitBooking")}`}
                     </button>
                   </div>
                 </form>
@@ -862,13 +869,13 @@ export default function HotelDetailPage() {
                 </div>
               ) : myBookings.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border-2 border-gray-200 shadow-lg">
-                  <h3 className="text-2xl font-black text-gray-900 mb-2">No Bookings Yet</h3>
-                  <p className="text-gray-600 font-bold mb-6">You haven't made any bookings for this hotel.</p>
+                  <h3 className="text-2xl font-black text-gray-900 mb-2">{t("hotel.noBookingsYet")}</h3>
+                  <p className="text-gray-600 font-bold mb-6">{t("booking.noBookings")}</p>
                   <button
                     onClick={() => isAuthenticated ? setBookingModalOpen(true) : setAuthModal(true)}
                     className="bg-white text-blue-700 px-8 py-3 rounded-xl font-black border border-blue-100 hover:bg-blue-50 hover:scale-105 transition-all shadow-sm"
                   >
-                    Create New Booking
+                    {t("hotel.createNewBooking")}
                   </button>
                 </div>
               ) : (
@@ -876,13 +883,13 @@ export default function HotelDetailPage() {
                   {/* Status Filter Buttons */}
                   {(() => {
                     const statuses = [
-                      { key: 'ALL', label: 'All' },
-                      { key: 'REQUESTED', label: 'Requested' },
-                      { key: 'OWNER_ACCEPTED', label: 'Accepted' },
-                      { key: 'COST_PROPOSED', label: 'Cost Proposed' },
-                      { key: 'PAID', label: 'Paid' },
-                      { key: 'APPROVED', label: 'Approved' },
-                      { key: 'REJECTED', label: 'Rejected' },
+                      { key: 'ALL', label: t("booking.all") },
+                      { key: 'REQUESTED', label: t("booking.requested") },
+                      { key: 'OWNER_ACCEPTED', label: t("booking.accepted") },
+                      { key: 'COST_PROPOSED', label: t("booking.costProposed") },
+                      { key: 'PAID', label: t("booking.paid") },
+                      { key: 'APPROVED', label: t("booking.approved") },
+                      { key: 'REJECTED', label: t("booking.rejected") },
                     ];
                     return (
                       <div className="bg-white rounded-2xl px-4 py-1 mb-2">
@@ -1178,8 +1185,8 @@ export default function HotelDetailPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-black text-gray-900">Request a Booking</h2>
-              <p className="text-gray-500 text-xs font-semibold">Fill in your details for review</p>
+              <h2 className="text-base font-black text-gray-900">{t("hotel.requestBooking")}</h2>
+              <p className="text-gray-500 text-xs font-semibold">{t("hotel.fillDetails")}</p>
             </div>
           </div>
 
@@ -1192,7 +1199,7 @@ export default function HotelDetailPage() {
           <form onSubmit={handleSubmitBooking} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-gray-700 text-xs font-black mb-1">Check-in Date *</label>
+                <label className="block text-gray-700 text-xs font-black mb-1">{t("booking.checkIn")} *</label>
                 <input
                   type="date"
                   required
@@ -1204,7 +1211,7 @@ export default function HotelDetailPage() {
                 {formErrors.checkIn && <p className="text-red-500 text-xs mt-1">{formErrors.checkIn}</p>}
               </div>
               <div>
-                <label className="block text-gray-700 text-xs font-black mb-1">Check-out Date *</label>
+                <label className="block text-gray-700 text-xs font-black mb-1">{t("booking.checkOut")} *</label>
                 <input
                   type="date"
                   required
@@ -1219,7 +1226,7 @@ export default function HotelDetailPage() {
 
             <div className="grid md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-gray-700 text-xs font-black mb-1">Guests *</label>
+                <label className="block text-gray-700 text-xs font-black mb-1">{t("booking.guests")} *</label>
                 <input
                   type="number"
                   required
@@ -1236,7 +1243,7 @@ export default function HotelDetailPage() {
                 {formErrors.numberOfGuests && <p className="text-red-500 text-xs mt-1">{formErrors.numberOfGuests}</p>}
               </div>
               <div>
-                <label className="block text-gray-700 text-xs font-black mb-1">Rooms</label>
+                <label className="block text-gray-700 text-xs font-black mb-1">{t("hotel.bedRooms")}</label>
                 <input
                   type="number"
                   min={1}
@@ -1253,7 +1260,7 @@ export default function HotelDetailPage() {
 
             {/* Phone Field */}
             <div>
-              <label className="block text-gray-700 text-xs font-black mb-1">Phone (International)</label>
+              <label className="block text-gray-700 text-xs font-black mb-1">{t("hotel.phoneIntl")}</label>
               <div className="flex gap-2">
                 <select
                   value={phoneCountryCode}
@@ -1272,7 +1279,7 @@ export default function HotelDetailPage() {
                     setFormData({ ...formData, clientPhone: sanitized }); 
                     setFormErrors({ ...formErrors, clientPhone: '' }); 
                   }}
-                  placeholder="Phone number"
+                  placeholder={t("hotel.phoneNumber")}
                   className={`flex-1 bg-white border rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all ${formErrors.clientPhone ? 'border-red-300 bg-red-50 focus:ring-red-200 focus:border-red-400' : 'border-gray-200 focus:ring-gray-200 focus:border-gray-300'}`}
                 />
               </div>
@@ -1280,23 +1287,23 @@ export default function HotelDetailPage() {
             </div>
 
             <div>
-              <label className="block text-gray-700 text-xs font-black mb-1">Email</label>
+              <label className="block text-gray-700 text-xs font-black mb-1">{t("auth.email")}</label>
               <input
                 type="email"
                 value={formData.clientEmail}
                 onChange={(e) => { setFormData({ ...formData, clientEmail: e.target.value }); setFormErrors({ ...formErrors, clientEmail: '' }); }}
-                placeholder="your@email.com"
+                placeholder={t("hotel.yourEmail")}
                 className={`w-full bg-white border rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all ${formErrors.clientEmail ? 'border-red-300 bg-red-50 focus:ring-red-200 focus:border-red-400' : 'border-gray-200 focus:ring-gray-200 focus:border-gray-300'}`}
               />
               {formErrors.clientEmail && <p className="text-red-500 text-xs mt-1">{formErrors.clientEmail}</p>}
             </div>
 
             <div>
-              <label className="block text-gray-700 text-xs font-black mb-1">Special Requests</label>
+              <label className="block text-gray-700 text-xs font-black mb-1">{t("booking.specialRequests")}</label>
               <textarea
                 value={formData.specialRequests}
                 onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
-                placeholder="Any special requirements..."
+                placeholder={t("hotel.anySpecialReq")}
                 rows={3}
                 className="w-full bg-white border border-gray-100 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-gray-200 focus:border-gray-300 focus:outline-none transition-all resize-none"
               />
@@ -1308,14 +1315,14 @@ export default function HotelDetailPage() {
                 onClick={() => { setBookingModalOpen(false); setBookingError(null); }}
                 className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all border border-gray-300 shadow-sm"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={submitting}
                 className="bg-blue-100 text-blue-700 px-6 py-2.5 rounded-xl font-black text-sm hover:bg-blue-200 hover:scale-105 disabled:opacity-50 transition-all shadow-md"
               >
-                {submitting ? 'Submitting...' : '✓ Submit Booking'}
+                {submitting ? t("booking.submitting") : `✓ ${t("hotel.submitBooking")}`}
               </button>
             </div>
           </form>
@@ -1338,66 +1345,42 @@ export default function HotelDetailPage() {
         refreshKey={0}
       />
 
-      {/* Detail Modal — tourism page style */}
+      {/* Detail Modal — with translation */}
       <Modal isOpen={detailModalOpen} onClose={() => setDetailModalOpen(false)} size="lg">
         <div className="bg-white rounded-2xl overflow-hidden">
-          {/* Header */}
           <div className="px-6 pt-6 pb-4">
             <h2 className="text-xl font-black text-blue-700">
-              {detailModalType === 'description' ? '🏨 About This Hotel' : '📋 Hotel Policies'}
+              {detailModalType === 'description' ? `🏨 ${t("hotel.description")}` : `📋 ${t("hotel.policies")}`}
             </h2>
           </div>
 
-          {/* Body */}
           <div className="px-6 py-5 max-h-[55vh] overflow-y-auto">
             {detailModalType === 'description' && (() => {
-              const text = hotel?.description || "A wonderful place to stay with excellent amenities and service.";
+              const text = translatedHotelDescription || hotel?.description || t("tourism.noDescription");
               const paragraphs = text.split('\n\n').filter(p => p.trim());
               if (paragraphs.length > 1) {
-                return (
-                  <div className="space-y-4">
-                    {paragraphs.map((para, idx) => (
-                      <p key={idx} className="text-gray-700 text-sm leading-relaxed">{para}</p>
-                    ))}
-                  </div>
-                );
+                return <div className="space-y-4">{paragraphs.map((para, idx) => <p key={idx} className="text-gray-700 text-sm leading-relaxed">{para}</p>)}</div>;
               }
               const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim());
               if (sentences.length > 3) {
-                return (
-                  <div className="space-y-3">
-                    {sentences.map((s, idx) => (
-                      <p key={idx} className="text-gray-700 text-sm leading-relaxed">{s}</p>
-                    ))}
-                  </div>
-                );
+                return <div className="space-y-3">{sentences.map((s, idx) => <p key={idx} className="text-gray-700 text-sm leading-relaxed">{s}</p>)}</div>;
               }
               return <p className="text-gray-700 text-sm leading-relaxed">{text}</p>;
             })()}
 
             {detailModalType === 'policies' && (() => {
-              const text = policies || "No policies available";
+              const text = translatedHotelPolicies || policies || t("tourism.noDescription");
               const paragraphs = text.split('\n\n').filter(p => p.trim());
               if (paragraphs.length > 1) {
-                return (
-                  <div className="space-y-4">
-                    {paragraphs.map((para, idx) => (
-                      <p key={idx} className="text-gray-700 text-sm leading-relaxed">{para}</p>
-                    ))}
-                  </div>
-                );
+                return <div className="space-y-4">{paragraphs.map((para, idx) => <p key={idx} className="text-gray-700 text-sm leading-relaxed">{para}</p>)}</div>;
               }
               return <p className="text-gray-700 text-sm leading-relaxed">{text}</p>;
             })()}
           </div>
 
-          {/* Close */}
           <div className="px-6 pb-6 pt-3">
-            <button
-              onClick={() => setDetailModalOpen(false)}
-              className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm rounded-xl transition-all"
-            >
-              Close
+            <button onClick={() => setDetailModalOpen(false)} className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm rounded-xl transition-all">
+              {t("common.close")}
             </button>
           </div>
         </div>

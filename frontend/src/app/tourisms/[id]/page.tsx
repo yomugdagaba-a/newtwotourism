@@ -27,6 +27,8 @@ import { API_BASE_URL } from "@/services/api";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import TourismDetailModal from "@/components/tourism/TourismDetailModal";
+import { useTranslation } from "react-i18next";
+import { useTranslateText } from "@/hooks/useTranslateText";
 
 const RoadMapModal = dynamic(() => import("@/components/map/RoadMapModal"), { ssr: false });
 const TourismMapModal = dynamic(() => import("@/components/map/TourismMapModal"), { ssr: false });
@@ -125,6 +127,7 @@ export default function TourismDetailPage() {
   const tourismId = Number(params.id);
   const { isAuthenticated, token, username } = useAuthStore();
   const toast = useToast();
+  const { t } = useTranslation();
 
   const [detail, setDetail] = useState<TourismFullDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,6 +135,14 @@ export default function TourismDetailPage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Translate dynamic DB content — placed after state declarations
+  const translatedName = useTranslateText(detail?.name);
+  const translatedDescription = useTranslateText(detail?.description);
+  const translatedBestTime = useTranslateText(detail?.bestTime);
+  const translatedVisitTime = useTranslateText(detail?.visitTime ? formatVisitTime(detail.visitTime) : null);
+  const translatedSafety = useTranslateText((detail as any)?.peaceInfo);
+  const translatedLanguages = useTranslateText((detail as any)?.languages?.join(', '));
 
   const [hotels, setHotels] = useState<HotelSummaryDto[]>([]);
   const [hotelsLoading, setHotelsLoading] = useState(false);
@@ -338,11 +349,11 @@ export default function TourismDetailPage() {
   }
 
   const navigation = [
-    { id: 'overview', label: 'Overview', icon: '' },
-    { id: 'nearby', label: 'Nearby Places', icon: '', count: detail?.nearbyPlaces?.length || 0 },
-    { id: 'hotels', label: 'Hotels', icon: '', count: hotels.length },
-    { id: 'roads', label: 'Roads & Transport', icon: '', count: roads.length },
-    { id: 'guiders', label: 'Language Guiders', icon: '', count: guiders.length },
+    { id: 'overview', label: t("tourism.description"), icon: '' },
+    { id: 'nearby', label: t("tourism.nearbyPlaces"), icon: '', count: detail?.nearbyPlaces?.length || 0 },
+    { id: 'hotels', label: t("nav.hotels"), icon: '', count: hotels.length },
+    { id: 'roads', label: t("road.roads"), icon: '', count: roads.length },
+    { id: 'guiders', label: t("guider.languageGuiders"), icon: '', count: guiders.length },
   ];
 
 
@@ -372,12 +383,12 @@ export default function TourismDetailPage() {
             className="flex items-center gap-0 shrink-0 max-w-[calc(100vw-155px)] sm:max-w-none"
             style={{ overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            <button onClick={() => setTourismMapOpen(true)} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">See on Map</button>
-            <button onClick={() => setActiveTab('hotels')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">Find Hotels</button>
-            <button onClick={() => setActiveTab('roads')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">View Roads & Horsers</button>
-            <button onClick={() => setActiveTab('guiders')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">View Guiders</button>
-            <button onClick={() => setActiveTab('nearby')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">Nearby Places</button>
-            <button onClick={() => { if (requireAuth()) setRatingModalOpen(true); }} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">Rate Place</button>
+            <button onClick={() => setTourismMapOpen(true)} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("map.interactiveMap")}</button>
+            <button onClick={() => setActiveTab('hotels')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("nav.hotels")}</button>
+            <button onClick={() => setActiveTab('roads')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("road.roads")} &amp; {t("horse.horseServices")}</button>
+            <button onClick={() => setActiveTab('guiders')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("guider.languageGuiders")}</button>
+            <button onClick={() => setActiveTab('nearby')} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("tourism.nearbyPlaces")}</button>
+            <button onClick={() => { if (requireAuth()) setRatingModalOpen(true); }} className="flex-shrink-0 px-2 text-gray-900 text-sm font-black hover:text-black transition-all whitespace-nowrap">{t("tourism.writeReview")}</button>
           </div>
           {/* Avatar — top right */}
           <div className="flex-shrink-0 ml-1">
@@ -395,7 +406,7 @@ export default function TourismDetailPage() {
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to Destinations
+                {t("common.back")}
               </button>
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-black text-base text-gray-700">
@@ -437,19 +448,19 @@ export default function TourismDetailPage() {
               <div>
                 <button onClick={() => { setTourismMapOpen(true); setSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
                   <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  See on Map
+                  {t("map.interactiveMap")}
                 </button>
                 <button onClick={() => { setImageGalleryOpen(true); setSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
                   <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  View Images
+                  {t("tourism.images")}
                 </button>
                 <button onClick={() => { requireAuth() && setRatingModalOpen(true); setSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
                   <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                  Rate Place
+                  {t("tourism.writeReview")}
                 </button>
                 <button onClick={() => { setRatingsViewOpen(true); setSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
                   <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                  View Reviews
+                  {t("tourism.ratings")}
                 </button>
               </div>
             </nav>
@@ -463,12 +474,12 @@ export default function TourismDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-gray-900 text-xs font-bold truncate">{username}</p>
-                    <p className="text-green-600 text-xs">✓ Logged in</p>
+                    <p className="text-green-600 text-xs">✓ {t("common.success")}</p>
                   </div>
                 </div>
               ) : (
                 <button onClick={() => { setAuthMode('login'); setAuthModal(true); setSidebarOpen(false); }} className="w-full py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all">
-                  Login to Rate
+                  {t("auth.login")}
                 </button>
               )}
             </div>
@@ -519,13 +530,13 @@ export default function TourismDetailPage() {
 
                 {/* Card 1 — About This Place */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">About This Place:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("tourism.description")}:</h3>
                   <div className="relative">
-                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4 pr-0">{detail.description || "A beautiful destination waiting to be explored."}</p>
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4 pr-0">{translatedDescription || t("tourism.noDescription")}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
                       <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                       <button onClick={() => openDetailModal('description')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                        See More →
+                        {t("common.seeMore")} →
                       </button>
                     </span>
                   </div>
@@ -533,13 +544,13 @@ export default function TourismDetailPage() {
 
                 {/* Card 2 — Best Time to Visit */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">Best Time to Visit:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("tourism.bestTime")}:</h3>
                   <div className="relative">
-                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{detail.bestTime || "Year-round destination"}</p>
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{translatedBestTime || "Year-round destination"}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
                       <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                       <button onClick={() => openDetailModal('bestTime')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                        See More →
+                        {t("common.seeMore")} →
                       </button>
                     </span>
                   </div>
@@ -547,13 +558,13 @@ export default function TourismDetailPage() {
 
                 {/* Card 3 — Visit Duration */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">Visit Duration:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("tourism.bestTime")}:</h3>
                   <div className="relative">
-                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{detail.visitTime ? formatVisitTime(detail.visitTime) : "Duration not specified"}</p>
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{translatedVisitTime || t("common.loading")}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
                       <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                       <button onClick={() => openDetailModal('visitTime')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                        See More →
+                        {t("common.seeMore")} →
                       </button>
                     </span>
                   </div>
@@ -561,13 +572,13 @@ export default function TourismDetailPage() {
 
                 {/* Card 4 — Safety Info */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">Safety Info:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("common.info")}:</h3>
                   <div className="relative">
-                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{detail.peaceInfo || "Safe and welcoming destination"}</p>
+                    <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{translatedSafety || detail.peaceInfo || t("tourism.noDescription")}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
                       <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                       <button onClick={() => openDetailModal('safety')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                        See More →
+                        {t("common.seeMore")} →
                       </button>
                     </span>
                   </div>
@@ -575,15 +586,15 @@ export default function TourismDetailPage() {
 
                 {/* Card 5 — Languages */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">Languages:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("guider.languages")}:</h3>
                   <div className="relative">
                     <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">
-                      {detail.languages?.length > 0 ? detail.languages.join(', ') : "Local languages spoken"}
+                      {detail.languages?.length > 0 ? detail.languages.join(', ') : t("guider.languages")}
                     </p>
                     <span className="absolute bottom-0 right-0 flex items-end">
                       <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                       <button onClick={() => openDetailModal('languages')} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                        See More →
+                        {t("common.seeMore")} →
                       </button>
                     </span>
                   </div>
@@ -591,14 +602,14 @@ export default function TourismDetailPage() {
 
                 {/* Card 6 — Average Rating */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">Average Rating:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("tourism.ratings")}:</h3>
                   <div className="relative">
                     <div className="text-lg font-black text-yellow-500 leading-tight">{computeRatingSummary(detail).avgRating?.toFixed(1) || '0'}/5</div>
-                    <p className="text-gray-500 text-xs font-medium mt-0.5 line-clamp-2">{computeRatingSummary(detail).totalRatings || 0} reviews</p>
+                    <p className="text-gray-500 text-xs font-medium mt-0.5 line-clamp-2">{computeRatingSummary(detail).totalRatings || 0} {t("tourism.ratings")}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
                       <span className="w-12 h-4 bg-gradient-to-r from-transparent to-white" />
                       <button onClick={() => setRatingsViewOpen(true)} className="bg-white text-blue-600 text-xs font-bold hover:text-blue-800 transition-all whitespace-nowrap leading-relaxed">
-                        See Reviews →
+                        {t("tourism.ratings")} →
                       </button>
                     </span>
                   </div>
@@ -609,7 +620,7 @@ export default function TourismDetailPage() {
               {/* Gallery — grid layout like hotels */}
               {detail.images && detail.images.length > 1 && (
                 <div className="bg-white rounded-2xl px-4 py-4 border border-gray-200">
-                  <h3 className="text-gray-900 font-black text-base mb-3">Internal Images</h3>
+                  <h3 className="text-gray-900 font-black text-base mb-3">{t("tourism.images")}</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {detail.images.map((img, idx) => (
                       <button key={idx} onClick={() => setZoomedImageIndex(idx)} className="relative h-32 rounded-xl overflow-hidden border border-gray-200 hover:border-blue-400 transition-all">
@@ -620,7 +631,7 @@ export default function TourismDetailPage() {
                   </div>
                   <div className="mt-3 flex justify-end">
                     <button onClick={() => setImageGalleryOpen(true)} className="px-4 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 transition-all">
-                      Zoom Images
+                      {t("tourism.images")}
                     </button>
                   </div>
                 </div>
@@ -630,10 +641,10 @@ export default function TourismDetailPage() {
               {(!detail.images || detail.images.length <= 1) && (
                 <div className="bg-white rounded-2xl p-4 border border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-gray-900 font-black">Internal Images</h3>
+                    <h3 className="text-gray-900 font-black">{t("tourism.images")}</h3>
                     <button onClick={() => setImageGalleryOpen(true)}
                       className="px-4 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 transition-all">
-                      Zoom Images
+                      {t("tourism.images")}
                     </button>
                   </div>
                 </div>
@@ -643,9 +654,9 @@ export default function TourismDetailPage() {
               {detail.nearbyPlaces && detail.nearbyPlaces.length > 0 && (
                 <div className="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-gray-900 font-black text-lg">Nearby Places in {detail.kebele}</h3>
+                    <h3 className="text-gray-900 font-black text-lg">{t("tourism.nearbyPlaces")} — {detail.kebele}</h3>
                     <button onClick={() => setActiveTab('nearby')} className="text-blue-600 text-sm font-black hover:text-blue-700 hover:underline transition-all">
-                      View All ({detail.nearbyPlaces.length}) →
+                      {t("home.viewAllPlaces")} ({detail.nearbyPlaces.length}) →
                     </button>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -675,14 +686,14 @@ export default function TourismDetailPage() {
           {activeTab === 'nearby' && (
             <div>
               <div className="mb-5">
-                <h2 className="text-2xl font-black text-gray-900 mb-2">Nearby Tourism Places</h2>
-                <p className="text-gray-600 font-semibold">Explore other destinations in {detail.kebele} kebele</p>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">{t("tourism.nearbyPlaces")}</h2>
+                <p className="text-gray-600 font-semibold">{t("tourism.explore")} {detail.kebele}</p>
               </div>
               
               {!detail.nearbyPlaces || detail.nearbyPlaces.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border-2 border-gray-200 shadow-md">
-                  <h3 className="text-xl font-black text-gray-900 mb-2">No Nearby Places Found</h3>
-                  <p className="text-gray-600 font-semibold">There are no other tourism places in this kebele yet.</p>
+                  <h3 className="text-xl font-black text-gray-900 mb-2">{t("common.noResults")}</h3>
+                  <p className="text-gray-600 font-semibold">{t("tourism.noDescription")}</p>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -713,8 +724,8 @@ export default function TourismDetailPage() {
                         </div>
                       </div>
                       <div className="p-4 flex items-center justify-between">
-                        <span className="text-gray-700 text-sm font-black">Same Kebele</span>
-                        <span className="text-blue-600 text-sm font-black hover:text-blue-700">View Details →</span>
+                        <span className="text-gray-700 text-sm font-black">{t("tourism.location")}</span>
+                        <span className="text-blue-600 text-sm font-black hover:text-blue-700">{t("hotel.viewDetails")} →</span>
                       </div>
                     </div>
                   ))}
@@ -730,18 +741,18 @@ export default function TourismDetailPage() {
               <div className="bg-white px-1 pt-0 pb-2 flex items-center gap-2">
                 <h2 className="text-lg font-black text-gray-900">Hotels & Accommodations</h2>
                 <span className="text-gray-300">·</span>
-                <p className="text-gray-400 text-sm font-medium">Find the perfect place to stay near {detail.name}</p>
+                <p className="text-gray-400 text-sm font-medium">{t("hotel.description")} {detail.name}</p>
               </div>
 
               {hotelsLoading ? (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="mt-4 text-gray-700 font-black">Loading hotels...</p>
+                  <p className="mt-4 text-gray-700 font-black">{t("hotel.loading")}</p>
                 </div>
               ) : hotels.length === 0 ? (
                 <div className="text-center py-10 bg-white rounded-2xl border border-gray-200">
-                  <h3 className="text-lg font-black text-gray-900 mb-1">No Hotels Found</h3>
-                  <p className="text-gray-500 text-sm font-semibold">No accommodations available for this destination yet.</p>
+                  <h3 className="text-lg font-black text-gray-900 mb-1">{t("common.noResults")}</h3>
+                  <p className="text-gray-500 text-sm font-semibold">{t("hotel.notFound")}</p>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -781,19 +792,19 @@ export default function TourismDetailPage() {
                             onClick={() => router.push(`/hotels/${hotel.id}`)}
                             className="flex-1 bg-white text-blue-700 py-2 px-0.5 rounded-xl text-sm font-black border border-blue-100 hover:bg-blue-50 hover:scale-105 transition-all shadow-sm"
                           >
-                            View Details
+                            {t("hotel.viewDetails")}
                           </button>
                           <button
                             onClick={() => router.push(`/hotels/${hotel.id}`)}
                             className="flex-1 bg-white text-blue-700 py-2 px-0.5 rounded-xl text-sm font-black border border-blue-100 hover:bg-blue-50 hover:scale-105 transition-all shadow-sm"
                           >
-                            Booking
+                            {t("hotel.bookNow")}
                           </button>
                           <button
                             onClick={() => { setSelectedHotelForMap(hotel); setHotelMapOpen(true); }}
                             className="flex-1 bg-white text-blue-700 py-2 px-0.5 rounded-xl text-sm font-black border border-blue-100 hover:bg-blue-50 hover:scale-105 transition-all shadow-sm"
                           >
-                            View on Map
+                            {t("road.viewMap")}
                           </button>
                         </div>
                       </div>
@@ -810,16 +821,16 @@ export default function TourismDetailPage() {
             <div>
               {/* Header + stats in one row */}
               <div className="flex items-center gap-2 px-1 pt-0 pb-2 flex-wrap">
-                <h2 className="text-lg font-black text-gray-900 flex-shrink-0">Roads & Transport</h2>
+                <h2 className="text-lg font-black text-gray-900 flex-shrink-0">{t("road.roads")}</h2>
                 <span className="text-gray-300 flex-shrink-0">·</span>
-                <p className="text-gray-400 text-sm font-medium flex-shrink-0">Find the best routes to reach {detail.name}</p>
+                <p className="text-gray-400 text-sm font-medium flex-shrink-0">{t("road.roadInfo")} {detail.name}</p>
                 <div className="ml-auto flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">{roads.filter(r => r.distanceByCar).length} Drive Routes</span>
+                  <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">{roads.filter(r => r.distanceByCar).length} {t("road.roads")}</span>
                   {roads.filter(r => r.distanceByFoot).length > 0 && (
-                    <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">Walking route available</span>
+                    <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">{t("road.distance")}</span>
                   )}
                   {roads.filter(r => r.distanceByHorse).length > 0 && (
-                    <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">{roads.filter(r => r.distanceByHorse).length} Horse route(s)</span>
+                    <span className="px-3 py-1 bg-white text-gray-700 rounded-lg text-sm font-semibold border border-gray-200">{roads.filter(r => r.distanceByHorse).length} {t("horse.horseServices")}</span>
                   )}
                 </div>
               </div>
@@ -827,12 +838,12 @@ export default function TourismDetailPage() {
               {roadsLoading ? (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="mt-4 text-gray-700 font-black">Loading routes...</p>
+                  <p className="mt-4 text-gray-700 font-black">{t("road.loading")}</p>
                 </div>
               ) : roads.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
-                  <h3 className="text-xl font-black text-gray-900 mb-2">No Routes Found</h3>
-                  <p className="text-gray-600 font-semibold">Road information for this destination is being prepared.</p>
+                  <h3 className="text-xl font-black text-gray-900 mb-2">{t("common.noResults")}</h3>
+                  <p className="text-gray-600 font-semibold">{t("road.roadInfo")}</p>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -840,7 +851,7 @@ export default function TourismDetailPage() {
                     <div key={road.id} className="bg-white rounded-xl overflow-hidden border border-gray-200 flex flex-col">
                       {/* Card header */}
                       <div className="px-4 py-2.5 border-b border-gray-100 flex justify-between items-center">
-                        <h3 className="text-gray-900 font-black text-sm">From {road.initialPlace}</h3>
+                        <h3 className="text-gray-900 font-black text-sm">{t("road.from")} {road.initialPlace}</h3>
                       </div>
 
                       <div className="px-4 py-3 flex flex-col gap-3 flex-1">
@@ -850,35 +861,35 @@ export default function TourismDetailPage() {
 
                         {/* Road Supports — column format */}
                         <div>
-                          <p className="text-gray-400 text-xs font-black uppercase tracking-wider mb-1.5">Road Supports</p>
+                          <p className="text-gray-400 text-xs font-black uppercase tracking-wider mb-1.5">{t("road.roadInfo")}</p>
                           <div className="space-y-1">
                             {road.distanceByCar && (
                               <div className="flex items-center justify-between py-1 border-b border-gray-100">
-                                <span className="text-sm font-semibold text-gray-600">By Car</span>
+                                <span className="text-sm font-semibold text-gray-600">{t("road.byCar")}</span>
                                 <span className="text-sm font-black text-gray-900">{road.distanceByCar.toFixed(1)} km</span>
                               </div>
                             )}
                             {road.distanceByFoot && (
                               <div className="flex items-center justify-between py-1 border-b border-gray-100">
-                                <span className="text-sm font-semibold text-gray-600">By Foot</span>
+                                <span className="text-sm font-semibold text-gray-600">{t("road.byFoot")}</span>
                                 <span className="text-sm font-black text-gray-900">{road.distanceByFoot.toFixed(1)} km</span>
                               </div>
                             )}
                             {road.distanceByHorse && (
                               <div className="flex items-center justify-between py-1 border-b border-gray-100">
-                                <span className="text-sm font-semibold text-gray-600">By Horse</span>
+                                <span className="text-sm font-semibold text-gray-600">{t("road.byHorse")}</span>
                                 <span className="text-sm font-black text-gray-900">{road.distanceByHorse.toFixed(1)} km</span>
                               </div>
                             )}
                             {road.distanceByPlane && (
                               <div className="flex items-center justify-between py-1 border-b border-gray-100">
-                                <span className="text-sm font-semibold text-gray-600">By Plane</span>
+                                <span className="text-sm font-semibold text-gray-600">{t("road.byPlane")}</span>
                                 <span className="text-sm font-black text-gray-900">{road.distanceByPlane.toFixed(1)} km</span>
                               </div>
                             )}
                             {road.totalDistance && (
                               <div className="flex items-center justify-between py-1">
-                                <span className="text-sm font-black text-gray-900">Total</span>
+                                <span className="text-sm font-black text-gray-900">{t("road.total")}</span>
                                 <span className="text-sm font-black text-gray-900">{road.totalDistance.toFixed(1)} km</span>
                               </div>
                             )}
@@ -889,11 +900,11 @@ export default function TourismDetailPage() {
                         <div className="flex flex-col gap-1.5 mt-auto pt-1">
                           <button onClick={() => { setSelectedRoad(road); setMapModalOpen(true); }}
                             className="w-full bg-white text-blue-700 py-2 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-50 transition-all">
-                            View on Map
+                            {t("road.viewMap")}
                           </button>
                           <button onClick={() => router.push(`/horsers?roadId=${road.id}`)}
                             className="w-full bg-white text-blue-700 py-2 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-50 transition-all">
-                            Horse Services for this road
+                            {t("horse.horseServices")}
                           </button>
                         </div>
                       </div>
@@ -910,18 +921,18 @@ export default function TourismDetailPage() {
             <div>
               {/* Header row with language search on the right */}
               <div className="flex items-center gap-2 px-1 pt-0 pb-2 flex-wrap">
-                <h2 className="text-lg font-black text-gray-900 flex-shrink-0">Language Guiders</h2>
+                <h2 className="text-lg font-black text-gray-900 flex-shrink-0">{t("guider.languageGuiders")}</h2>
                 <span className="text-gray-300 flex-shrink-0">·</span>
-                <p className="text-gray-400 text-sm font-medium flex-shrink-0">Local guides who can help you explore {detail.name}</p>
+                <p className="text-gray-400 text-sm font-medium flex-shrink-0">{t("guider.languageGuiders")} {detail.name}</p>
                 {guiders.length > 0 && (
                   <>
                     <span className="text-gray-300 flex-shrink-0">·</span>
                     <span className="text-gray-500 text-sm font-semibold flex-shrink-0">
-                      {guiders.filter(g => !guiderLangFilter.trim() || g.languages.some(l => l.toLowerCase().includes(guiderLangFilter.toLowerCase()))).length} Guider{guiders.length !== 1 ? 's' : ''}
+                      {guiders.filter(g => !guiderLangFilter.trim() || g.languages.some(l => l.toLowerCase().includes(guiderLangFilter.toLowerCase()))).length} {t("guider.languageGuiders")}
                     </span>
                   </>
                 )}
-                {/* Language search — pushed to right */}
+                {/* Language search */}
                 <div className="ml-auto flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white">
                   <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -930,7 +941,7 @@ export default function TourismDetailPage() {
                     type="text"
                     value={guiderLangFilter}
                     onChange={e => setGuiderLangFilter(e.target.value)}
-                    placeholder="Filter by language..."
+                    placeholder={t("common.search")}
                     className="text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent w-36"
                   />
                   {guiderLangFilter && (
@@ -946,12 +957,12 @@ export default function TourismDetailPage() {
               {guidersLoading ? (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="mt-4 text-gray-700 font-black">Loading guiders...</p>
+                  <p className="mt-4 text-gray-700 font-black">{t("common.loading")}</p>
                 </div>
               ) : guiders.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
-                  <h3 className="text-xl font-black text-gray-900 mb-2">No Guiders Available</h3>
-                  <p className="text-gray-600 font-semibold">No language guiders registered for this destination yet.</p>
+                  <h3 className="text-xl font-black text-gray-900 mb-2">{t("common.noResults")}</h3>
+                  <p className="text-gray-600 font-semibold">{t("guider.languageGuiders")}</p>
                 </div>
               ) : (() => {
                 const filtered = guiderLangFilter.trim()
@@ -973,7 +984,7 @@ export default function TourismDetailPage() {
                           </div>
                           <div className="min-w-0">
                             <h3 className="text-sm font-black text-gray-900 truncate">{guider.fullName || guider.name}</h3>
-                            <p className="text-xs text-gray-400">Language Guide</p>
+                            <p className="text-xs text-gray-400">{t("guider.languageGuiders")}</p>
                           </div>
                         </div>
 
@@ -981,11 +992,11 @@ export default function TourismDetailPage() {
                           {/* Info column */}
                           <div className="space-y-1">
                             <div className="flex items-center justify-between py-1">
-                              <span className="text-sm font-semibold text-gray-600">Contact</span>
+                              <span className="text-sm font-semibold text-gray-600">{t("common.contactUs")}</span>
                               <span className="text-sm font-black text-gray-900">{guider.contactInfo}</span>
                             </div>
                             <div className="flex items-start justify-between py-1">
-                              <span className="text-sm font-semibold text-gray-600 flex-shrink-0">Languages</span>
+                              <span className="text-sm font-semibold text-gray-600 flex-shrink-0">{t("guider.languages")}</span>
                               <span className="text-sm font-black text-gray-900 text-right ml-2">
                                 {guider.languages.map((lang, idx) => (
                                   <span key={idx}>
@@ -998,10 +1009,10 @@ export default function TourismDetailPage() {
                               </span>
                             </div>
                             <div className="flex items-center justify-between py-1">
-                              <span className="text-sm font-semibold text-gray-600">Status</span>
+                              <span className="text-sm font-semibold text-gray-600">{t("guider.available")}</span>
                               <span className={`text-sm font-black flex items-center gap-1 ${guider.active ? 'text-green-600' : 'text-red-500'}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${guider.active ? 'bg-green-600' : 'bg-red-500'}`}></span>
-                                {guider.active ? 'Available' : 'Unavailable'}
+                                {guider.active ? t("guider.available") : t("horse.unavailable")}
                               </span>
                             </div>
                           </div>
@@ -1012,13 +1023,13 @@ export default function TourismDetailPage() {
                               onClick={() => handleGuiderCallClick(guider.id, guider.contactInfo, guider.fullName || guider.name || 'Guide')}
                               className="flex-1 bg-white text-blue-700 py-2 rounded-lg font-bold text-sm hover:bg-blue-50 transition-colors border border-blue-200"
                             >
-                              Call
+                              {t("common.contactUs")}
                             </button>
                             <button
                               disabled
                               className="flex-1 bg-white text-gray-400 py-2 rounded-lg font-normal text-sm cursor-not-allowed border border-gray-200"
                             >
-                              Book
+                              {t("guider.bookGuider")}
                             </button>
                           </div>
                         </div>
@@ -1057,7 +1068,7 @@ export default function TourismDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Contact {showGuiderPhoneModal.name}</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("common.contactUs")} {showGuiderPhoneModal.name}</h3>
               <button
                 onClick={closeGuiderPhoneModal}
                 className="text-gray-400 hover:text-gray-600"
@@ -1078,20 +1089,20 @@ export default function TourismDetailPage() {
                   onClick={() => handleGuiderCopy(showGuiderPhoneModal.guiderId, showGuiderPhoneModal.phone)}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors flex-shrink-0"
                 >
-                  {copiedGuiderId === showGuiderPhoneModal.guiderId ? '✓ Copied' : 'Copy'}
+                  {copiedGuiderId === showGuiderPhoneModal.guiderId ? '✓ ' + t("common.ok") : t("common.ok")}
                 </button>
               </div>
             </div>
 
             <p className="text-sm text-gray-600 text-center mb-4">
-              Use the Copy button to copy the number, then dial it from your phone.
+              {t("common.contactUs")}
             </p>
 
             <button
               onClick={closeGuiderPhoneModal}
               className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         </div>
@@ -1203,43 +1214,43 @@ export default function TourismDetailPage() {
       <TourismDetailModal
         isOpen={detailModalOpen && detailModalType === 'description'}
         onClose={() => setDetailModalOpen(false)}
-        title="About This Place"
+        title={t("tourism.description")}
         icon=""
-        content={detail?.description || "A beautiful destination waiting to be explored."}
+        content={detail?.description || t("tourism.noDescription")}
         type="description"
       />
 
       <TourismDetailModal
         isOpen={detailModalOpen && detailModalType === 'bestTime'}
         onClose={() => setDetailModalOpen(false)}
-        title="Best Time to Visit"
+        title={t("tourism.bestTime")}
         icon=""
-        content={detail?.bestTime || "Year-round destination"}
+        content={detail?.bestTime || t("tourism.noDescription")}
         type="bestTime"
       />
 
       <TourismDetailModal
         isOpen={detailModalOpen && detailModalType === 'visitTime'}
         onClose={() => setDetailModalOpen(false)}
-        title="Visit Duration"
+        title={t("tourism.bestTime")}
         icon=""
-        content={detail?.visitTime ? formatVisitTime(detail.visitTime) : "Duration not specified"}
+        content={detail?.visitTime ? formatVisitTime(detail.visitTime) : t("tourism.noDescription")}
         type="visitTime"
       />
 
       <TourismDetailModal
         isOpen={detailModalOpen && detailModalType === 'safety'}
         onClose={() => setDetailModalOpen(false)}
-        title="Safety Info"
+        title={t("common.info")}
         icon=""
-        content={detail?.peaceInfo || "Safe and welcoming destination"}
+        content={detail?.peaceInfo || t("tourism.noDescription")}
         type="safety"
       />
 
       <TourismDetailModal
         isOpen={detailModalOpen && detailModalType === 'languages'}
         onClose={() => setDetailModalOpen(false)}
-        title="Languages"
+        title={t("guider.languages")}
         icon=""
         content={detail?.languages || []}
         type="languages"

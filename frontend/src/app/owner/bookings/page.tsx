@@ -8,12 +8,14 @@ import { useToast } from "@/components/common/Toast";
 import { useConfirm } from "@/components/common/ConfirmDialog";
 import AvatarDropdown from "@/components/common/AvatarDropdown";
 import { useBookingWS } from "@/hooks/useBookingWS";
+import { useTranslation } from "react-i18next";
 
 export default function OwnerBookingsPage() {
   const router = useRouter();
   const { isAuthenticated, token, userId, isHydrated } = useAuthStore();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t } = useTranslation();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -384,7 +386,7 @@ export default function OwnerBookingsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="ml-2 text-gray-900 font-bold text-sm flex-shrink-0 hidden sm:block">Booking Management</span>
+          <span className="ml-2 text-gray-900 font-bold text-sm flex-shrink-0 hidden sm:block">{t("booking.managementTitle")}</span>
           {/* Spacer */}
           <div className="flex-1 min-w-0" />
           {/* Filter buttons — scrollable on mobile, scrollbar fully hidden */}
@@ -433,15 +435,15 @@ export default function OwnerBookingsPage() {
 
               {/* Bookings list */}
               <div className={`lg:col-span-1 space-y-1.5 max-h-[calc(100vh-160px)] overflow-y-auto pr-1 ${showDetailOnly ? 'hidden lg:block' : ''}`}>
-                <p className="text-xs text-gray-500 font-semibold">Bookings ({filteredBookings.length})</p>
+                <p className="text-xs text-gray-500 font-semibold">{t("booking.myBookings")} ({filteredBookings.length})</p>
                 {filteredBookings.length === 0 ? (
-                  <div className="p-4 text-center text-gray-400 text-xs">No bookings found</div>
+                  <div className="p-4 text-center text-gray-400 text-xs">{t("booking.noBookings")}</div>
                 ) : filteredBookings.map(b => (
                   <div key={b.bookingId} className={"bg-white rounded-lg p-2.5 border transition hover:shadow-sm " + (selectedBooking?.bookingId === b.bookingId ? "border-blue-300" : "border-gray-200")}>
                     <div onClick={() => { setSelectedBooking(b); setShowDetailOnly(true); }} className="cursor-pointer">
                       <div className="flex justify-between items-start mb-0.5">
                         <div>
-                          <span className="font-bold text-gray-900 text-xs">Booking {b.bookingId}</span>
+                          <span className="font-bold text-gray-900 text-xs">{t("booking.bookingId")} {b.bookingId}</span>
                           <span className="text-gray-400 ml-1 text-xs">{b.client.fullName}</span>
                         </div>
                         <span className={"text-xs " + BookingService.getStatusColor(b.bookingStatus)}>
@@ -482,7 +484,7 @@ export default function OwnerBookingsPage() {
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                           </svg>
-                          Back to List
+                          {t("booking.backToList")}
                         </button>
                       </div>
                     )}
@@ -501,21 +503,21 @@ export default function OwnerBookingsPage() {
 
                     {/* Booking Info — two column grid, no borders */}
                     <div className="pb-3">
-                      <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '6px' }}>Booking Details</p>
+                      <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '6px' }}>{t("booking.bookingDetails")}</p>
                       <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Hotel: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.hotel.name}</span></div>
-                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Check-in: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.checkIn}</span></div>
-                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Client: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.client.fullName}</span></div>
-                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Check-out: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.checkOut}</span></div>
-                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Phone: </span><span style={{ fontWeight: 700, color: '#374151' }}>{selectedBooking.client.phone || "N/A"}</span></div>
-                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Guests: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.numberOfGuests}</span></div>
-                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Email: </span><span style={{ fontWeight: 700, color: '#374151' }}>{selectedBooking.client.email || "N/A"}</span></div>
-                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Rooms: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.numberOfRooms || 1}</span></div>
+                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.hotel")}: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.hotel.name}</span></div>
+                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.checkIn")}: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.checkIn}</span></div>
+                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.client")}: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.client.fullName}</span></div>
+                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.checkOut")}: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.checkOut}</span></div>
+                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.phone")}: </span><span style={{ fontWeight: 700, color: '#374151' }}>{selectedBooking.client.phone || "N/A"}</span></div>
+                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.guests")}: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.numberOfGuests}</span></div>
+                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.email")}: </span><span style={{ fontWeight: 700, color: '#374151' }}>{selectedBooking.client.email || "N/A"}</span></div>
+                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.rooms")}: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.numberOfRooms || 1}</span></div>
                         {selectedBooking.totalCost && (
-                          <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>Proposed Cost: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.totalCost} ETB</span></div>
+                          <div style={{ fontSize: '13px' }}><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.proposedCost")}: </span><span style={{ fontWeight: 800, color: '#111827' }}>{selectedBooking.totalCost} ETB</span></div>
                         )}
                         {selectedBooking.specialRequests && (
-                          <div style={{ fontSize: '13px' }} className="col-span-2"><span style={{ color: '#6b7280', fontWeight: 700 }}>Requests: </span><span style={{ fontWeight: 700, color: '#374151' }}>{selectedBooking.specialRequests}</span></div>
+                          <div style={{ fontSize: '13px' }} className="col-span-2"><span style={{ color: '#6b7280', fontWeight: 700 }}>{t("booking.specialRequests")}: </span><span style={{ fontWeight: 700, color: '#374151' }}>{selectedBooking.specialRequests}</span></div>
                         )}
                       </div>
                     </div>
@@ -523,7 +525,7 @@ export default function OwnerBookingsPage() {
                     {/* Problem report */}
                     {selectedBooking.problemReported && selectedBooking.problemReport && (
                       <div className="py-2 mb-2 bg-red-50 rounded-lg px-3">
-                        <p style={{ fontWeight: 900, fontSize: '13px', color: '#b91c1c', marginBottom: '2px' }}>⚠ Problem Reported</p>
+                        <p style={{ fontWeight: 900, fontSize: '13px', color: '#b91c1c', marginBottom: '2px' }}>{t("booking.problemReported")}</p>
                         <p style={{ fontWeight: 700, fontSize: '13px', color: '#991b1b' }}>{selectedBooking.problemReport}</p>
                       </div>
                     )}
@@ -531,7 +533,7 @@ export default function OwnerBookingsPage() {
                     {/* Receipt section */}
                     {selectedBooking.receiptImageUrl && (
                       <div className="pb-3">
-                        <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '6px' }}>Payment Receipt</p>
+                        <p style={{ fontWeight: 900, fontSize: '14px', color: '#111827', marginBottom: '6px' }}>{t("booking.paymentReceipt")}</p>
                         <img src={getReceiptUrl(selectedBooking.receiptImageUrl)} alt="Receipt"
                           className="w-full rounded-lg object-contain max-h-48 bg-gray-50 border border-gray-100 cursor-pointer"
                           onClick={() => setZoomedReceipt(getReceiptUrl(selectedBooking.receiptImageUrl!))}
@@ -555,7 +557,7 @@ export default function OwnerBookingsPage() {
                         <>
                           <button onClick={handleAcceptRequest} disabled={actionLoading}
                             className="bg-blue-100 text-blue-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-blue-200 transition-all disabled:opacity-50">
-                            {actionLoading ? "Processing..." : "Accept Request"}
+                            {actionLoading ? t("booking.processing") : t("booking.acceptRequest")}
                           </button>
                           <button onClick={() => setShowRejectModal(true)}
                             className="bg-red-100 text-red-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-red-200 transition-all">
@@ -566,14 +568,14 @@ export default function OwnerBookingsPage() {
                       {(selectedBooking.bookingStatus === BOOKING_STATUS.OWNER_ACCEPTED || selectedBooking.bookingStatus === BOOKING_STATUS.COST_PROPOSED) && (
                         <button onClick={() => { setProposedCost(selectedBooking.totalCost?.toString() || ""); setShowCostModal(true); }}
                           className="bg-purple-100 text-purple-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-purple-200 transition-all">
-                          {selectedBooking.bookingStatus === BOOKING_STATUS.COST_PROPOSED ? "Update Cost" : "Propose Cost"}
+                          {selectedBooking.bookingStatus === BOOKING_STATUS.COST_PROPOSED ? t("booking.updateCost") : t("booking.proposeCost")}
                         </button>
                       )}
                       {selectedBooking.bookingStatus === BOOKING_STATUS.PAID && (
                         <>
                           <button onClick={handleApproveBooking} disabled={actionLoading}
                             className="bg-green-100 text-green-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-green-200 transition-all disabled:opacity-50">
-                            {actionLoading ? "Approving..." : "Approve Booking"}
+                            {actionLoading ? t("booking.approving") : t("booking.approveBooking")}
                           </button>
                           <button onClick={() => setShowRejectModal(true)}
                             className="bg-red-100 text-red-700 px-3 py-1 rounded-xl font-black text-sm hover:bg-red-200 transition-all">
@@ -582,11 +584,11 @@ export default function OwnerBookingsPage() {
                         </>
                       )}
                       {selectedBooking.bookingStatus === BOOKING_STATUS.APPROVED && (
-                        <p style={{ fontWeight: 800, fontSize: '13px', color: '#15803d' }}>✓ Booking approved and active</p>
+                        <p style={{ fontWeight: 800, fontSize: '13px', color: '#15803d' }}>{t("booking.bookingApproved")}</p>
                       )}
                       {selectedBooking.bookingStatus === BOOKING_STATUS.REJECTED && selectedBooking.rejectionReason && (
                         <div className="w-full">
-                          <p style={{ fontWeight: 900, fontSize: '13px', color: '#b91c1c', marginBottom: '2px' }}>Rejection Reason</p>
+                          <p style={{ fontWeight: 900, fontSize: '13px', color: '#b91c1c', marginBottom: '2px' }}>{t("booking.rejectionReason")}</p>
                           <p style={{ fontWeight: 700, fontSize: '13px', color: '#991b1b' }}>{selectedBooking.rejectionReason}</p>
                         </div>
                       )}
@@ -598,7 +600,7 @@ export default function OwnerBookingsPage() {
                       <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-gray-100">
                         <div className="flex items-center gap-2">
                           <span className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">M</span>
-                          <h4 className="text-gray-800 font-semibold text-sm">Messages ({selectedBooking.messages?.length || 0})</h4>
+                          <h4 className="text-gray-800 font-semibold text-sm">{t("booking.messages")} ({selectedBooking.messages?.length || 0})</h4>
                         </div>
                         {/* Online status indicator — dot only, no text when offline */}
                         {selectedBooking?.client?.id && (
@@ -606,7 +608,7 @@ export default function OwnerBookingsPage() {
                             {onlineUsers.has(Number(selectedBooking.client.id)) && (
                               <>
                                 <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
-                                <span className="text-xs font-semibold text-green-600">Client online</span>
+                                <span className="text-xs font-semibold text-green-600">{t("booking.clientOnline")}</span>
                               </>
                             )}
                           </div>
@@ -618,7 +620,7 @@ export default function OwnerBookingsPage() {
                         style={{ backgroundColor: '#dfe7dc' }}
                       >
                         {!selectedBooking.messages?.length ? (
-                          <p className="text-center py-8 text-sm text-gray-500">No messages yet</p>
+                          <p className="text-center py-8 text-sm text-gray-500">{t("booking.noMessages")}</p>
                         ) : selectedBooking.messages.map(m => {
                           const isOwn = m.senderId === userId;
                           return (
@@ -642,7 +644,7 @@ export default function OwnerBookingsPage() {
                         {clientTyping && clientTyping.bookingId === selectedBooking?.bookingId && (
                           <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 rounded-lg">
                             <span className="text-xs text-gray-500 font-medium italic">
-                              {clientTyping.name} is typing
+                              {clientTyping.name} {t("booking.isTyping")}
                             </span>
                             <span className="flex gap-0.5 items-center">
                               <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -656,7 +658,7 @@ export default function OwnerBookingsPage() {
                             type="text"
                             value={newMessage}
                             onChange={e => handleMessageChange(e.target.value)}
-                            placeholder="Write a message..."
+                            placeholder={t("booking.writeMessage")}
                             className="flex-1 rounded-full px-4 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none border border-gray-100 bg-gray-50"
                             onKeyPress={e => e.key === "Enter" && handleSendMessage()}
                           />
@@ -676,7 +678,7 @@ export default function OwnerBookingsPage() {
                   </div>
                 ) : (
                   <div className="p-8 text-center text-gray-400 text-xs">
-                    Select a booking to view details
+                    {t("booking.selectBooking")}
                   </div>
                 )}
               </div>
@@ -689,17 +691,17 @@ export default function OwnerBookingsPage() {
       {showCostModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-xl shadow-2xl p-5 w-80">
-            <h3 className="text-sm font-bold text-gray-900 mb-1">Propose Cost</h3>
+            <h3 className="text-sm font-bold text-gray-900 mb-1">{t("booking.proposeCost")}</h3>
             <p className="text-xs text-gray-500 mb-3">Booking {selectedBooking?.bookingId} — {selectedBooking?.client.fullName}</p>
             <input type="number" value={proposedCost} onChange={e => setProposedCost(e.target.value)}
-              placeholder="Enter cost in ETB" min="0" step="0.01"
+              placeholder={t("booking.enterCostEtb")} min="0" step="0.01"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-300" />
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setShowCostModal(false); setProposedCost(""); }}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100">Cancel</button>
               <button onClick={handleProposeCost} disabled={actionLoading || !proposedCost.trim()}
                 className="bg-purple-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 disabled:opacity-50">
-                {actionLoading ? "Proposing..." : "Propose"}
+                {actionLoading ? t("booking.proposing") : t("booking.propose")}
               </button>
             </div>
           </div>
@@ -710,17 +712,17 @@ export default function OwnerBookingsPage() {
       {showRejectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-xl shadow-2xl p-5 w-80">
-            <h3 className="text-sm font-bold text-gray-900 mb-1">Reject Booking</h3>
+            <h3 className="text-sm font-bold text-gray-900 mb-1">{t("booking.rejectBooking")}</h3>
             <p className="text-xs text-gray-500 mb-3">Booking {selectedBooking?.bookingId} — {selectedBooking?.client.fullName}</p>
             <textarea value={rejectionReason} onChange={e => setRejectionReason(e.target.value)}
-              placeholder="Reason for rejection..." rows={3}
+              placeholder={t("booking.reasonForRejection")} rows={3}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setShowRejectModal(false); setRejectionReason(""); }}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100">Cancel</button>
               <button onClick={handleRejectBooking} disabled={actionLoading || !rejectionReason.trim()}
                 className="bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50">
-                {actionLoading ? "Rejecting..." : "Reject"}
+                {actionLoading ? t("booking.rejecting") : t("booking.reject")}
               </button>
             </div>
           </div>

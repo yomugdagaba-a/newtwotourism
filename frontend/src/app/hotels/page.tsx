@@ -16,12 +16,15 @@ import RatingsViewModal from "@/components/common/RatingsViewModal";
 import { API_BASE_URL } from "@/services/api";
 import { useToast } from "@/components/common/Toast";
 import { getImageUrl } from "@/utils/imageUrl";
+import { useTranslation } from "react-i18next";
+import { useTranslateText } from "@/hooks/useTranslateText";
 
 function HotelsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthenticated, token } = useAuthStore();
   const toast = useToast();
+  const { t } = useTranslation();
 
   const tourismIdParam = searchParams.get("tourismId");
   const tourismId = tourismIdParam ? Number(tourismIdParam) : null;
@@ -152,7 +155,7 @@ function HotelsContent() {
             </Link>
 
             <div className="mb-8">
-              <h1 className="text-3xl font-black text-gray-900 mb-1">Hotels</h1>
+              <h1 className="text-3xl font-black text-gray-900 mb-1">{t("nav.hotels")}</h1>
               <p className="text-gray-500 font-semibold">
                 {tourismId 
                   ? `${filteredHotels.length} accommodations near ${tourismName}`
@@ -171,7 +174,7 @@ function HotelsContent() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search hotels by name..."
+                  placeholder={t("common.search")}
                   className="w-full pl-12 pr-4 py-3 bg-white border-0 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-gray-200 font-semibold shadow-sm outline-none"
                 />
               </div>
@@ -226,13 +229,13 @@ function HotelsContent() {
                         )}
                         <div className="flex gap-2 mt-3">
                           <button onClick={(e) => { e.stopPropagation(); handleAction("book", hotel); }} className="flex-1 py-2 bg-purple-50 text-purple-700 rounded-lg text-xs font-bold hover:bg-purple-100 transition border border-purple-200">
-                            Book
+                            {t("hotel.bookNow")}
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); handleAction("rate", hotel); }} className="flex-1 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-100 transition border border-gray-200">
-                            Rate
+                            {t("tourism.writeReview")}
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); handleAction("view-ratings", hotel); }} className="flex-1 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-100 transition border border-gray-200">
-                            Reviews
+                            {t("tourism.ratings")}
                           </button>
                         </div>
                       </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import Modal from "@/components/common/Modal";
+import { useTranslation } from "react-i18next";
+import { useTranslateText } from "@/hooks/useTranslateText";
 
 interface TourismDetailModalProps {
   isOpen: boolean;
@@ -11,28 +13,56 @@ interface TourismDetailModalProps {
   type: 'description' | 'bestTime' | 'visitTime' | 'safety' | 'languages';
 }
 
-const typeConfig: Record<TourismDetailModalProps['type'], { accent: string; hint: string }> = {
-  description: {
-    accent: 'text-purple-700',
-    hint: 'This is the complete description of this tourism place. Plan your visit accordingly.',
-  },
-  bestTime: {
-    accent: 'text-emerald-700',
-    hint: 'Visit during these months for the best experience and weather conditions.',
-  },
-  visitTime: {
-    accent: 'text-blue-700',
-    hint: 'Recommended duration to fully explore and enjoy this destination.',
-  },
-  safety: {
-    accent: 'text-orange-700',
-    hint: 'Safety information and travel advisories for this location.',
-  },
-  languages: {
-    accent: 'text-indigo-700',
-    hint: 'Local languages spoken in this area. Consider learning basic phrases!',
-  },
+const typeConfig: Record<TourismDetailModalProps['type'], { accent: string }> = {
+  description: { accent: 'text-purple-700' },
+  bestTime:    { accent: 'text-emerald-700' },
+  visitTime:   { accent: 'text-blue-700' },
+  safety:      { accent: 'text-orange-700' },
+  languages:   { accent: 'text-indigo-700' },
 };
+
+// Translates a single string content block
+function TranslatedContent({ content, type }: { content: string; type: string }) {
+  const translated = useTranslateText(content);
+
+  if (type === 'description') {
+    const paragraphs = translated.split('\n\n').filter((p) => p.trim());
+    if (paragraphs.length > 1) {
+      return (
+        <div className="space-y-4">
+          {paragraphs.map((para, idx) => (
+            <p key={idx} className="text-gray-700 text-sm leading-relaxed">{para}</p>
+          ))}
+        </div>
+      );
+    }
+    const sentences = translated.split(/(?<=[.!?])\s+/).filter((s) => s.trim());
+    if (sentences.length > 3) {
+      return (
+        <div className="space-y-3">
+          {sentences.map((s, idx) => (
+            <p key={idx} className="text-gray-700 text-sm leading-relaxed">{s}</p>
+          ))}
+        </div>
+      );
+    }
+  }
+
+  return <p className="text-gray-700 text-sm leading-relaxed">{translated}</p>;
+}
+
+// Translates a single list item
+function TranslatedListItem({ item, idx }: { item: string; idx: number }) {
+  const translated = useTranslateText(item);
+  return (
+    <li className="flex items-start gap-3">
+      <span className="mt-0.5 w-5 h-5 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-xs font-black text-gray-500">
+        {idx + 1}
+      </span>
+      <span className="text-gray-700 text-sm leading-relaxed">{translated}</span>
+    </li>
+  );
+}
 
 export default function TourismDetailModal({
   isOpen,
@@ -43,51 +73,20 @@ export default function TourismDetailModal({
   type,
 }: TourismDetailModalProps) {
   const config = typeConfig[type];
+  const { t } = useTranslation();
+  const translatedTitle = useTranslateText(title);
 
   const renderContent = () => {
     if (Array.isArray(content)) {
       return (
         <ul className="space-y-2.5">
           {content.map((item, idx) => (
-            <li key={idx} className="flex items-start gap-3">
-              <span className="mt-0.5 w-5 h-5 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-xs font-black text-gray-500">
-                {idx + 1}
-              </span>
-              <span className="text-gray-700 text-sm leading-relaxed">{item}</span>
-            </li>
+            <TranslatedListItem key={idx} item={item} idx={idx} />
           ))}
         </ul>
       );
     }
-
-    if (type === 'description') {
-      const paragraphs = content.split('\n\n').filter((p) => p.trim());
-      if (paragraphs.length > 1) {
-        return (
-          <div className="space-y-4">
-            {paragraphs.map((para, idx) => (
-              <p key={idx} className="text-gray-700 text-sm leading-relaxed">
-                {para}
-              </p>
-            ))}
-          </div>
-        );
-      }
-      const sentences = content.split(/(?<=[.!?])\s+/).filter((s) => s.trim());
-      if (sentences.length > 3) {
-        return (
-          <div className="space-y-3">
-            {sentences.map((s, idx) => (
-              <p key={idx} className="text-gray-700 text-sm leading-relaxed">
-                {s}
-              </p>
-            ))}
-          </div>
-        );
-      }
-    }
-
-    return <p className="text-gray-700 text-sm leading-relaxed">{content}</p>;
+    return <TranslatedContent content={content} type={type} />;
   };
 
   return (
@@ -97,7 +96,7 @@ export default function TourismDetailModal({
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
             {icon && <span className="text-2xl">{icon}</span>}
-            <h2 className={`text-xl font-black ${config.accent}`}>{title}</h2>
+            <h2 className={`text-xl font-black ${config.accent}`}>{translatedTitle}</h2>
           </div>
         </div>
 
@@ -112,7 +111,7 @@ export default function TourismDetailModal({
             onClick={onClose}
             className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm rounded-xl transition-all"
           >
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>

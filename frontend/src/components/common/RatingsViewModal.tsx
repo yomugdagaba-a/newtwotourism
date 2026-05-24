@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Modal from "./Modal";
+import { useTranslation } from "react-i18next";
 
 export interface Rating {
   id?: number;
@@ -54,6 +55,7 @@ export default function RatingsViewModal({
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -103,7 +105,7 @@ export default function RatingsViewModal({
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100">
           <h2 className="text-xl font-black text-gray-900">{title}</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Customer Reviews</p>
+          <p className="text-sm text-gray-500 mt-0.5">{t("tourism.ratings")}</p>
         </div>
 
         {/* Summary bar */}
@@ -113,12 +115,12 @@ export default function RatingsViewModal({
               <div className="text-4xl font-black text-yellow-500 leading-none">
                 {avgRating.toFixed(1)}
               </div>
-              <div className="text-xs text-gray-400 font-semibold mt-1">out of 5</div>
+              <div className="text-xs text-gray-400 font-semibold mt-1">{t("hotel.rating")}</div>
             </div>
             <div className="flex-1">
               <StarRow rating={Math.round(avgRating)} />
               <p className="text-sm text-gray-500 font-semibold mt-1">
-                Based on {ratings.length} review{ratings.length !== 1 ? 's' : ''}
+                {t("tourism.ratings")} ({ratings.length})
               </p>
             </div>
           </div>
@@ -139,8 +141,8 @@ export default function RatingsViewModal({
           {!loading && !error && ratings.length === 0 && (
             <div className="text-center py-10">
               <div className="text-4xl mb-3">⭐</div>
-              <p className="text-gray-500 font-semibold text-sm">No reviews yet.</p>
-              <p className="text-gray-400 text-xs mt-1">Be the first to share your experience!</p>
+              <p className="text-gray-500 font-semibold text-sm">{t("common.noResults")}</p>
+              <p className="text-gray-400 text-xs mt-1">{t("tourism.writeReview")}</p>
             </div>
           )}
 
@@ -187,7 +189,7 @@ export default function RatingsViewModal({
             onClick={onClose}
             className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm rounded-xl transition-all"
           >
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { register } from "@/services/auth.service";
 import Link from "next/link";
 import BlockedBanner from "@/components/common/BlockedBanner";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   onSuccess?: () => void;
@@ -57,6 +58,7 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -104,8 +106,8 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
             <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
           </svg>
         </div>
-        <h2 className="text-base font-black text-gray-900">Create Account</h2>
-        <p className="text-xs text-gray-500 font-medium mt-0.5">Join North Wollo Tourism</p>
+        <h2 className="text-base font-black text-gray-900">{t("auth.register")}</h2>
+        <p className="text-xs text-gray-500 font-medium mt-0.5">{t("common.northWolloTourism")}</p>
       </div>
 
       {serverError && (
@@ -119,19 +121,19 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
         {/* Full Name + Username — 2 columns */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-sm font-black text-gray-800 mb-1">Full Name <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-black text-gray-800 mb-1">{t("profile.myProfile")} <span className="text-red-500">*</span></label>
             <div className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg shadow-sm bg-gray-100/20 ${errors.fullName ? 'ring-1 ring-red-300' : ''}`}>
               <input type="text" name="fullName" value={formData.fullName} onChange={handleChange}
-                placeholder="John Doe" disabled={loading}
+                placeholder={t("auth.enterUsername")} disabled={loading}
                 className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
             </div>
             {errors.fullName && <p className="mt-0.5 text-xs text-red-600">{errors.fullName}</p>}
           </div>
           <div>
-            <label className="block text-sm font-black text-gray-800 mb-1">Username <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-black text-gray-800 mb-1">{t("auth.username")} <span className="text-red-500">*</span></label>
             <div className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg shadow-sm bg-gray-100/20 ${errors.username ? 'ring-1 ring-red-300' : ''}`}>
               <input type="text" name="username" value={formData.username} onChange={handleChange}
-                placeholder="john_doe" disabled={loading}
+                placeholder={t("auth.enterUsername")} disabled={loading}
                 className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
             </div>
             {errors.username && <p className="mt-0.5 text-xs text-red-600">{errors.username}</p>}
@@ -140,13 +142,13 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-black text-gray-800 mb-1">Email <span className="text-red-500">*</span></label>
+          <label className="block text-sm font-black text-gray-800 mb-1">{t("auth.email")} <span className="text-red-500">*</span></label>
           <div className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg shadow-sm bg-gray-100/20 ${errors.email ? 'ring-1 ring-red-300' : ''}`}>
             <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
             <input type="email" name="email" value={formData.email} onChange={handleChange}
-              placeholder="user@example.com" disabled={loading}
+              placeholder={t("auth.enterEmail")} disabled={loading}
               className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
           </div>
           {errors.email && <p className="mt-0.5 text-xs text-red-600">{errors.email}</p>}
@@ -155,7 +157,7 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
         {/* Password + Confirm — 2 columns */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-sm font-black text-gray-800 mb-1">Password <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-black text-gray-800 mb-1">{t("auth.password")} <span className="text-red-500">*</span></label>
             <div className={errors.password ? 'ring-1 ring-red-300 rounded-lg' : ''}>
               <PasswordInput name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" disabled={loading} />
             </div>
@@ -169,7 +171,7 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
             )}
           </div>
           <div>
-            <label className="block text-sm font-black text-gray-800 mb-1">Confirm <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-black text-gray-800 mb-1">{t("auth.confirmPassword")} <span className="text-red-500">*</span></label>
             <div className={errors.confirmPassword ? 'ring-1 ring-red-300 rounded-lg' : ''}>
               <PasswordInput name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" disabled={loading} />
             </div>
@@ -179,14 +181,14 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
 
         {/* Info */}
         <p className="text-xs text-gray-500 text-center font-medium">
-          You&apos;ll receive a verification code via email.
+          {t("auth.verifyEmail")}
         </p>
 
         {/* Buttons */}
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={() => onCancel ? onCancel() : router.push('/')}
             className="flex-1 py-2 border border-gray-200 shadow-sm text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors text-sm bg-white">
-            Cancel
+            {t("common.cancel")}
           </button>
           <button type="submit" disabled={loading}
             className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black rounded-xl transition-colors text-sm shadow-sm">
@@ -196,20 +198,20 @@ export default function RegisterFormModal({ onSuccess, onLoginClick, onCancel }:
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Registering...
+                {t("common.loading")}
               </span>
-            ) : 'Register'}
+            ) : t("auth.register")}
           </button>
         </div>
       </form>
 
       {/* Sign In link */}
       <div className="mt-3 pt-3 border-t border-gray-100 text-center">
-        <span className="text-sm text-gray-500 font-medium">Already have an account? </span>
+        <span className="text-sm text-gray-500 font-medium">{t("auth.hasAccount")} </span>
         {onLoginClick ? (
-          <button type="button" onClick={onLoginClick} className="text-sm font-black text-blue-600 hover:text-blue-700 transition-colors">Sign In</button>
+          <button type="button" onClick={onLoginClick} className="text-sm font-black text-blue-600 hover:text-blue-700 transition-colors">{t("auth.signIn")}</button>
         ) : (
-          <Link href="/auth/login" className="text-sm font-black text-blue-600 hover:text-blue-700 transition-colors">Sign In</Link>
+          <Link href="/auth/login" className="text-sm font-black text-blue-600 hover:text-blue-700 transition-colors">{t("auth.signIn")}</Link>
         )}
       </div>
     </div>

@@ -12,6 +12,8 @@ import { getImageUrl } from "@/utils/imageUrl";
 import Pagination from "@/components/common/Pagination";
 import { fetchTourismPlaces } from "@/services/tourism.service";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTranslation } from "react-i18next";
+import { useTranslateText } from "@/hooks/useTranslateText";
 
 export interface TourismPublicCard {
   id: number;
@@ -35,6 +37,7 @@ const CATEGORIES = [
 function TourismListingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const categoryParam = searchParams.get("categories") || "";
   const keywordParam = searchParams.get("keyword") || "";
@@ -229,7 +232,7 @@ function TourismListingContent() {
           </div>
         ) : tourismPlaces.length === 0 ? (
           <div className="text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200 shadow-md">
-            <h2 className="text-xl font-black text-gray-900 mb-2">No Destinations Found</h2>
+            <h2 className="text-xl font-black text-gray-900 mb-2">{t("common.noResults")}</h2>
             <button
               onClick={() => {
                 setCategories([]);
@@ -238,7 +241,7 @@ function TourismListingContent() {
               }}
               className="px-5 py-2.5 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 transition-all shadow-md text-sm"
             >
-              View All
+              {t("home.viewAllPlaces")}
             </button>
           </div>
         ) : (
@@ -328,7 +331,10 @@ function TourismCard({
   isNavigating: boolean;
   onClick: () => void;
 }) {
-  // Category-based gradient backgrounds for image placeholder
+  const { t } = useTranslation();
+  const translatedName = useTranslateText(tourism.name);
+  const translatedWereda = useTranslateText(tourism.wereda);
+
   const getCategoryBg = (category?: string) => {
     switch(category) {
       case 'HERITAGE': return 'bg-gradient-to-br from-amber-100 via-orange-100 to-amber-200';
@@ -368,7 +374,7 @@ function TourismCard({
         {/* Category Badge */}
         {tourism.category && (
           <span className="absolute top-3 left-3 px-3 py-1.5 bg-white/90 text-gray-900 rounded-xl text-xs font-black shadow-md">
-            {CATEGORIES.find(c => c.id === tourism.category)?.icon} {tourism.category}
+            {CATEGORIES.find(c => c.id === tourism.category)?.icon} {t(`categories.${tourism.category}`)}
           </span>
         )}
 
@@ -383,12 +389,12 @@ function TourismCard({
       {/* Content Section */}
       <div className="p-4" style={{ borderTop: "1px solid rgba(255,255,255,0.6)" }}>
         <h3 className="font-black text-base text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-1.5">
-          {tourism.name}
+          {translatedName}
         </h3>
         <div className="flex items-center justify-between mt-2">
           {tourism.wereda && (
             <p className="text-xs text-gray-600 font-bold flex items-center gap-1.5">
-              <span className="line-clamp-1">{tourism.wereda}</span>
+              <span className="line-clamp-1">{translatedWereda}</span>
             </p>
           )}
           <div className="flex items-center gap-2 ml-auto">
@@ -401,7 +407,7 @@ function TourismCard({
               {tourism.viewersCount.toLocaleString()}
             </span>
             <span className="text-blue-600 font-black text-xs">
-              View →
+              {t("tourism.explore")} →
             </span>
           </div>
         </div>

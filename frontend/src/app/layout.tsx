@@ -5,6 +5,7 @@ import AuthProvider from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/common/Toast";
 import { ConfirmDialogProvider } from "@/components/common/ConfirmDialog";
 import InactivityMonitor from "@/components/common/InactivityMonitor";
+import I18nProvider from "@/components/common/I18nProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,18 +28,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
-        <ToastProvider>
-          <ConfirmDialogProvider>
-            <AuthProvider>
-              <InactivityMonitor />
-              {children}
-            </AuthProvider>
-          </ConfirmDialogProvider>
-        </ToastProvider>
+        <I18nProvider>
+          <ToastProvider>
+            <ConfirmDialogProvider>
+              <AuthProvider>
+                <InactivityMonitor />
+                {children}
+              </AuthProvider>
+            </ConfirmDialogProvider>
+          </ToastProvider>
+        </I18nProvider>
       </body>
     </html>
   );

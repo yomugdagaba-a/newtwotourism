@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { API_BASE_URL } from "@/services/api";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   isOpen: boolean;
@@ -11,14 +12,8 @@ interface Props {
 
 type Tab = "profile" | "update" | "password" | "help" | "privacy" | "about";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "profile", label: "Profile Information" },
-  { id: "update", label: "Update Profile" },
-  { id: "password", label: "Change Password" },
-  { id: "help", label: "Help & Support" },
-  { id: "privacy", label: "Privacy & Security" },
-  { id: "about", label: "About" },
-];
+// Tab labels are set dynamically using t() inside the component
+const TAB_IDS: Tab[] = ["profile", "update", "password", "help", "privacy", "about"];
 
 interface UserProfile {
   id: number;
@@ -36,6 +31,16 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
   const { username, role, userId, token } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const { t } = useTranslation();
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: "profile",  label: t("profile.myProfile") },
+    { id: "update",   label: t("profile.editProfile") },
+    { id: "password", label: t("profile.changePassword") },
+    { id: "help",     label: t("common.info") },
+    { id: "privacy",  label: t("common.info") },
+    { id: "about",    label: t("nav.about") },
+  ];
 
   useEffect(() => {
     if (isOpen && token) {
@@ -125,9 +130,10 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
 
 // ── Profile Info ──────────────────────────────────────────────
 function ProfileInfo({ profile, role }: { profile: UserProfile | null; role: string | null }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
-      <h2 className="text-base sm:text-lg font-semibold text-gray-900">Profile Information</h2>
+      <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t("profile.myProfile")}</h2>
       <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-blue-50 rounded-xl">
         <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xl sm:text-2xl font-bold shrink-0">
           {profile?.username?.charAt(0).toUpperCase() || "U"}
@@ -139,13 +145,13 @@ function ProfileInfo({ profile, role }: { profile: UserProfile | null; role: str
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-        <InfoCard label="Username" value={profile?.username || "—"} />
-        <InfoCard label="Full Name" value={profile?.fullName || "—"} />
-        <InfoCard label="Email" value={profile?.email || "—"} />
+        <InfoCard label={t("auth.username")} value={profile?.username || "—"} />
+        <InfoCard label={t("profile.myProfile")} value={profile?.fullName || "—"} />
+        <InfoCard label={t("auth.email")} value={profile?.email || "—"} />
         <InfoCard label="User ID" value={profile?.id ? `#${profile.id}` : "—"} />
-        <InfoCard label="Account Status" value={profile?.active ? "Active" : "Inactive"} valueClass={profile?.active ? "text-green-600" : "text-red-500"} />
-        <InfoCard label="Email Verified" value={profile?.emailVerified ? "Verified" : "Not Verified"} valueClass={profile?.emailVerified ? "text-green-600" : "text-yellow-600"} />
-        <InfoCard label="Role" value={role || "—"} />
+        <InfoCard label={t("admin.active")} value={profile?.active ? t("admin.active") : t("admin.inactive")} valueClass={profile?.active ? "text-green-600" : "text-red-500"} />
+        <InfoCard label={t("auth.verifyEmail")} value={profile?.emailVerified ? t("common.success") : t("common.warning")} valueClass={profile?.emailVerified ? "text-green-600" : "text-yellow-600"} />
+        <InfoCard label={t("auth.username")} value={role || "—"} />
         <InfoCard label="Member Since" value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "—"} />
       </div>
     </div>
@@ -174,6 +180,7 @@ function UpdateProfile({
   const [form, setForm] = useState({ username: "", fullName: "", email: "" });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const { t } = useTranslation();
 
   // Pre-fill when profile loads
   useEffect(() => {
@@ -211,28 +218,28 @@ function UpdateProfile({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Update Profile</h2>
+      <h2 className="text-lg font-semibold text-gray-900">{t("profile.editProfile")}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormField
-          label="Username"
+          label={t("auth.username")}
           type="text"
           value={form.username}
           onChange={(v) => setForm({ ...form, username: v })}
-          placeholder="Enter your username"
+          placeholder={t("auth.enterUsername")}
         />
         <FormField
-          label="Full Name"
+          label={t("profile.myProfile")}
           type="text"
           value={form.fullName}
           onChange={(v) => setForm({ ...form, fullName: v })}
-          placeholder="Enter your full name"
+          placeholder={t("auth.enterUsername")}
         />
         <FormField
-          label="Email Address"
+          label={t("auth.email")}
           type="email"
           value={form.email}
           onChange={(v) => setForm({ ...form, email: v })}
-          placeholder="Enter your email"
+          placeholder={t("auth.enterEmail")}
         />
         {message && (
           <p className={`text-sm ${status === "success" ? "text-green-600" : "text-red-600"}`}>{message}</p>
@@ -242,7 +249,7 @@ function UpdateProfile({
           disabled={status === "loading"}
           className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60"
         >
-          {status === "loading" ? "Saving..." : "Save Changes"}
+          {status === "loading" ? t("common.loading") : t("profile.updateProfile")}
         </button>
       </form>
     </div>
@@ -254,6 +261,7 @@ function ChangePassword({ token }: { token: string | null }) {
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,11 +296,11 @@ function ChangePassword({ token }: { token: string | null }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
+      <h2 className="text-lg font-semibold text-gray-900">{t("profile.changePassword")}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <FormField label="Current Password" type="password" value={form.currentPassword} onChange={(v) => setForm({ ...form, currentPassword: v })} placeholder="Enter current password" />
-        <FormField label="New Password" type="password" value={form.newPassword} onChange={(v) => setForm({ ...form, newPassword: v })} placeholder="Min. 8 characters" />
-        <FormField label="Confirm New Password" type="password" value={form.confirmPassword} onChange={(v) => setForm({ ...form, confirmPassword: v })} placeholder="Repeat new password" />
+        <FormField label={t("profile.currentPassword")} type="password" value={form.currentPassword} onChange={(v) => setForm({ ...form, currentPassword: v })} placeholder={t("auth.enterPassword")} />
+        <FormField label={t("profile.newPassword")} type="password" value={form.newPassword} onChange={(v) => setForm({ ...form, newPassword: v })} placeholder="Min. 8 characters" />
+        <FormField label={t("auth.confirmPassword")} type="password" value={form.confirmPassword} onChange={(v) => setForm({ ...form, confirmPassword: v })} placeholder="Repeat new password" />
         {message && (
           <p className={`text-sm ${status === "success" ? "text-green-600" : "text-red-600"}`}>{message}</p>
         )}
@@ -301,7 +309,7 @@ function ChangePassword({ token }: { token: string | null }) {
           disabled={status === "loading"}
           className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60"
         >
-          {status === "loading" ? "Updating..." : "Change Password"}
+          {status === "loading" ? t("common.loading") : t("profile.changePassword")}
         </button>
       </form>
     </div>

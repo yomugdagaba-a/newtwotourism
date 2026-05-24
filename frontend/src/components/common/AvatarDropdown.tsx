@@ -8,10 +8,11 @@ import Modal from "@/components/common/Modal";
 import LoginForm from "@/components/auth/LoginFormModal";
 import RegisterForm from "@/components/auth/RegisterFormModal";
 import ProfileModal from "@/components/common/ProfileModal";
+import { useTranslation } from "react-i18next";
 
 interface AvatarDropdownProps {
-  onLoginClick?: () => void; // optional override for login action
-  showShortcuts?: boolean;   // show Owner/Client/Manage/My Bookings buttons (default: false)
+  onLoginClick?: () => void;
+  showShortcuts?: boolean;
 }
 
 export default function AvatarDropdown({ onLoginClick, showShortcuts = false }: AvatarDropdownProps) {
@@ -22,6 +23,7 @@ export default function AvatarDropdown({ onLoginClick, showShortcuts = false }: 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -50,38 +52,35 @@ export default function AvatarDropdown({ onLoginClick, showShortcuts = false }: 
       <div className="flex items-center gap-1 shrink-0" ref={menuRef}>
         {showAuthenticatedUI ? (
           <>
-            {/* Owner/Client mode switcher — only when showShortcuts */}
+            {/* Owner/Client mode switcher */}
             {showShortcuts && role === "HOTEL_OWNER" && (
               <div className="flex items-center gap-0.5">
                 <button onClick={() => setBrowsingMode("OWNER")}
                   className={`px-1.5 py-1 text-[10px] font-semibold rounded-md transition-all whitespace-nowrap ${browsingMode === "OWNER" ? "bg-orange-500 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-300"}`}>
-                  Owner
+                  {t("nav.owner")}
                 </button>
                 <button onClick={() => setBrowsingMode("CLIENT")}
                   className={`px-1.5 py-1 text-[10px] font-semibold rounded-md transition-all whitespace-nowrap ${browsingMode === "CLIENT" ? "bg-emerald-500 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-300"}`}>
-                  Client
+                  {t("nav.client")}
                 </button>
               </div>
             )}
 
-            {/* My Bookings shortcut — only when showShortcuts */}
             {showShortcuts && (role === "CLIENT" || (role === "HOTEL_OWNER" && browsingMode === "CLIENT")) && (
               <Link href="/bookings" className="flex px-1.5 py-1 text-[10px] font-semibold text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300 transition-all whitespace-nowrap">
-                My Bookings
+                {t("nav.myBookings")}
               </Link>
             )}
 
-            {/* Manage Bookings for owner — only when showShortcuts */}
             {showShortcuts && role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
               <Link href="/owner/bookings" className="flex px-1.5 py-1 text-[10px] font-semibold text-orange-700 hover:bg-orange-50 rounded-md border border-orange-300 transition-all whitespace-nowrap">
-                Manage
+                {t("nav.manage")}
               </Link>
             )}
 
-            {/* Admin link — only when showShortcuts */}
             {showShortcuts && role === "ADMIN" && (
               <Link href="/admin" className="flex px-1.5 py-1 text-[10px] font-semibold text-purple-700 hover:bg-purple-50 rounded-md border border-purple-300 transition-all whitespace-nowrap">
-                Admin
+                {t("nav.admin")}
               </Link>
             )}
 
@@ -104,24 +103,24 @@ export default function AvatarDropdown({ onLoginClick, showShortcuts = false }: 
                     <p className="text-sm font-bold text-gray-900">{username}</p>
                     <p className="text-xs text-gray-500">{role}</p>
                   </div>
-                  <button onClick={() => { setShowProfileModal(true); setOpenMenu(false); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">My Profile</button>
-                  <Link href="/" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Home</Link>
-                  <Link href="/tourisms" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Explore</Link>
-                  <Link href="/hotels" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Hotels</Link>
+                  <button onClick={() => { setShowProfileModal(true); setOpenMenu(false); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">{t("nav.myProfile")}</button>
+                  <Link href="/" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.home")}</Link>
+                  <Link href="/tourisms" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.explore")}</Link>
+                  <Link href="/hotels" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.hotels")}</Link>
                   {(role === "CLIENT" || (role === "HOTEL_OWNER" && browsingMode === "CLIENT")) && (
-                    <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>My Bookings</Link>
+                    <Link href="/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.myBookings")}</Link>
                   )}
                   {role === "HOTEL_OWNER" && browsingMode === "OWNER" && (
-                    <Link href="/owner/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Manage Bookings</Link>
+                    <Link href="/owner/bookings" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.manageBookings")}</Link>
                   )}
                   {role === "ADMIN" && (
-                    <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Admin Panel</Link>
+                    <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.adminPanel")}</Link>
                   )}
                   {role === "HOTEL_OWNER" && (
-                    <Link href="/owner/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>Owner Dashboard</Link>
+                    <Link href="/owner/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setOpenMenu(false)}>{t("nav.ownerDashboard")}</Link>
                   )}
                   <div className="border-t border-gray-200 mt-1 pt-1">
-                    <button onClick={handleLogout} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</button>
+                    <button onClick={handleLogout} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">{t("nav.logout")}</button>
                   </div>
                 </div>
               )}
@@ -132,18 +131,17 @@ export default function AvatarDropdown({ onLoginClick, showShortcuts = false }: 
             <button
               onClick={() => onLoginClick ? onLoginClick() : setModalContent("login")}
               className="px-2.5 py-1.5 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 rounded-full border border-gray-200 transition-all whitespace-nowrap">
-              Sign In
+              {t("nav.signIn")}
             </button>
             <button
               onClick={() => setModalContent("register")}
               className="px-2.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-full transition-all whitespace-nowrap">
-              Get Started
+              {t("nav.join")}
             </button>
           </>
         )}
       </div>
 
-      {/* Auth Modal */}
       <Modal isOpen={!!modalContent} onClose={() => setModalContent(null)} closeOnOutsideClick={false} closeOnEscape={false}>
         {modalContent === "login" && (
           <LoginForm onSuccess={() => setModalContent(null)} onRegisterClick={() => setModalContent("register")} onCancel={() => setModalContent(null)} />

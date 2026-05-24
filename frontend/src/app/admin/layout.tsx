@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTranslation } from 'react-i18next';
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -11,6 +12,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { username, role, logout, isAuthenticated, isHydrated } = useAuthStore();
+  const { t } = useTranslation();
 
   useEffect(() => { setIsClient(true); }, []);
 
@@ -42,14 +44,14 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const navigation = [
-    { name: 'Dashboard',      href: '/admin',               current: pathname === '/admin' },
-    { name: 'Users',          href: '/admin/users',         current: pathname.startsWith('/admin/users') },
-    { name: 'Hotels',         href: '/admin/hotels',        current: pathname.startsWith('/admin/hotels') },
-    { name: 'Tourism Places', href: '/admin/tourisms',      current: pathname.startsWith('/admin/tourisms') },
-    { name: 'Bookings',       href: '/admin/bookings',      current: pathname.startsWith('/admin/bookings') },
-    { name: 'Guiders',        href: '/admin/guiders',       current: pathname.startsWith('/admin/guiders') },
-    { name: 'Roads',          href: '/admin/roads',         current: pathname.startsWith('/admin/roads') },
-    { name: 'Horse Services', href: '/admin/horseservices', current: pathname.startsWith('/admin/horseservices') },
+    { name: 'Dashboard',       href: '/admin',               current: pathname === '/admin' },
+    { name: 'Users',           href: '/admin/users',         current: pathname.startsWith('/admin/users') },
+    { name: 'Hotels',          href: '/admin/hotels',        current: pathname.startsWith('/admin/hotels') },
+    { name: 'Tourism Places',  href: '/admin/tourisms',      current: pathname.startsWith('/admin/tourisms') },
+    { name: 'Bookings',        href: '/admin/bookings',      current: pathname.startsWith('/admin/bookings') },
+    { name: 'Guiders',         href: '/admin/guiders',       current: pathname.startsWith('/admin/guiders') },
+    { name: 'Roads',           href: '/admin/roads',         current: pathname.startsWith('/admin/roads') },
+    { name: 'Horse Services',  href: '/admin/horseservices', current: pathname.startsWith('/admin/horseservices') },
   ];
 
   const auditNavigation = [

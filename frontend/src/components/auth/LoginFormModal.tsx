@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
 import { validateForm, hasErrors, schemas, ValidationErrors } from "@/utils/validation";
 import BlockedBanner from "@/components/common/BlockedBanner";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   onSuccess?: () => void;
@@ -22,6 +23,7 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
   const [showPassword, setShowPassword] = useState(false);
   const auth = useAuthStore();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const getDefaultRedirect = (role: string | null) => {
     switch (role) {
@@ -74,8 +76,8 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
             <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         </div>
-        <h2 className="text-base font-black text-gray-900">Welcome Back</h2>
-        <p className="text-xs text-gray-500 font-medium mt-0.5">Sign in to North Wollo Tourism</p>
+        <h2 className="text-base font-black text-gray-900">{t("auth.signIn")}</h2>
+        <p className="text-xs text-gray-500 font-medium mt-0.5">{t("common.northWolloTourism")}</p>
       </div>
 
       {/* Sign In header row */}
@@ -97,7 +99,7 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
         {/* Username / Email */}
         <div>
           <label className="block text-sm font-black text-gray-800 mb-1">
-            Username or Email <span className="text-red-500">*</span>
+            {t("auth.username")} / {t("auth.email")} <span className="text-red-500">*</span>
           </label>
           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow bg-gray-50 ${errors.usernameOrEmail ? 'ring-1 ring-red-300' : ''}`}>
             <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -108,7 +110,7 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
               name="usernameOrEmail"
               value={formData.usernameOrEmail}
               onChange={handleChange}
-              placeholder="Enter your username or email"
+              placeholder={t("auth.enterEmail")}
               autoComplete="username email"
               disabled={loading}
               className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
@@ -120,7 +122,7 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
         {/* Password */}
         <div>
           <label className="block text-sm font-black text-gray-800 mb-1">
-            Password <span className="text-red-500">*</span>
+            {t("auth.password")} <span className="text-red-500">*</span>
           </label>
           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow bg-gray-50 ${errors.password ? 'ring-1 ring-red-300' : ''}`}>
             <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -131,7 +133,7 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Enter your password"
+              placeholder={t("auth.enterPassword")}
               autoComplete="current-password"
               disabled={loading}
               className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
@@ -155,7 +157,7 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
         {/* Forgot password */}
         <div className="flex justify-end">
           <Link href="/auth/reset-password" className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">
-            Forgot Password?
+            {t("auth.forgotPassword")}
           </Link>
         </div>
 
@@ -172,9 +174,9 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Signing in...
+                {t("common.loading")}
               </span>
-            ) : 'Sign In'}
+            ) : t("auth.signIn")}
           </button>
         </div>
 
@@ -185,21 +187,21 @@ export default function LoginFormModal({ onSuccess, onRegisterClick, onCancel }:
             onClick={() => onCancel ? onCancel() : router.push('/')}
             className="px-10 py-2 rounded-xl border border-gray-200 shadow-sm bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </form>
 
       {/* Divider + Register */}
       <div className="mt-3 pt-3 border-t border-gray-100 text-center">
-        <span className="text-sm text-gray-500 font-medium">Don&apos;t have an account? </span>
+        <span className="text-sm text-gray-500 font-medium">{t("auth.noAccount")} </span>
         {onRegisterClick ? (
           <button type="button" onClick={onRegisterClick} className="text-sm font-black text-blue-600 hover:text-blue-700 transition-colors">
-            Sign Up
+            {t("auth.signUp")}
           </button>
         ) : (
           <Link href="/auth/register" className="text-sm font-black text-blue-600 hover:text-blue-700 transition-colors">
-            Sign Up
+            {t("auth.signUp")}
           </Link>
         )}
       </div>
