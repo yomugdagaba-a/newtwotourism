@@ -41,14 +41,21 @@ async function initializeRedis() {
       clientOptions = {
         url: redisUrl,
         socket: {
-          connectTimeout: 8000,
+          connectTimeout: 10000,
+          keepAlive: 5000,
           tls: redisUrl.startsWith('rediss://'),
           rejectUnauthorized: false,
           reconnectStrategy: (retries) => {
-            if (retries > 3) return new Error('Redis max retries reached');
-            return Math.min(retries * 200, 2000);
+            if (retries > 10) {
+              console.warn('⚠️  Redis max retries reached - falling back to in-memory');
+              return new Error('Redis max retries reached');
+            }
+            const delay = Math.min(retries * 500, 3000);
+            console.log(`🔄 Redis retry ${retries} in ${delay}ms`);
+            return delay;
           },
         },
+        pingInterval: 60000, // Keep connection alive
       };
     } else {
       // Individual host/port/password vars
@@ -56,15 +63,22 @@ async function initializeRedis() {
         socket: {
           host: redisHost,
           port: parseInt(process.env.REDIS_PORT) || 6379,
-          connectTimeout: 8000,
+          connectTimeout: 10000,
+          keepAlive: 5000,
           tls: process.env.REDIS_TLS === 'true',
           rejectUnauthorized: false,
           reconnectStrategy: (retries) => {
-            if (retries > 3) return new Error('Redis max retries reached');
-            return Math.min(retries * 200, 2000);
+            if (retries > 10) {
+              console.warn('⚠️  Redis max retries reached - falling back to in-memory');
+              return new Error('Redis max retries reached');
+            }
+            const delay = Math.min(retries * 500, 3000);
+            console.log(`🔄 Redis retry ${retries} in ${delay}ms`);
+            return delay;
           },
         },
         password: process.env.REDIS_PASSWORD || undefined,
+        pingInterval: 60000, // Keep connection alive
       };
     }
 
