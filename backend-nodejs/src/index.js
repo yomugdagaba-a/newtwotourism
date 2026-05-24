@@ -217,7 +217,25 @@ const certPath = path.resolve(__dirname, '../certificates/localhost.pem');
 const keyPath = path.resolve(__dirname, '../certificates/localhost-key.pem');
 
 async function start() {
-  // Initialize Redis FIRST — rate-limit middleware reads Redis state at require() time
+  // Start HTTP server FIRST so Leapcell proxy can connect immediately
+  // (avoids 9800ms timeout during Redis/Prisma initialization)
+  let server;
+  if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    const httpsOptions = { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) };
+    server = https.createServer(httpsOptions, app);
+    attachWebSocketServer(server);
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`Backend running on: https://localhost:${PORT}`);
+    });
+  } else {
+    server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Backend running on: http://localhost:${PORT}`);
+      console.log(`Uploads directory: ${path.resolve(uploadsDir)}`);
+    });
+    attachWebSocketServer(server);
+  }
+
+  // Initialize Redis AFTER server is listening
   await initializeRedis();
 
   // Register global rate limiter AFTER Redis is ready
@@ -231,7 +249,6 @@ async function start() {
   try {
     const gmailUser = process.env.GMAIL_USER;
     const gmailPassword = process.env.GMAIL_APP_PASSWORD;
-    
     if (gmailUser && gmailPassword) {
       console.log(`✅ Email service ready (Gmail SMTP configured)`);
     } else {
@@ -239,21 +256,6 @@ async function start() {
     }
   } catch (smtpErr) {
     console.error(`❌ Email service check failed: ${smtpErr.message}`);
-  }
-
-  if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-    const httpsOptions = { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) };
-    const server = https.createServer(httpsOptions, app);
-    attachWebSocketServer(server);
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log(`Backend running on: https://localhost:${PORT}`);
-    });
-  } else {
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Backend running on: http://localhost:${PORT}`);
-      console.log(`Uploads directory: ${path.resolve(uploadsDir)}`);
-    });
-    attachWebSocketServer(server);
   }
 }
 
