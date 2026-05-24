@@ -247,15 +247,20 @@ async function start() {
 
   // Verify email service on startup
   try {
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPassword = process.env.GMAIL_APP_PASSWORD;
-    if (gmailUser && gmailPassword) {
-      console.log(`✅ Email service ready (Gmail SMTP configured)`);
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    const brevoSender = process.env.BREVO_SENDER_EMAIL;
+    
+    if (brevoApiKey && brevoSender) {
+      console.log(`✅ Email service ready (Brevo API configured)`);
+      console.log(`📧 Sender: ${brevoSender}`);
+    } else if (brevoApiKey) {
+      console.warn('⚠️  BREVO_API_KEY set but BREVO_SENDER_EMAIL missing');
     } else {
-      console.warn('⚠️  No email credentials set — emails will not be sent');
+      console.warn('⚠️  BREVO_API_KEY not set — emails will not be sent');
+      console.warn('   Get your API key from: https://app.brevo.com/settings/keys/api');
     }
-  } catch (smtpErr) {
-    console.error(`❌ Email service check failed: ${smtpErr.message}`);
+  } catch (err) {
+    console.error(`❌ Email service check failed: ${err.message}`);
   }
 }
 

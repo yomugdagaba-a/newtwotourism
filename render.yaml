@@ -27,10 +27,6 @@ services:
         value: 7h
       - key: FRONTEND_URL
         value: https://newtwotourism.vercel.app
-      - key: GMAIL_USER
-        sync: false # Set manually in Render dashboard
-      - key: GMAIL_APP_PASSWORD
-        sync: false # Set manually in Render dashboard
       - key: BREVO_API_KEY
         sync: false # Set manually - Get from https://app.brevo.com/settings/keys/api
       - key: BREVO_SENDER_EMAIL
