@@ -1,0 +1,92 @@
+services:
+  # Backend API Service
+  - type: web
+    name: tourism-backend
+    runtime: node
+    region: oregon # Change to your preferred region: oregon, frankfurt, singapore, etc.
+    plan: free # Change to starter, standard, pro, etc. as needed
+    branch: main
+    rootDir: backend-nodejs
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false # Set manually in Render dashboard
+      - key: DIRECT_URL
+        sync: false # Set manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true # Auto-generate secure secret
+      - key: JWT_EXPIRATION
+        value: 15m
+      - key: JWT_REFRESH_EXPIRATION
+        value: 7h
+      - key: FRONTEND_URL
+        value: https://newtwotourism.vercel.app
+      - key: GMAIL_USER
+        sync: false # Set manually in Render dashboard
+      - key: GMAIL_APP_PASSWORD
+        sync: false # Set manually in Render dashboard
+      - key: UPLOAD_DIR
+        value: /opt/render/project/src/uploads
+      - key: MAX_FILE_SIZE
+        value: 10485760
+      - key: MAX_FAILED_ATTEMPTS
+        value: 5
+      - key: LOCKOUT_DURATION_MINUTES
+        value: 10
+      - key: MAX_IP_ATTEMPTS_PER_HOUR
+        value: 100
+      - key: AUDIT_ENABLED
+        value: true
+      - key: AUDIT_RETENTION_DAYS
+        value: 90
+      - key: REDIS_HOST
+        sync: false # Set manually in Render dashboard
+      - key: REDIS_PORT
+        value: 6379
+      - key: REDIS_PASSWORD
+        sync: false # Set manually in Render dashboard
+      - key: REDIS_TLS
+        value: true
+      - key: RATE_LIMIT_GLOBAL_MAX
+        value: 1000
+      - key: RATE_LIMIT_LOGIN_MAX
+        value: 5
+      - key: RATE_LIMIT_REGISTER_MAX
+        value: 3
+      - key: RATE_LIMIT_PASSWORD_RESET_MAX
+        value: 3
+      - key: RATE_LIMIT_EMAIL_VERIFICATION_MAX
+        value: 5
+      - key: RATE_LIMIT_BOOKING_MAX
+        value: 10
+      - key: RATE_LIMIT_FILE_UPLOAD_MAX
+        value: 20
+      - key: RATE_LIMIT_RATING_MAX
+        value: 10
+      - key: RATE_LIMIT_ADMIN_MAX
+        value: 500
+      - key: SUPABASE_URL
+        sync: false # Set manually in Render dashboard
+      - key: SUPABASE_SERVICE_KEY
+        sync: false # Set manually in Render dashboard
+    
+    # Persistent disk for file uploads
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
+
+# Optional: Redis service (if you want to host Redis on Render instead of external service)
+# Uncomment if needed:
+# - type: redis
+#   name: tourism-redis
+#   region: oregon
+#   plan: free
+#   maxmemoryPolicy: allkeys-lru
+#   ipAllowList: [] # Empty means accessible from all Render services
