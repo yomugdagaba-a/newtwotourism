@@ -10,14 +10,20 @@ class EmailBrevoService {
   _initializeClient() {
     const apiKey = process.env.BREVO_API_KEY;
     if (!apiKey) {
-      console.warn('⚠️  BREVO_API_KEY not set — emails will not be sent');
+      console.error('❌ BREVO_API_KEY not set — emails will not be sent');
+      console.error('   Get your API key from: https://app.brevo.com/settings/keys/api');
       return;
     }
 
-    this.client = SibApiV3Sdk.ApiClient.instance;
-    this.client.authentications['api-key'].apiKey = apiKey;
-    this.apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-    console.log('✅ Brevo email service initialized');
+    try {
+      this.client = SibApiV3Sdk.ApiClient.instance;
+      this.client.authentications['api-key'].apiKey = apiKey;
+      this.apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+      console.log('✅ Brevo email service initialized successfully');
+      console.log(`📧 Sender: ${process.env.BREVO_SENDER_EMAIL || 'not set'}`);
+    } catch (error) {
+      console.error('❌ Failed to initialize Brevo:', error.message);
+    }
   }
 
   _getSenderInfo() {
