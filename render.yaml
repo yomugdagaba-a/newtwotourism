@@ -31,6 +31,12 @@ services:
         sync: false # Set manually in Render dashboard
       - key: GMAIL_APP_PASSWORD
         sync: false # Set manually in Render dashboard
+      - key: BREVO_API_KEY
+        sync: false # Set manually - Get from https://app.brevo.com/settings/keys/api
+      - key: BREVO_SENDER_EMAIL
+        sync: false # Set manually - Must be verified in Brevo
+      - key: BREVO_SENDER_NAME
+        value: North Wollo Tourism
       - key: UPLOAD_DIR
         value: /opt/render/project/src/uploads
       - key: MAX_FILE_SIZE

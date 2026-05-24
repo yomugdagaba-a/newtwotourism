@@ -1,5 +1,5 @@
 const { bookingRepository, bookingMessageRepository, authRepository } = require('../repositories');
-const emailService = require('./email-gmail.service');
+const emailService = require('./email.service');
 const sseService = require('./sse.service');
 const wsService = require('./ws.service');
 

@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { userRepository, authRepository, roleRepository } = require('../repositories');
-const emailService = require('./email-gmail.service');
+const emailService = require('./email.service');
 const emailValidator = require('./email-validator.service');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';

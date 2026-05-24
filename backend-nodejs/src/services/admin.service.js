@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { userRepository, roleRepository, bookingRepository } = require('../repositories');
-const emailService = require('./email-gmail.service');
+const emailService = require('./email.service');
 const prisma = require('../lib/prisma');
 
 class AdminService {
