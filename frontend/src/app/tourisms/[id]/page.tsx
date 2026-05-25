@@ -558,7 +558,7 @@ export default function TourismDetailPage() {
 
                 {/* Card 3 — Visit Duration */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("tourism.bestTime")}:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("tourism.visitDuration")}:</h3>
                   <div className="relative">
                     <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{translatedVisitTime || t("common.loading")}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
@@ -572,7 +572,7 @@ export default function TourismDetailPage() {
 
                 {/* Card 4 — Safety Info */}
                 <div className="rounded-xl p-3 bg-white border border-gray-100 shadow-sm">
-                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("common.info")}:</h3>
+                  <h3 className="text-gray-900 font-black text-sm mb-1">{t("tourism.safetyInfo")}:</h3>
                   <div className="relative">
                     <p className="text-gray-600 text-xs leading-relaxed line-clamp-4">{translatedSafety || detail.peaceInfo || t("tourism.noDescription")}</p>
                     <span className="absolute bottom-0 right-0 flex items-end">
